@@ -1,6 +1,6 @@
 # HammerTrack Pro 2
 
-HammerTrack Pro 2 is a Windows desktop application for running auctions. It supports global buyer identities with auction-specific bidder-number registrations, global consignor management with per-auction participation, Auction Setup and selection, auction-owned lots, auction-scoped commercial terms and dashboard totals, database backup, and a keyboard-oriented live-auction screen. Standard lots close after one sale; pass-out mode permits multiple buyer records against one lot until the operator closes it.
+HammerTrack Pro 2 is a Windows desktop application for running auctions. It supports global buyer identities with auction-specific bidder-number registrations, global consignor management with per-auction participation, Auction Setup and selection, auction-owned lots, auction-scoped commercial terms, cashier invoices and payments, dashboard totals, database backup, and a keyboard-oriented live-auction screen. Standard lots close after one sale; pass-out mode permits multiple buyer records against one lot until the operator closes it.
 
 ## Technology and structure
 
@@ -10,7 +10,7 @@ HammerTrack Pro 2 is a Windows desktop application for running auctions. It supp
 - `Models/` contains persisted/domain data shapes.
 - `Services/` contains validation, auction operations, database location, and SQLite persistence.
 - `ViewModels/` contains functional presentation state/commands for incrementally adopted MVVM modules.
-- `Forms/` contains the main administration/dashboard UI, Auction Setup, consignor management, and live-auction UI.
+- `Forms/` contains the main administration/dashboard UI, Auction Setup, consignor management, Cashier, and live-auction UI.
 
 The app is intentionally layered as `Forms -> IAuctionService -> IDataStore -> SQLite`. Keep UI code from issuing SQL directly.
 
@@ -62,4 +62,4 @@ The folder is created when possible. In-app backups are written to a `Backups` d
 
 ## Current boundaries
 
-There is no CI configuration, packaging/installer, authentication model, auction reopening, or cashier workflow. Closing an auction is audited and locks operational changes. Standard xUnit tests are in `HammerTrackPro2.Tests`; after restore, run `dotnet test .\HammerTrackPro2.sln`. See the roadmap, backlog, and current sprint for approved boundaries and proposed next steps.
+There is no CI configuration, packaging/installer, authentication model, or auction reopening. Cashier supports current-auction bidder lookup, itemized invoices, partial/split cash/check/card payments, cash change, status updates, and Windows invoice printing. Closing an auction is audited and locks new payments while still allowing invoice viewing and reprinting. Standard xUnit tests are in `HammerTrackPro2.Tests`; after restore, run `dotnet test .\HammerTrackPro2.sln`.

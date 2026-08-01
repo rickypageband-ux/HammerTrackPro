@@ -10,9 +10,9 @@ This is the approved release sequence. Do not pull work forward from a later rel
 
 ## Version 0.6
 
-- [ ] Cashier
-- [ ] Payments
-- [ ] Invoice printing
+- [x] Cashier
+- [x] Payments
+- [x] Invoice printing
 
 ## Version 0.7
 
@@ -42,4 +42,4 @@ This is the approved release sequence. Do not pull work forward from a later rel
 
 ## Scope rule
 
-Sprint 1 stops at Version 0.5. Cashier, Reports, Settlements, and all other later-release items remain out of scope until separately approved.
+Version 0.6 Cashier, Payments, and Invoice printing are implemented. Reports, Settlements, and all later-release items remain out of scope until separately approved.

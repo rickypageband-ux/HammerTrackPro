@@ -20,6 +20,8 @@ public sealed class Auction
     public decimal DefaultConsignorCommissionPercent { get; set; }
     [DisplayName("Sales Tax %")]
     public decimal SalesTaxPercent { get; set; }
+    [DisplayName("Sales Tax Applies To")]
+    public SalesTaxBasis SalesTaxBasis { get; set; } = SalesTaxBasis.HammerOnly;
     public string InvoiceFooter { get; set; } = string.Empty;
     public string ReceiptFooter { get; set; } = string.Empty;
     [DisplayName("Auction Status")]
@@ -29,3 +31,5 @@ public sealed class Auction
 
     public string DisplayText => $"{AuctionNumber} - {AuctionName}";
 }
+
+public enum SalesTaxBasis { None, HammerOnly, HammerPlusBuyerPremium }

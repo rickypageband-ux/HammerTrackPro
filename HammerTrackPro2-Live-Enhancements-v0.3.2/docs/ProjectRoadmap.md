@@ -13,6 +13,7 @@ HammerTrack Pro 2 is a Windows auction-clerking application designed to keep bid
 - Auction-owned lots with per-auction lot-number uniqueness
 - Persisted per-auction commercial terms; no hard-coded runtime premium/commission/tax values
 - Current-auction dashboard counts, gross sales, average sale price, and recent activity
+- Current-auction Cashier with persistent invoices, partial/split payments, cash change, and invoice printing
 - Standard and multi-buyer pass-out sale recording
 - Last-sale undo, lot closing, queued next lot, per-lot auctioneer notes, fullscreen mode, hotkeys, and confirmation sounds
 - SQLite initialization/upgrade, audit log writes, legacy JSON import, WAL mode, and in-app backup
@@ -30,8 +31,7 @@ HammerTrack Pro 2 is a Windows auction-clerking application designed to keep bid
 
 ### Phase 2 — Complete the auction workflow
 
-- Define and implement cashier/payment behavior (currently shown as “Coming Next”).
-- Decide whether sales need taxes, buyer premiums, payment methods, receipts, refunds/voids, and settlement reporting.
+- Define refund/void authorization, receipt behavior, and external payment processing only when separately approved.
 - Extend the established Auction scoping to every future report and financial workflow.
 - Add exports and operational reports only after their required fields and accounting rules are approved.
 

@@ -1,25 +1,30 @@
 # Current Sprint
 
-## Sprint 2 — Auction Setup
+## Cashier module
 
-Status: implemented; pending final verification/commit.
+Status: implemented; pending final verification and feature commit.
 
-The sprint delivers functional architecture, persistence, business rules, tests, and an unstyled Auction Setup screen. Cashier, payments, reports, settlements, printing, and UI styling are explicitly out of scope.
+## Scope and acceptance criteria
 
-## Acceptance criteria
+- Look up a Buyer by the current auction's `BidderNumber` registration.
+- Display all purchases for that AuctionBidder and no purchases from other auctions.
+- Maintain one persistent Invoice per AuctionBidder with a stable internal `InvoiceId` and display number `{AuctionNumber}-{BidderNumber:D4}`.
+- Calculate buyer premium from the Invoice's persisted Auction terms.
+- Calculate sales tax using the Auction's explicit basis: none, hammer only, or hammer plus buyer premium.
+- Record append-only cash, check, and card Payment rows; a split payment is multiple rows in one cashier submission.
+- Allow partial payments. Reject non-cash overpayment. Apply cash only to the remaining balance and record change due.
+- Update Invoice status to `Unpaid`, `Partially Paid`, or `Paid`; synchronize the retained legacy `Sales.Paid` flag only when the complete invoice is paid.
+- Print an itemized invoice through the Windows print dialog, including auction/buyer identity, purchases, premium, tax, payments, balance, status, and invoice footer.
+- Closed auctions allow invoice viewing/reprinting but reject new payments.
+- Preserve legacy tables/fields and upgrade existing databases through schema version 9.
+- Add tests for tax modes, lookup, calculations, split/partial payment behavior, change, overpayment rejection, migration, and financial guards.
 
-- Create, edit, load, select, close, and duplicate auction configuration.
-- Persist unique text `AuctionNumber`, date/time, location, staff, commercial terms, footers, status, and creation date.
-- Read buyer premium, consignor commission, and tax from the selected Auction record.
-- Closing writes an audit event and locks operational mutations. Reopening is not available; `IAuctionSetupService.ReopenAuction` is only the future authorization hook.
-- `AuctionConsignors` links global consignor identities to auctions. “Copy Consignors” copies only links, never master consignor rows.
-- `AuctionLots` owns lots by `AuctionId`; `(AuctionId, LotNumber)` is unique so numbers can repeat across auctions.
-- Global `Buyers` are linked through auction-specific `AuctionBidders`; bidder numbers are unique only within an auction.
-- Current registration lists/counts, dashboard/report-style queries, live auction data, sales, and undo are scoped to the current auction.
-- Schema version 8 upgrades existing databases without deleting legacy `Bidders`, `Lots`, Settings, or other fields.
-- Solution builds with zero errors/warnings and all tests pass before the feature commit.
+## Out of scope
+
+- Refunds, voids, card processing gateways, receipt printing, user authentication, reports, settlements, check printing, and UI styling.
 
 ## Remaining decisions
 
-- Authorization and roles for a future reopen operation.
+- Refund/void authorization and audit workflow.
+- Whether payment references require method-specific formatting or validation.
 - Supported multi-workstation topology and recovery testing.

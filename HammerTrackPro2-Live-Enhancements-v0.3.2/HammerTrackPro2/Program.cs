@@ -16,7 +16,8 @@ internal static class Program
             IDataStore dataStore = new SqliteDataStore(databasePath);
             IAuctionService auctionService = new AuctionService(dataStore);
             var consignorService = new ConsignorService((IConsignorRepository)dataStore);
-            Application.Run(new MainForm(auctionService, consignorService));
+            ICashierService cashierService = new CashierService(dataStore);
+            Application.Run(new MainForm(auctionService, consignorService, cashierService));
         }
         catch (Exception ex)
         {

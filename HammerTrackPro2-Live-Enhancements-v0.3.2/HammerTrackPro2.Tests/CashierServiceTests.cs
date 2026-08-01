@@ -1,0 +1,83 @@
+using HammerTrackPro2.Models;
+using HammerTrackPro2.Services;
+using Microsoft.Data.Sqlite;
+
+namespace HammerTrackPro2.Tests;
+
+public sealed class CashierServiceTests
+{
+    [Theory]
+    [InlineData(SalesTaxBasis.None, 110)]
+    [InlineData(SalesTaxBasis.HammerOnly, 115)]
+    [InlineData(SalesTaxBasis.HammerPlusBuyerPremium, 115.5)]
+    public void Invoice_UsesCurrentAuctionCommercialTerms(SalesTaxBasis basis, decimal expectedTotal)
+    {
+        using var database=TemporaryDatabase.Create();
+        var (store,cashier)=CreateAccount(database.Path,basis);
+        var invoice=cashier.LoadInvoice(25);
+        Assert.Equal(100m,invoice.HammerSubtotal); Assert.Equal(10m,invoice.BuyerPremiumAmount);
+        Assert.Equal(expectedTotal,invoice.TotalAmount); Assert.Equal(expectedTotal,invoice.BalanceDue);
+        Assert.Equal("A-001-0025",invoice.FormattedInvoiceNumber);
+        Assert.Equal("Unpaid",invoice.Status);
+        Assert.Single(invoice.Purchases);
+    }
+
+    [Fact]
+    public void Payments_SupportPartialSplitAndCashChange_AndRejectNonCashOverpayment()
+    {
+        using var database=TemporaryDatabase.Create();
+        var (store,cashier)=CreateAccount(database.Path,SalesTaxBasis.HammerPlusBuyerPremium);
+        var partial=cashier.RecordPayments(25,[new PaymentRequest { Method=PaymentMethod.Check,Amount=50,Reference="123" }]);
+        Assert.Equal("Partially Paid",partial.Status); Assert.Equal(65.5m,partial.BalanceDue);
+        Assert.Throws<InvalidOperationException>(()=>cashier.RecordPayments(25,[new PaymentRequest { Method=PaymentMethod.Card,Amount=66 }]));
+
+        var paid=cashier.RecordPayments(25,[new PaymentRequest { Method=PaymentMethod.Card,Amount=20 },new PaymentRequest { Method=PaymentMethod.Cash,Amount=50 }]);
+        Assert.Equal("Paid",paid.Status); Assert.Equal(0,paid.BalanceDue); Assert.Equal(4.5m,paid.Payments.Last().ChangeDue);
+        Assert.Equal("3",Scalar(database.Path,"SELECT COUNT(*) FROM Payments;"));
+        Assert.Equal("1",Scalar(database.Path,"SELECT Paid FROM Sales LIMIT 1;"));
+        var saleId=long.Parse(Scalar(database.Path,"SELECT Id FROM Sales LIMIT 1;")!);
+        Assert.Throws<InvalidOperationException>(()=>store.UndoLastSale(saleId));
+    }
+
+    [Fact]
+    public void UnpaidInvoice_RefreshesTermsFromCurrentAuction()
+    {
+        using var database=TemporaryDatabase.Create(); var (store,cashier)=CreateAccount(database.Path,SalesTaxBasis.HammerOnly);
+        var auction=store.GetCurrentAuction(); auction.BuyerPremiumPercent=20; auction.SalesTaxPercent=0; store.SaveAuction(auction);
+        var invoice=cashier.LoadInvoice(25);
+        Assert.Equal(20m,invoice.BuyerPremiumAmount); Assert.Equal(120m,invoice.TotalAmount);
+    }
+
+    [Fact]
+    public void EmptyInvoice_DoesNotPreventRemovingAuctionRegistration()
+    {
+        using var database=TemporaryDatabase.Create(); var store=new SqliteDataStore(database.Path); var auction=store.GetCurrentAuction();
+        store.SaveBidder(new AuctionBidder { AuctionId=auction.AuctionId,BidderNumber=9,FirstName="No",LastName="Purchases" },null);
+        store.DeleteBidder(9);
+        Assert.Empty(store.Load().Bidders); Assert.Single(store.GetBuyers());
+    }
+
+    private static (SqliteDataStore Store,CashierService Cashier) CreateAccount(string path,SalesTaxBasis basis)
+    {
+        var store=new SqliteDataStore(path); var auction=store.GetCurrentAuction();
+        auction.AuctionNumber="A-001"; auction.AuctionName="Test Auction"; auction.BuyerPremiumPercent=10; auction.SalesTaxPercent=5; auction.SalesTaxBasis=basis;
+        store.SaveAuction(auction);
+        store.SaveBidder(new AuctionBidder { AuctionId=auction.AuctionId,BidderNumber=25,FirstName="Alex",LastName="Buyer" },null);
+        var consignor=store.GetConsignors().First();
+        store.SaveLot(new AuctionLot { AuctionId=auction.AuctionId,ConsignorId=consignor.ConsignorId,LotNumber=1,Description="Tractor" },null);
+        store.RecordSale(1,25,100);
+        return (store,new CashierService(store));
+    }
+
+    private static string? Scalar(string path,string sql)
+    {
+        using var connection=new SqliteConnection($"Data Source={path}"); connection.Open(); using var command=connection.CreateCommand(); command.CommandText=sql; return command.ExecuteScalar()?.ToString();
+    }
+    private sealed class TemporaryDatabase : IDisposable
+    {
+        private readonly string _folder; private TemporaryDatabase(string folder) { _folder=folder; Path=System.IO.Path.Combine(folder,"test.db"); }
+        public string Path { get; }
+        public static TemporaryDatabase Create() { var folder=System.IO.Path.Combine(System.IO.Path.GetTempPath(),"HammerTrackPro2.Tests",Guid.NewGuid().ToString("N")); Directory.CreateDirectory(folder); return new(folder); }
+        public void Dispose() { SqliteConnection.ClearAllPools(); Directory.Delete(_folder,true); }
+    }
+}

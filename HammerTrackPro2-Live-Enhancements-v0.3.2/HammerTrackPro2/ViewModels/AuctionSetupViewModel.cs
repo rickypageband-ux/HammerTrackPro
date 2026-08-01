@@ -64,6 +64,7 @@ public sealed class AuctionSetupViewModel
             BuyerPremiumPercent = source.BuyerPremiumPercent,
             DefaultConsignorCommissionPercent = source.DefaultConsignorCommissionPercent,
             SalesTaxPercent = source.SalesTaxPercent, InvoiceFooter = source.InvoiceFooter, ReceiptFooter = source.ReceiptFooter,
+            SalesTaxBasis = source.SalesTaxBasis,
             Status = "Setup"
         };
         CopyConsignors = false;

@@ -17,6 +17,7 @@ These rules are mandatory for all future work and override less-specific guidanc
 9. **Design core relationships for durable scale.** Assume hundreds of auctions, thousands of consignors, tens of thousands of buyers, and hundreds of thousands of lots. Do not prematurely optimize, but require foreign keys for Auction/Consignor/Lot ownership and indexes for identifiers, search fields, foreign-key joins, auction status/date, and `(AuctionId, LotNumber)` lookup paths.
 10. **Keep buyers global and registrations auction-specific.** `Buyer` is the durable person identity. `AuctionBidder` assigns a `BidderNumber` within one auction; uniqueness is `(AuctionId, BidderNumber)`, never global. Do not duplicate a Buyer merely to register that person in another auction.
 11. **Scope operational views and reports to Current Auction.** Registration lists/counts, lots, sales, dashboard totals, undo, and all future reports must resolve through the selected Auction unless a screen is explicitly a cross-auction history view.
+12. **Keep cashier terms and records auditable.** Invoice premium and tax rules come from the persisted Auction. Tax basis is explicitly `None`, `HammerOnly`, or `HammerPlusBuyerPremium`. Keep one Invoice per AuctionBidder and append Payments separately; do not overwrite payment history or infer financial terms from global settings.
 
 If a requested change conflicts with one of these rules, stop and obtain a maintainer decision rather than weakening the rule silently.
 

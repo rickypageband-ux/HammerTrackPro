@@ -8,6 +8,7 @@ public sealed class MainForm : Form
 {
     private readonly IAuctionService _service;
     private readonly ConsignorService _consignorService;
+    private readonly ICashierService _cashierService;
     private readonly AuctionSetupViewModel _auctionSetup;
     private AppData _data;
 
@@ -58,10 +59,11 @@ public sealed class MainForm : Form
     private int? _editingBidderNumber;
     private int? _editingLotNumber;
 
-    public MainForm(IAuctionService service, ConsignorService consignorService)
+    public MainForm(IAuctionService service, ConsignorService consignorService, ICashierService cashierService)
     {
         _service = service ?? throw new ArgumentNullException(nameof(service));
         _consignorService = consignorService ?? throw new ArgumentNullException(nameof(consignorService));
+        _cashierService = cashierService ?? throw new ArgumentNullException(nameof(cashierService));
         _auctionSetup = new AuctionSetupViewModel(_service);
         _auctionSetup.Load();
         _data = _service.Load();
@@ -248,6 +250,7 @@ public sealed class MainForm : Form
         buttons.Controls.Add(MakeDashboardButton("Open Live Auction", (_, _) => OpenLiveAuction()), 0, 2);
         buttons.Controls.Add(MakeDashboardButton("Manage Consignors", (_, _) => OpenConsignors()), 1, 2);
         buttons.Controls.Add(MakeDashboardButton("Auction Setup", (_, _) => OpenAuctionSetup()), 0, 3);
+        buttons.Controls.Add(MakeDashboardButton("Cashier", (_, _) => OpenCashier()), 1, 3);
         group.Controls.Add(buttons);
         return group;
     }
@@ -503,6 +506,12 @@ public sealed class MainForm : Form
         setup.ShowDialog(this);
         _auctionSetup.Load();
         RefreshAll();
+    }
+
+    private void OpenCashier()
+    {
+        using var cashier=new CashierForm(new CashierViewModel(_cashierService),_service);
+        cashier.ShowDialog(this); RefreshAll();
     }
 
     private static void ShowUpcoming(string moduleName)

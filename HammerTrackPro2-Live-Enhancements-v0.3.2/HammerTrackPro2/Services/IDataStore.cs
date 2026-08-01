@@ -6,6 +6,8 @@ public interface IDataStore
 {
     AppData Load();
     IReadOnlyList<Buyer> GetBuyers();
+    Invoice LoadCashierInvoice(int bidderNumber);
+    Invoice RecordInvoicePayments(Invoice invoice, IReadOnlyList<Payment> payments);
     void SaveBidder(AuctionBidder bidder, int? originalBidderNumber);
     void DeleteBidder(int bidderNumber);
     void SaveLot(AuctionLot lot, int? originalLotNumber);
