@@ -9,6 +9,36 @@ public sealed class CashierService : ICashierService
     public Auction GetCurrentAuction() => _dataStore.GetCurrentAuction();
     public Task<bool> CheckConnectionAsync(CancellationToken cancellationToken=default) => Task.FromResult(true);
 
+    public ConsignorSettlement LoadConsignorSettlement(int consignorNumber)
+    {
+        if(consignorNumber<=0) throw new InvalidOperationException("Enter a valid consignor number.");
+        var settlement=_dataStore.LoadConsignorSettlement(consignorNumber);
+        Recalculate(settlement);
+        return settlement;
+    }
+
+    public ConsignorSettlement RecordConsignorPayout(int consignorNumber,ConsignorPayoutRequest payout)
+    {
+        ArgumentNullException.ThrowIfNull(payout);
+        var auction=_dataStore.GetCurrentAuction();
+        if(!string.Equals(auction.Status,"Closed",StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Consignors can be paid only after the current auction is closed.");
+        var settlement=LoadConsignorSettlement(consignorNumber);
+        if(settlement.BalanceDue<=0) throw new InvalidOperationException("This consignor settlement is already paid.");
+        if(payout.Amount<=0) throw new InvalidOperationException("The payout amount must be greater than zero.");
+        if(payout.Amount>settlement.BalanceDue) throw new InvalidOperationException("A consignor payout cannot exceed the settlement balance.");
+        if(payout.Method==ConsignorPayoutMethod.Check&&settlement.HoldCheck)
+            throw new InvalidOperationException("This consignor is marked Hold Check. Clear Hold Check before issuing a check.");
+        if(payout.Method is ConsignorPayoutMethod.Check or ConsignorPayoutMethod.Ach && string.IsNullOrWhiteSpace(payout.Reference))
+            throw new InvalidOperationException($"Enter a reference for the {payout.Method} payout.");
+        var updated=_dataStore.RecordConsignorPayout(settlement,new ConsignorPayout
+        {
+            Method=payout.Method,Amount=Money(payout.Amount),Reference=payout.Reference?.Trim()??string.Empty
+        });
+        Recalculate(updated);
+        return updated;
+    }
+
     public Invoice LoadInvoice(int bidderNumber)
     {
         if (bidderNumber <= 0) throw new InvalidOperationException("Enter a valid bidder number.");
@@ -67,6 +97,16 @@ public sealed class CashierService : ICashierService
         invoice.AmountPaid = Money(invoice.Payments.Sum(item => item.AppliedAmount));
         invoice.BalanceDue = Math.Max(0, invoice.TotalAmount-invoice.AmountPaid);
         invoice.Status = invoice.BalanceDue == 0 ? "Paid" : invoice.AmountPaid > 0 ? "Partially Paid" : "Unpaid";
+    }
+
+    internal static void Recalculate(ConsignorSettlement settlement)
+    {
+        settlement.HammerSubtotal=Money(settlement.Lots.Sum(item=>item.HammerPrice));
+        settlement.CommissionAmount=Money(settlement.HammerSubtotal*settlement.CommissionPercent/100m);
+        settlement.NetAmount=settlement.HammerSubtotal-settlement.CommissionAmount;
+        settlement.AmountPaid=Money(settlement.Payouts.Sum(item=>item.Amount));
+        settlement.BalanceDue=Math.Max(0,settlement.NetAmount-settlement.AmountPaid);
+        settlement.Status=settlement.BalanceDue==0?"Paid":settlement.AmountPaid>0?"Partially Paid":"Unpaid";
     }
 
     private static decimal Money(decimal value) => decimal.Round(value, 2, MidpointRounding.AwayFromZero);

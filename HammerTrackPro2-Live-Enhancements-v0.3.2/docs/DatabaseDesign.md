@@ -6,7 +6,7 @@ HammerTrack Pro uses SQLite through `SqliteDataStore` on the live-auction host o
 
 The supported two-PC topology is `Cashier -> paired HTTPS API -> live-auction host -> local SQLite`. The cashier pins the host certificate fingerprint, sends a high-entropy pairing key, and never receives a database path or SQL access. Cashier writes execute through the same transactional service/data-store path as local writes. A disconnected cashier retries health checks; the live-auction host continues locally.
 
-## Schema version 9
+## Schema version 10
 
 ### `Auctions`
 
@@ -43,6 +43,16 @@ AuditLog remains append-only by convention and now includes auction save/select/
 Invoices has an auto-increment `InvoiceId`, unique `AuctionBidderId`, AuctionId, snapshotted premium/tax percentage and tax basis, calculated hammer/premium/tax/total values, status, and UTC timestamps. The operator-facing invoice number is formatted from AuctionNumber and BidderNumber; it is not another database identity.
 
 Payments is append-only for the current feature: `PaymentId`, InvoiceId, method, tendered amount, applied amount, change due, optional reference, and creation UTC. Amounts remain invariant decimal text. Indexes cover invoice joins and payment time. Split tender is represented by multiple Payment rows written in one transaction.
+
+### `ConsignorSettlements` and `ConsignorPayouts`
+
+`ConsignorSettlements` has one row per `(AuctionId, ConsignorId)`, foreign keys to the auction and global consignor, snapshotted commission percentage and calculated hammer/commission/net amounts, status, and UTC timestamps. Commission precedence is positive consignor override, positive consignor default, then current-auction default. Terms remain refreshable until the first payout and are then retained for financial history.
+
+`ConsignorPayouts` is an append-only disbursement ledger containing method (`Check`, `Cash`, or `Ach`), amount, reference, and creation UTC. Payouts are allowed only after auction closure, cannot exceed the settlement balance, and are audited transactionally. Check payouts respect `HoldCheck`; check and ACH require a reference. Indexes cover auction/consignor/status settlement lookup and payout joins/time.
+
+## Migration 10
+
+Migration 10 additively creates `ConsignorSettlements` and `ConsignorPayouts`, their foreign keys and indexes, and advances `DatabaseSchemaVersion` without altering existing invoice, payment, sale, auction, lot, or consignor data. Rollback is restore-from-backup; existing version-9 data remains readable and unchanged apart from the new empty settlement tables.
 
 ## Migrations 7 and 8
 

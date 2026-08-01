@@ -21,6 +21,13 @@ public sealed class CashierForm : Form
     private readonly ComboBox _method=new() { DropDownStyle=ComboBoxStyle.DropDownList,DataSource=Enum.GetValues<PaymentMethod>() };
     private readonly NumericUpDown _amount=new() { DecimalPlaces=2,Maximum=100000000 };
     private readonly TextBox _reference=new();
+    private readonly NumericUpDown _consignorNumber=new() { Minimum=1,Maximum=999999 };
+    private readonly Label _settlementHeading=new() { AutoSize=true };
+    private readonly DataGridView _settlementLots=new() { Dock=DockStyle.Fill,ReadOnly=true,AutoGenerateColumns=true,AllowUserToAddRows=false };
+    private readonly DataGridView _payouts=new() { Dock=DockStyle.Fill,ReadOnly=true,AutoGenerateColumns=true,AllowUserToAddRows=false };
+    private readonly ComboBox _payoutMethod=new() { DropDownStyle=ComboBoxStyle.DropDownList,DataSource=Enum.GetValues<ConsignorPayoutMethod>() };
+    private readonly NumericUpDown _payoutAmount=new() { DecimalPlaces=2,Maximum=100000000 };
+    private readonly TextBox _payoutReference=new() { Width=160 };
 
     public CashierForm(CashierViewModel viewModel,ICashierService cashierService,WorkstationConfiguration? configuration=null)
     {
@@ -38,10 +45,15 @@ public sealed class CashierForm : Form
         paymentEntry.Controls.Add(Button("Record Payments",RecordPayments));
         var tabs=new TabControl { Dock=DockStyle.Fill };
         tabs.TabPages.Add(Page("Purchases",_purchases)); tabs.TabPages.Add(Page("Payment History",_payments)); tabs.TabPages.Add(Page("Pending Split Payments",_pending));
-        var layout=new TableLayoutPanel { Dock=DockStyle.Fill,RowCount=5,ColumnCount=1 };
+        tabs.TabPages.Add(Page("Consignor Lots",_settlementLots)); tabs.TabPages.Add(Page("Consignor Payouts",_payouts));
+        var sellerEntry=new FlowLayoutPanel { Dock=DockStyle.Fill,AutoSize=true };
+        sellerEntry.Controls.Add(new Label { Text="Consignor Number",AutoSize=true }); sellerEntry.Controls.Add(_consignorNumber); sellerEntry.Controls.Add(Button("Lookup Consignor",LookupConsignor)); sellerEntry.Controls.Add(Button("Print Settlement",PrintSettlement));
+        sellerEntry.Controls.Add(new Label { Text="Payout Method",AutoSize=true }); sellerEntry.Controls.Add(_payoutMethod); sellerEntry.Controls.Add(new Label { Text="Amount",AutoSize=true }); sellerEntry.Controls.Add(_payoutAmount);
+        sellerEntry.Controls.Add(new Label { Text="Check/ACH Reference",AutoSize=true }); sellerEntry.Controls.Add(_payoutReference); sellerEntry.Controls.Add(Button("Record Consignor Payout",RecordConsignorPayout));
+        var layout=new TableLayoutPanel { Dock=DockStyle.Fill,RowCount=7,ColumnCount=1 };
         layout.RowStyles.Add(new RowStyle(SizeType.AutoSize)); layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize)); layout.RowStyles.Add(new RowStyle(SizeType.Percent,100)); layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        layout.Controls.Add(lookup,0,0); layout.Controls.Add(_heading,0,1); layout.Controls.Add(_totals,0,2); layout.Controls.Add(tabs,0,3); layout.Controls.Add(paymentEntry,0,4);
+        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize)); layout.RowStyles.Add(new RowStyle(SizeType.AutoSize)); layout.RowStyles.Add(new RowStyle(SizeType.Percent,100)); layout.RowStyles.Add(new RowStyle(SizeType.AutoSize)); layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        layout.Controls.Add(lookup,0,0); layout.Controls.Add(_heading,0,1); layout.Controls.Add(_totals,0,2); layout.Controls.Add(_settlementHeading,0,3); layout.Controls.Add(tabs,0,4); layout.Controls.Add(paymentEntry,0,5); layout.Controls.Add(sellerEntry,0,6);
         Controls.Add(layout);
         Shown+=async(_,_)=>await CheckConnection(); _connectionTimer.Tick+=async(_,_)=>await CheckConnection(); _connectionTimer.Start();
         FormClosed+=(_,_)=>{_connectionTimer.Stop();_connectionTimer.Dispose();};
@@ -53,12 +65,25 @@ public sealed class CashierForm : Form
     private void AddPayment() { _viewModel.AddPayment((PaymentMethod)_method.SelectedItem!,_amount.Value,_reference.Text); _amount.Value=0; _reference.Clear(); RefreshInvoice(); }
     private void RemovePayment() { if (_pending.CurrentRow?.DataBoundItem is PaymentRequest payment) _viewModel.RemovePayment(payment); RefreshInvoice(); }
     private void RecordPayments() { _viewModel.RecordPayments(); RefreshInvoice(); }
+    private void LookupConsignor() { _viewModel.LookupConsignor(Decimal.ToInt32(_consignorNumber.Value)); RefreshSettlement(); }
+    private void RecordConsignorPayout()
+    {
+        var settlement=_viewModel.Settlement??throw new InvalidOperationException("Look up a consignor before recording a payout.");
+        if(MessageBox.Show($"Record a {_payoutMethod.SelectedItem} payout of {_payoutAmount.Value:C2} to {settlement.ConsignorName}?","Confirm Consignor Payout",MessageBoxButtons.YesNo,MessageBoxIcon.Warning)!=DialogResult.Yes)return;
+        _viewModel.RecordConsignorPayout((ConsignorPayoutMethod)_payoutMethod.SelectedItem!,_payoutAmount.Value,_payoutReference.Text); _payoutAmount.Value=0; _payoutReference.Clear(); RefreshSettlement();
+    }
     private void PrintInvoice()
     {
         var invoice=_viewModel.Invoice ?? throw new InvalidOperationException("Look up a bidder before printing.");
         using var document=new InvoicePrinter().CreateDocument(invoice,_cashierService.GetCurrentAuction());
         using var dialog=new PrintDialog { Document=document,UseEXDialog=true };
         if (dialog.ShowDialog(this)==DialogResult.OK) document.Print();
+    }
+    private void PrintSettlement()
+    {
+        var settlement=_viewModel.Settlement??throw new InvalidOperationException("Look up a consignor before printing a settlement.");
+        using var document=new SettlementPrinter().CreateDocument(settlement,_cashierService.GetCurrentAuction()); using var dialog=new PrintDialog { Document=document,UseEXDialog=true };
+        if(dialog.ShowDialog(this)==DialogResult.OK)document.Print();
     }
     private async Task CheckConnection()
     {
@@ -84,6 +109,12 @@ public sealed class CashierForm : Form
         _heading.Text=$"Invoice {invoice.FormattedInvoiceNumber} — {invoice.BuyerName} — {invoice.Status}";
         _totals.Text=$"Hammer {invoice.HammerSubtotal:C2}   Premium {invoice.BuyerPremiumAmount:C2}   Tax {invoice.SalesTaxAmount:C2}   Total {invoice.TotalAmount:C2}   Paid {invoice.AmountPaid:C2}   Balance {invoice.BalanceDue:C2}";
         _purchases.DataSource=invoice.Purchases.ToList(); _payments.DataSource=invoice.Payments.ToList(); _pending.DataSource=_viewModel.PendingPayments.ToList();
+    }
+    private void RefreshSettlement()
+    {
+        var settlement=_viewModel.Settlement; if(settlement is null)return;
+        _settlementHeading.Text=$"Settlement {settlement.FormattedSettlementNumber} — {settlement.ConsignorName} — {settlement.Status}   Hammer {settlement.HammerSubtotal:C2}   Commission {settlement.CommissionAmount:C2} ({settlement.CommissionPercent:0.##}%)   Net {settlement.NetAmount:C2}   Paid {settlement.AmountPaid:C2}   Balance {settlement.BalanceDue:C2}{(settlement.HoldCheck?"   HOLD CHECK":"")}";
+        _settlementLots.DataSource=settlement.Lots.ToList(); _payouts.DataSource=settlement.Payouts.ToList();
     }
     private static void Execute(Action action) { try { action(); } catch(Exception exception) { MessageBox.Show(exception.Message,"Cashier",MessageBoxButtons.OK,MessageBoxIcon.Error); } }
 }

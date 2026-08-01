@@ -16,7 +16,7 @@ This is the approved release sequence. Do not pull work forward from a later rel
 
 ## Version 0.7
 
-- [ ] Settlements
+- [x] Settlements (calculation, ledgered payouts, and printable settlement statement)
 - [ ] Check printing
 - [ ] Pickup verification
 
@@ -42,4 +42,4 @@ This is the approved release sequence. Do not pull work forward from a later rel
 
 ## Scope rule
 
-Version 0.6 Cashier, Payments, and Invoice printing are implemented. Reports, Settlements, and all later-release items remain out of scope until separately approved.
+Version 0.6 Cashier, Payments, and Invoice printing are implemented. The separately approved Version 0.7 settlement slice is implemented; check-stock printing and pickup verification remain pending. Reports and other later-release items remain out of scope until separately approved.

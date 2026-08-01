@@ -2,7 +2,7 @@
 
 ## Cashier module
 
-Status: Cashier is implemented. A two-workstation LAN deployment slice is now implemented and pending final verification/feature commit.
+Status: Cashier and the approved closed-auction consignor payout extension are implemented.
 
 ## Scope and acceptance criteria
 
@@ -16,12 +16,16 @@ Status: Cashier is implemented. A two-workstation LAN deployment slice is now im
 - Update Invoice status to `Unpaid`, `Partially Paid`, or `Paid`; synchronize the retained legacy `Sales.Paid` flag only when the complete invoice is paid.
 - Print an itemized invoice through the Windows print dialog, including auction/buyer identity, purchases, premium, tax, payments, balance, status, and invoice footer.
 - Closed auctions allow invoice viewing/reprinting but reject new payments.
-- Preserve legacy tables/fields and upgrade existing databases through schema version 9.
+- Closed auctions enable current-auction consignor settlements. Open auctions reject consignor payouts.
+- Calculate consignor commission using `CommissionOverridePercent` when positive, then consignor `DefaultCommissionPercent`, then the current Auction default.
+- Record append-only check, cash, and ACH/manual electronic payouts with partial payout support, balance enforcement, audit entries, and printable settlement statements.
+- `HoldCheck` blocks check payouts; check and ACH payouts require a reference.
+- Preserve legacy tables/fields and upgrade existing databases through schema version 10.
 - Add tests for tax modes, lookup, calculations, split/partial payment behavior, change, overpayment rejection, migration, and financial guards.
 
 ## Out of scope
 
-- Refunds, voids, card processing gateways, receipt printing, user authentication, reports, settlements, check printing, and UI styling.
+- Refunds, voids, card processing gateways, receipt printing, user authentication, reports, automated check stock printing, payout reversals/voids, and UI styling.
 
 ## Two-workstation deployment acceptance
 

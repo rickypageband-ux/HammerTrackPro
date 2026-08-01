@@ -23,6 +23,12 @@ public sealed class RemoteCashierService : ICashierService,IDisposable
     }
     public Auction GetCurrentAuction()=>Get<Auction>("/api/current-auction");
     public Invoice LoadInvoice(int bidderNumber)=>Get<Invoice>($"/api/invoices/{bidderNumber}");
+    public ConsignorSettlement LoadConsignorSettlement(int consignorNumber)=>Get<ConsignorSettlement>($"/api/settlements/{consignorNumber}");
+    public ConsignorSettlement RecordConsignorPayout(int consignorNumber,ConsignorPayoutRequest payout)
+    {
+        try { using var response=_client.PostAsJsonAsync($"/api/settlements/{consignorNumber}/payouts",payout,JsonOptions).GetAwaiter().GetResult(); return Read<ConsignorSettlement>(response); }
+        catch(HttpRequestException exception) { throw Unavailable(exception); } catch(TaskCanceledException exception) { throw Unavailable(exception); }
+    }
     public Invoice RecordPayments(int bidderNumber,IReadOnlyList<PaymentRequest> payments)
     {
         try { using var response=_client.PostAsJsonAsync($"/api/invoices/{bidderNumber}/payments",payments,JsonOptions).GetAwaiter().GetResult(); return Read<Invoice>(response); }

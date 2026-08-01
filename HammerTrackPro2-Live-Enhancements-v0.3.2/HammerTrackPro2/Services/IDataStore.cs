@@ -8,6 +8,8 @@ public interface IDataStore
     IReadOnlyList<Buyer> GetBuyers();
     Invoice LoadCashierInvoice(int bidderNumber);
     Invoice RecordInvoicePayments(Invoice invoice, IReadOnlyList<Payment> payments);
+    ConsignorSettlement LoadConsignorSettlement(int consignorNumber);
+    ConsignorSettlement RecordConsignorPayout(ConsignorSettlement settlement, ConsignorPayout payout);
     void SaveBidder(AuctionBidder bidder, int? originalBidderNumber);
     void DeleteBidder(int bidderNumber);
     void SaveLot(AuctionLot lot, int? originalLotNumber);

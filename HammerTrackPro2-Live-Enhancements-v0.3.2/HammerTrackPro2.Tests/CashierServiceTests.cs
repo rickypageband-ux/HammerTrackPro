@@ -57,6 +57,33 @@ public sealed class CashierServiceTests
         Assert.Empty(store.Load().Bidders); Assert.Single(store.GetBuyers());
     }
 
+    [Fact]
+    public void ConsignorSettlement_UsesCommissionPrecedence_AndRequiresClosedAuction()
+    {
+        using var database=TemporaryDatabase.Create(); var (store,cashier)=CreateAccount(database.Path,SalesTaxBasis.None);
+        var consignor=store.GetConsignors().First(); consignor.DefaultCommissionPercent=12; consignor.CommissionOverridePercent=8; store.SaveConsignor(consignor,consignor.ConsignorNumber);
+        var preview=cashier.LoadConsignorSettlement(consignor.ConsignorNumber);
+        Assert.Equal(100m,preview.HammerSubtotal); Assert.Equal(8m,preview.CommissionAmount); Assert.Equal(92m,preview.NetAmount);
+        Assert.Throws<InvalidOperationException>(()=>cashier.RecordConsignorPayout(consignor.ConsignorNumber,new ConsignorPayoutRequest { Method=ConsignorPayoutMethod.Cash,Amount=20 }));
+        store.CloseAuction(store.GetCurrentAuction().AuctionId);
+        var paid=cashier.RecordConsignorPayout(consignor.ConsignorNumber,new ConsignorPayoutRequest { Method=ConsignorPayoutMethod.Cash,Amount=20 });
+        Assert.Equal("Partially Paid",paid.Status); Assert.Equal(72m,paid.BalanceDue);
+        Assert.Equal("1",Scalar(database.Path,"SELECT COUNT(*) FROM ConsignorPayouts;"));
+        Assert.Equal("1",Scalar(database.Path,"SELECT COUNT(*) FROM AuditLog WHERE Action='ConsignorPayoutRecorded';"));
+    }
+
+    [Fact]
+    public void ConsignorSettlement_ValidatesHoldCheckReferencesAndOverpayment()
+    {
+        using var database=TemporaryDatabase.Create(); var (store,cashier)=CreateAccount(database.Path,SalesTaxBasis.None);
+        var consignor=store.GetConsignors().First(); consignor.HoldCheck=true; store.SaveConsignor(consignor,consignor.ConsignorNumber); store.CloseAuction(store.GetCurrentAuction().AuctionId);
+        Assert.Throws<InvalidOperationException>(()=>cashier.RecordConsignorPayout(consignor.ConsignorNumber,new ConsignorPayoutRequest { Method=ConsignorPayoutMethod.Check,Amount=10,Reference="100" }));
+        Assert.Throws<InvalidOperationException>(()=>cashier.RecordConsignorPayout(consignor.ConsignorNumber,new ConsignorPayoutRequest { Method=ConsignorPayoutMethod.Ach,Amount=10 }));
+        Assert.Throws<InvalidOperationException>(()=>cashier.RecordConsignorPayout(consignor.ConsignorNumber,new ConsignorPayoutRequest { Method=ConsignorPayoutMethod.Cash,Amount=101 }));
+        var paid=cashier.RecordConsignorPayout(consignor.ConsignorNumber,new ConsignorPayoutRequest { Method=ConsignorPayoutMethod.Ach,Amount=100,Reference="ACH-42" });
+        Assert.Equal("Paid",paid.Status); Assert.Equal(0,paid.BalanceDue);
+    }
+
     private static (SqliteDataStore Store,CashierService Cashier) CreateAccount(string path,SalesTaxBasis basis)
     {
         var store=new SqliteDataStore(path); var auction=store.GetCurrentAuction();

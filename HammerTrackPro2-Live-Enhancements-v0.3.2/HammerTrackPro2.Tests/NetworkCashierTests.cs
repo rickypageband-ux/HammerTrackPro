@@ -37,6 +37,16 @@ public sealed class NetworkCashierTests
     }
 
     [Fact]
+    public async Task CashierClient_RecordsClosedAuctionConsignorPayoutThroughHost()
+    {
+        using var database=TemporaryDatabase.Create(); var store=CreateAccount(database.Path); var consignor=store.GetConsignors().First(); store.CloseAuction(store.GetCurrentAuction().AuctionId);
+        var configuration=Configuration("SETTLEMENT-KEY"); await using var host=await CashierNetworkHost.StartAsync(new CashierService(store),configuration,useHttps:false); using var remote=new RemoteCashierService(configuration,true);
+        var preview=remote.LoadConsignorSettlement(consignor.ConsignorNumber); Assert.Equal(100m,preview.NetAmount);
+        var paid=remote.RecordConsignorPayout(consignor.ConsignorNumber,new ConsignorPayoutRequest { Method=ConsignorPayoutMethod.Ach,Amount=100,Reference="ACH-NET-1" });
+        Assert.Equal("Paid",paid.Status); Assert.Equal(0,paid.BalanceDue);
+    }
+
+    [Fact]
     public void HostConfiguration_RejectsANetworkDatabasePath()
     {
         var configuration=new WorkstationConfiguration { Role=WorkstationRole.Host,DatabasePath=@"\\server\auction\hammertrack.db" };

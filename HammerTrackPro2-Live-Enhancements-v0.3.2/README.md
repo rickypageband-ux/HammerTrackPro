@@ -1,6 +1,6 @@
 # HammerTrack Pro 2
 
-HammerTrack Pro 2 is a Windows desktop application for running auctions. It supports global buyer identities with auction-specific bidder-number registrations, global consignor management with per-auction participation, Auction Setup and selection, auction-owned lots, auction-scoped commercial terms, cashier invoices and payments, dashboard totals, database backup, and a keyboard-oriented live-auction screen. Standard lots close after one sale; pass-out mode permits multiple buyer records against one lot until the operator closes it.
+HammerTrack Pro 2 is a Windows desktop application for running auctions. It supports global buyer identities with auction-specific bidder-number registrations, global consignor management with per-auction participation, Auction Setup and selection, auction-owned lots, auction-scoped commercial terms, buyer cashier invoices/payments, closed-auction consignor settlements and payouts, dashboard totals, database backup, and a keyboard-oriented live-auction screen. Standard lots close after one sale; pass-out mode permits multiple buyer records against one lot until the operator closes it.
 
 ## Technology and structure
 
@@ -64,6 +64,6 @@ The host database defaults to `%ProgramData%\HammerTrackPro2\hammertrack.db`. Wo
 
 ## Current boundaries
 
-There is no CI configuration, packaging/installer, authentication model, or auction reopening. Cashier supports current-auction bidder lookup, itemized invoices, partial/split cash/check/card payments, cash change, status updates, and Windows invoice printing. Closing an auction is audited and locks new payments while still allowing invoice viewing and reprinting. Standard xUnit tests are in `HammerTrackPro2.Tests`; after restore, run `dotnet test .\HammerTrackPro2.sln`.
+There is no CI configuration, packaging/installer, authentication model, or auction reopening. Cashier supports current-auction bidder lookup, itemized invoices, partial/split cash/check/card payments, cash change, status updates, and Windows invoice printing. After an auction is closed, Cashier can look up a current-auction consignor, calculate commission using override → consignor default → auction default, record check/cash/ACH payouts, and print a settlement statement. Closing an auction is audited and locks buyer payments while enabling consignor payouts. Standard xUnit tests are in `HammerTrackPro2.Tests`; after restore, run `dotnet test .\HammerTrackPro2.sln`.
 
 Lot entry lists consignors by consignor number and name, refreshes after Consignor Management closes, and retains inactive consignors for historical/controlled assignment with a visible inactive label.

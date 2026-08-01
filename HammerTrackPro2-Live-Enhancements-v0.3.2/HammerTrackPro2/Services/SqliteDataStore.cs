@@ -209,6 +209,120 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
         }
     }
 
+    public ConsignorSettlement LoadConsignorSettlement(int consignorNumber)
+    {
+        lock(_sync)
+        {
+            using var connection=OpenConnection();
+            var auctionId=GetCurrentAuctionId(connection);
+            long consignorId;
+            using(var find=connection.CreateCommand())
+            {
+                find.CommandText="""
+                    SELECT c.ConsignorId FROM Consignors c
+                    JOIN AuctionConsignors ac ON ac.ConsignorId=c.ConsignorId
+                    WHERE ac.AuctionId=$auction AND c.ConsignorNumber=$number LIMIT 1;
+                    """;
+                find.Parameters.AddWithValue("$auction",auctionId); find.Parameters.AddWithValue("$number",consignorNumber);
+                var value=find.ExecuteScalar();
+                if(value is null) throw new InvalidOperationException($"Consignor #{consignorNumber} is not associated with the current auction.");
+                consignorId=Convert.ToInt64(value,CultureInfo.InvariantCulture);
+            }
+            var now=DateTime.UtcNow.ToString("O",CultureInfo.InvariantCulture);
+            using(var create=connection.CreateCommand())
+            {
+                create.CommandText="""
+                    INSERT OR IGNORE INTO ConsignorSettlements(AuctionId,ConsignorId,CommissionPercent,HammerSubtotal,CommissionAmount,NetAmount,Status,CreatedUtc,UpdatedUtc)
+                    SELECT $auction,$consignor,
+                        CASE WHEN CAST(c.CommissionOverridePercent AS REAL)>0 THEN c.CommissionOverridePercent
+                             WHEN CAST(c.DefaultCommissionPercent AS REAL)>0 THEN c.DefaultCommissionPercent
+                             ELSE a.DefaultConsignorCommissionPercent END,
+                        '0','0','0','Unpaid',$now,$now
+                    FROM Consignors c CROSS JOIN Auctions a WHERE c.ConsignorId=$consignor AND a.AuctionId=$auction;
+                    UPDATE ConsignorSettlements SET CommissionPercent=(
+                        SELECT CASE WHEN CAST(c.CommissionOverridePercent AS REAL)>0 THEN c.CommissionOverridePercent
+                                    WHEN CAST(c.DefaultCommissionPercent AS REAL)>0 THEN c.DefaultCommissionPercent
+                                    ELSE a.DefaultConsignorCommissionPercent END
+                        FROM Consignors c CROSS JOIN Auctions a WHERE c.ConsignorId=$consignor AND a.AuctionId=$auction),UpdatedUtc=$now
+                    WHERE AuctionId=$auction AND ConsignorId=$consignor
+                      AND NOT EXISTS(SELECT 1 FROM ConsignorPayouts p WHERE p.ConsignorSettlementId=ConsignorSettlements.ConsignorSettlementId);
+                    """;
+                create.Parameters.AddWithValue("$auction",auctionId); create.Parameters.AddWithValue("$consignor",consignorId); create.Parameters.AddWithValue("$now",now); create.ExecuteNonQuery();
+            }
+            ConsignorSettlement result;
+            using(var command=connection.CreateCommand())
+            {
+                command.CommandText="""
+                    SELECT cs.ConsignorSettlementId,cs.AuctionId,cs.ConsignorId,a.AuctionNumber,c.ConsignorNumber,
+                        CASE WHEN c.BusinessName<>'' THEN c.BusinessName ELSE trim(c.FirstName||' '||c.LastName) END,
+                        trim(c.Address||' '||c.City||' '||c.State||' '||c.Zip),cs.CommissionPercent,
+                        cs.HammerSubtotal,cs.CommissionAmount,cs.NetAmount,cs.Status,cs.CreatedUtc,cs.UpdatedUtc,c.HoldCheck
+                    FROM ConsignorSettlements cs JOIN Auctions a ON a.AuctionId=cs.AuctionId JOIN Consignors c ON c.ConsignorId=cs.ConsignorId
+                    WHERE cs.AuctionId=$auction AND cs.ConsignorId=$consignor;
+                    """;
+                command.Parameters.AddWithValue("$auction",auctionId); command.Parameters.AddWithValue("$consignor",consignorId);
+                using var reader=command.ExecuteReader(); reader.Read();
+                result=new ConsignorSettlement
+                {
+                    ConsignorSettlementId=reader.GetInt64(0),AuctionId=reader.GetInt64(1),ConsignorId=reader.GetInt64(2),AuctionNumber=reader.GetString(3),
+                    ConsignorNumber=reader.GetInt32(4),ConsignorName=reader.GetString(5),ConsignorAddress=reader.GetString(6),
+                    CommissionPercent=decimal.Parse(reader.GetString(7),CultureInfo.InvariantCulture),HammerSubtotal=decimal.Parse(reader.GetString(8),CultureInfo.InvariantCulture),
+                    CommissionAmount=decimal.Parse(reader.GetString(9),CultureInfo.InvariantCulture),NetAmount=decimal.Parse(reader.GetString(10),CultureInfo.InvariantCulture),Status=reader.GetString(11),
+                    CreatedUtc=DateTime.Parse(reader.GetString(12),CultureInfo.InvariantCulture,DateTimeStyles.RoundtripKind),UpdatedUtc=DateTime.Parse(reader.GetString(13),CultureInfo.InvariantCulture,DateTimeStyles.RoundtripKind),HoldCheck=reader.GetInt32(14)!=0
+                };
+            }
+            using(var lines=connection.CreateCommand())
+            {
+                lines.CommandText="""
+                    SELECT s.Id,al.LotNumber,al.Description,s.HammerPrice FROM Sales s
+                    JOIN AuctionLots al ON al.AuctionLotId=s.AuctionLotId
+                    WHERE s.AuctionId=$auction AND al.ConsignorId=$consignor ORDER BY al.LotNumber,s.Id;
+                    """;
+                lines.Parameters.AddWithValue("$auction",auctionId); lines.Parameters.AddWithValue("$consignor",consignorId);
+                using var reader=lines.ExecuteReader(); while(reader.Read()) result.Lots.Add(new ConsignorSettlementLine
+                { SaleId=reader.GetInt64(0),LotNumber=reader.GetInt32(1),Description=reader.GetString(2),HammerPrice=decimal.Parse(reader.GetString(3),CultureInfo.InvariantCulture) });
+            }
+            using(var payouts=connection.CreateCommand())
+            {
+                payouts.CommandText="SELECT ConsignorPayoutId,ConsignorSettlementId,Method,Amount,Reference,CreatedUtc FROM ConsignorPayouts WHERE ConsignorSettlementId=$id ORDER BY ConsignorPayoutId;";
+                payouts.Parameters.AddWithValue("$id",result.ConsignorSettlementId); using var reader=payouts.ExecuteReader();
+                while(reader.Read()) result.Payouts.Add(new ConsignorPayout
+                { ConsignorPayoutId=reader.GetInt64(0),ConsignorSettlementId=reader.GetInt64(1),Method=Enum.Parse<ConsignorPayoutMethod>(reader.GetString(2)),Amount=decimal.Parse(reader.GetString(3),CultureInfo.InvariantCulture),Reference=reader.GetString(4),CreatedUtc=DateTime.Parse(reader.GetString(5),CultureInfo.InvariantCulture,DateTimeStyles.RoundtripKind) });
+            }
+            return result;
+        }
+    }
+
+    public ConsignorSettlement RecordConsignorPayout(ConsignorSettlement settlement,ConsignorPayout payout)
+    {
+        lock(_sync)
+        {
+            using var connection=OpenConnection(); using var transaction=connection.BeginTransaction();
+            var now=DateTime.UtcNow.ToString("O",CultureInfo.InvariantCulture);
+            using(var guard=connection.CreateCommand())
+            {
+                guard.Transaction=transaction; guard.CommandText="SELECT Amount FROM ConsignorPayouts WHERE ConsignorSettlementId=$id;";
+                guard.Parameters.AddWithValue("$id",settlement.ConsignorSettlementId);
+                using var reader=guard.ExecuteReader(); var paid=0m;
+                while(reader.Read()) paid+=decimal.Parse(reader.GetString(0),CultureInfo.InvariantCulture);
+                if(paid+payout.Amount>settlement.NetAmount) throw new InvalidOperationException("The settlement balance changed. Reload it before recording the payout.");
+            }
+            using(var insert=connection.CreateCommand())
+            {
+                insert.Transaction=transaction; insert.CommandText="INSERT INTO ConsignorPayouts(ConsignorSettlementId,Method,Amount,Reference,CreatedUtc) VALUES($id,$method,$amount,$reference,$now);";
+                insert.Parameters.AddWithValue("$id",settlement.ConsignorSettlementId); insert.Parameters.AddWithValue("$method",payout.Method.ToString()); insert.Parameters.AddWithValue("$amount",payout.Amount.ToString(CultureInfo.InvariantCulture)); insert.Parameters.AddWithValue("$reference",payout.Reference); insert.Parameters.AddWithValue("$now",now); insert.ExecuteNonQuery();
+            }
+            var totalPaid=settlement.AmountPaid+payout.Amount; var status=totalPaid>=settlement.NetAmount?"Paid":"Partially Paid";
+            using(var update=connection.CreateCommand())
+            {
+                update.Transaction=transaction; update.CommandText="UPDATE ConsignorSettlements SET HammerSubtotal=$hammer,CommissionAmount=$commission,NetAmount=$net,Status=$status,UpdatedUtc=$now WHERE ConsignorSettlementId=$id;";
+                update.Parameters.AddWithValue("$hammer",settlement.HammerSubtotal.ToString(CultureInfo.InvariantCulture)); update.Parameters.AddWithValue("$commission",settlement.CommissionAmount.ToString(CultureInfo.InvariantCulture)); update.Parameters.AddWithValue("$net",settlement.NetAmount.ToString(CultureInfo.InvariantCulture)); update.Parameters.AddWithValue("$status",status); update.Parameters.AddWithValue("$now",now); update.Parameters.AddWithValue("$id",settlement.ConsignorSettlementId); update.ExecuteNonQuery();
+            }
+            WriteAudit(connection,transaction,"ConsignorPayoutRecorded",$"Settlement #{settlement.ConsignorSettlementId}, method={payout.Method}, amount={payout.Amount.ToString(CultureInfo.InvariantCulture)}, status={status}");
+            transaction.Commit(); return LoadConsignorSettlement(settlement.ConsignorNumber);
+        }
+    }
+
     public void SaveBidder(AuctionBidder bidder, int? originalBidderNumber)
     {
         ArgumentNullException.ThrowIfNull(bidder);
@@ -1273,6 +1387,38 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
                 """;
             migration.ExecuteNonQuery();
             transaction.Commit();
+            version = 9;
+        }
+        if(version<10)
+        {
+            using var transaction=connection.BeginTransaction();
+            using var migration=connection.CreateCommand(); migration.Transaction=transaction;
+            migration.CommandText="""
+                CREATE TABLE ConsignorSettlements (
+                    ConsignorSettlementId INTEGER PRIMARY KEY AUTOINCREMENT,
+                    AuctionId INTEGER NOT NULL, ConsignorId INTEGER NOT NULL,
+                    CommissionPercent TEXT NOT NULL, HammerSubtotal TEXT NOT NULL DEFAULT '0',
+                    CommissionAmount TEXT NOT NULL DEFAULT '0', NetAmount TEXT NOT NULL DEFAULT '0',
+                    Status TEXT NOT NULL DEFAULT 'Unpaid', CreatedUtc TEXT NOT NULL, UpdatedUtc TEXT NOT NULL,
+                    UNIQUE(AuctionId,ConsignorId),
+                    FOREIGN KEY(AuctionId) REFERENCES Auctions(AuctionId) ON DELETE RESTRICT,
+                    FOREIGN KEY(ConsignorId) REFERENCES Consignors(ConsignorId) ON DELETE RESTRICT
+                );
+                CREATE INDEX IX_ConsignorSettlements_AuctionId ON ConsignorSettlements(AuctionId);
+                CREATE INDEX IX_ConsignorSettlements_ConsignorId ON ConsignorSettlements(ConsignorId);
+                CREATE INDEX IX_ConsignorSettlements_Status ON ConsignorSettlements(AuctionId,Status);
+                CREATE TABLE ConsignorPayouts (
+                    ConsignorPayoutId INTEGER PRIMARY KEY AUTOINCREMENT,
+                    ConsignorSettlementId INTEGER NOT NULL, Method TEXT NOT NULL, Amount TEXT NOT NULL,
+                    Reference TEXT NOT NULL DEFAULT '', CreatedUtc TEXT NOT NULL,
+                    FOREIGN KEY(ConsignorSettlementId) REFERENCES ConsignorSettlements(ConsignorSettlementId) ON DELETE RESTRICT
+                );
+                CREATE INDEX IX_ConsignorPayouts_SettlementId ON ConsignorPayouts(ConsignorSettlementId);
+                CREATE INDEX IX_ConsignorPayouts_CreatedUtc ON ConsignorPayouts(CreatedUtc);
+                INSERT INTO Settings(Key,Value) VALUES('DatabaseSchemaVersion','10')
+                ON CONFLICT(Key) DO UPDATE SET Value=excluded.Value;
+                """;
+            migration.ExecuteNonQuery(); transaction.Commit();
         }
     }
 
