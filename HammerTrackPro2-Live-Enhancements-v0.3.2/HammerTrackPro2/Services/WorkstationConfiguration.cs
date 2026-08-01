@@ -18,7 +18,7 @@ public sealed class WorkstationConfiguration
 public static class WorkstationConfigurationService
 {
     private static readonly JsonSerializerOptions JsonOptions=new() { WriteIndented=true };
-    public static string ConfigurationFile => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"HammerTrackPro2","workstation.json");
+    public static string ConfigurationFile { get { ApplicationDataLayoutService.EnsureAndMigrateLegacyData(); return ApplicationDataLayoutService.WorkstationConfigurationFile; } }
     public static bool Exists => File.Exists(ConfigurationFile);
     public static WorkstationConfiguration Load()
     {

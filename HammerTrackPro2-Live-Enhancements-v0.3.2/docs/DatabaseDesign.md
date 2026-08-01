@@ -2,7 +2,7 @@
 
 ## Overview
 
-HammerTrack Pro uses SQLite through `SqliteDataStore` on the live-auction host only. Connections enable foreign keys, WAL, shared cache, pooling, `synchronous=NORMAL`, and a 15-second busy timeout. The default database is `%ProgramData%\HammerTrackPro2\hammertrack.db`; custom paths must remain on a local host drive.
+HammerTrack Pro uses SQLite through `SqliteDataStore` on the live-auction host only. Connections enable foreign keys, WAL, shared cache, pooling, `synchronous=NORMAL`, and a 15-second busy timeout. The default database is `%ProgramData%\HammerTrackPro\hammertrack.db`; custom paths must remain on a local host drive. The WiX installer marks this data tree permanent, and first-run migration copies missing legacy `HammerTrackPro2` data without overwriting either location.
 
 The supported two-PC topology is `Cashier -> paired HTTPS API -> live-auction host -> local SQLite`. The cashier pins the host certificate fingerprint, sends a high-entropy pairing key, and never receives a database path or SQL access. Cashier writes execute through the same transactional service/data-store path as local writes. A disconnected cashier retries health checks; the live-auction host continues locally.
 

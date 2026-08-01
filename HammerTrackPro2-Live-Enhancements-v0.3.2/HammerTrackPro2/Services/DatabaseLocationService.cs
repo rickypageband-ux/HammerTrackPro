@@ -4,11 +4,6 @@ public static class DatabaseLocationService
 {
     public static string ResolveDatabasePath(WorkstationConfiguration? configuration=null)
     {
-        var localFolder = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "HammerTrackPro2");
-        Directory.CreateDirectory(localFolder);
-
         configuration ??= WorkstationConfigurationService.Load();
         if (!string.IsNullOrWhiteSpace(configuration.DatabasePath))
         {
@@ -18,11 +13,8 @@ public static class DatabaseLocationService
             Directory.CreateDirectory(Path.GetDirectoryName(configuredPath)!); return configuredPath;
         }
 
-        var sharedDataFolder = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-            "HammerTrackPro2");
-        Directory.CreateDirectory(sharedDataFolder);
-        return Path.Combine(sharedDataFolder, "hammertrack.db");
+        ApplicationDataLayoutService.EnsureAndMigrateLegacyData();
+        return ApplicationDataLayoutService.DefaultDatabaseFile;
     }
 
     private static bool IsNetworkDrive(string path)

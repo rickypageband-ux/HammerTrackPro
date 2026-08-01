@@ -50,3 +50,13 @@ Status: Cashier and the approved closed-auction consignor payout extension are i
 - Auction Information no longer clips Seller Commission or lower fields at common window sizes.
 - Auction and consignor properties are grouped into readable categories, and affected grids/forms use clearer spacing, headers, and selection colors.
 - Bidder, consignor, and lot editor panels open at a usable width and cannot collapse below the data-entry minimum, eliminating the need to drag the divider open.
+
+## Distribution and licensing extension
+
+- WiX 5 builds a versioned, self-contained x64 MSI for installation on multiple PCs without a separate .NET runtime.
+- Install application binaries under `%ProgramFiles%\HammerTrack Pro`; create Desktop and Start Menu shortcuts and register `.htpbackup`.
+- Keep `%ProgramData%\HammerTrackPro` permanent across upgrades/uninstall and create `Backups`, `Logs`, and `Settings` with normal-user write access.
+- Copy missing legacy `HammerTrackPro2` database/configuration data without overwriting or deleting either copy.
+- Require an RSA-signed offline license listing the PC Machine IDs. Keep the private issuer key outside Git and outside the MSI.
+- Use a stable MSI UpgradeCode and increasing package versions for in-place upgrades.
+- Remaining release requirement: sign the executable and MSI with a trusted publisher certificate before broad production distribution.

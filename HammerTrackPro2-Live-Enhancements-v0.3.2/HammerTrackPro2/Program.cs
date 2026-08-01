@@ -12,6 +12,11 @@ internal static class Program
 
         try
         {
+            if(!LicenseService.TryLoadValidLicense(out _,out var licenseError))
+            {
+                using var activation=new LicenseActivationForm(licenseError);
+                if(activation.ShowDialog()!=DialogResult.OK)return;
+            }
             var configuration=WorkstationConfigurationService.Load();
             if(!WorkstationConfigurationService.Exists)
             {

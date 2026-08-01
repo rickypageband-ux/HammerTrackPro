@@ -1,0 +1,62 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+  <Package Name="HammerTrack Pro $(var.ProductVersion)"
+           Manufacturer="HammerTrack Pro"
+           Version="$(var.ProductVersion)"
+           UpgradeCode="A4F079B4-6B74-48BD-A176-1F5EC5D8E97C"
+           Scope="perMachine">
+    <SummaryInformation Description="HammerTrack Pro $(var.ProductVersion) Installer" Manufacturer="HammerTrack Pro" />
+    <MajorUpgrade DowngradeErrorMessage="A newer version of HammerTrack Pro is already installed." Schedule="afterInstallInitialize" />
+    <MediaTemplate EmbedCab="yes" />
+    <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
+    <util:QueryWindowsWellKnownSIDs />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="HammerTrack Pro">
+        <Directory Id="REPORTSFOLDER" Name="Reports" />
+        <Directory Id="TEMPLATESFOLDER" Name="Templates" />
+      </Directory>
+    </StandardDirectory>
+    <StandardDirectory Id="CommonAppDataFolder">
+      <Directory Id="DATAFOLDER" Name="HammerTrackPro">
+        <Directory Id="BACKUPSFOLDER" Name="Backups" />
+        <Directory Id="LOGSFOLDER" Name="Logs" />
+        <Directory Id="SETTINGSFOLDER" Name="Settings" />
+      </Directory>
+    </StandardDirectory>
+
+    <ComponentGroup Id="ProductFiles" Directory="INSTALLFOLDER">
+      <Files Include="$(var.PublishDir)**">
+        <Exclude Files="$(var.PublishDir)HammerTrack.exe" />
+      </Files>
+      <Component Id="MainExecutable" Guid="E3D9B0F9-C689-47C4-B0E2-ED76F250346C">
+        <File Id="HammerTrackExe" Source="$(var.PublishDir)HammerTrack.exe" KeyPath="yes">
+          <Shortcut Id="StartMenuShortcut" Directory="ProgramMenuFolder" Name="HammerTrack Pro" Description="HammerTrack Pro auction management" WorkingDirectory="INSTALLFOLDER" Advertise="yes" />
+          <Shortcut Id="DesktopShortcut" Directory="DesktopFolder" Name="HammerTrack Pro" Description="HammerTrack Pro auction management" WorkingDirectory="INSTALLFOLDER" Advertise="yes" />
+        </File>
+        <ProgId Id="HammerTrackPro.Backup" Description="HammerTrack Pro Backup" Icon="HammerTrackExe">
+          <Extension Id="htpbackup" ContentType="application/x-hammertrack-backup">
+            <Verb Id="open" Command="Open with HammerTrack Pro" TargetFile="HammerTrackExe" Argument="&quot;%1&quot;" />
+          </Extension>
+        </ProgId>
+      </Component>
+    </ComponentGroup>
+
+    <ComponentGroup Id="FolderComponents">
+      <Component Id="ReportsFolderComponent" Directory="REPORTSFOLDER" Guid="04D2D57B-048F-44BF-962E-C0EFC52D746D"><CreateFolder /></Component>
+      <Component Id="TemplatesFolderComponent" Directory="TEMPLATESFOLDER" Guid="1D0876AB-F025-41BD-9E5A-E03180594D40"><CreateFolder /></Component>
+      <Component Id="DataFolderComponent" Directory="DATAFOLDER" Guid="B42875C4-A08A-43A9-A6CB-D5182CA86967" Permanent="yes" NeverOverwrite="yes">
+        <CreateFolder><util:PermissionEx User="[WIX_ACCOUNT_USERS]" GenericAll="yes" /></CreateFolder>
+      </Component>
+      <Component Id="BackupsFolderComponent" Directory="BACKUPSFOLDER" Guid="CF349A98-E8C2-4707-B798-F5138B3E7CB9" Permanent="yes" NeverOverwrite="yes"><CreateFolder /></Component>
+      <Component Id="LogsFolderComponent" Directory="LOGSFOLDER" Guid="C3854381-1630-448F-BA84-6AF31B1AE6CB" Permanent="yes" NeverOverwrite="yes"><CreateFolder /></Component>
+      <Component Id="SettingsFolderComponent" Directory="SETTINGSFOLDER" Guid="D5480730-65A7-4B8E-8E93-B2BEC409DFB2" Permanent="yes" NeverOverwrite="yes"><CreateFolder /></Component>
+    </ComponentGroup>
+
+    <Feature Id="Complete" Title="HammerTrack Pro $(var.ProductVersion)" Level="1">
+      <ComponentGroupRef Id="ProductFiles" />
+      <ComponentGroupRef Id="FolderComponents" />
+    </Feature>
+  </Package>
+</Wix>

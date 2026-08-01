@@ -27,6 +27,10 @@ dotnet restore .\HammerTrackPro2.sln
 dotnet build .\HammerTrackPro2.sln
 ```
 
+## Installer and licensing
+
+The repository includes a WiX MSI project for self-contained x64 deployment to multiple PCs. Installed application files live under `%ProgramFiles%\HammerTrack Pro`; persistent auction data, backups, logs, shared workstation settings, and the signed offline license live under `%ProgramData%\HammerTrackPro`. See [Installer and offline licensing](docs/Installer.md) for building the MSI, upgrades, legacy-data migration, and issuing a machine-limited license.
+
 ## Two-computer setup
 
 HammerTrack supports one live-auction host PC and one cashier PC on the same private LAN. The host owns the local SQLite database and runs a paired HTTPS cashier service. The cashier never opens or copies the database file.
@@ -41,7 +45,7 @@ If the computer-name address does not connect, use the alternate IP address disp
 
 ## Data location and backups
 
-The host database defaults to `%ProgramData%\HammerTrackPro2\hammertrack.db`. Workstation configuration is stored in `%LocalAppData%\HammerTrackPro2\workstation.json`. A custom host database path must be on a local drive; UNC and detected mapped-network drives are rejected. In-app backups are written to `Backups` beside the host database.
+The host database defaults to `%ProgramData%\HammerTrackPro\hammertrack.db`. Workstation configuration and the offline license are stored in `%ProgramData%\HammerTrackPro\Settings`. A custom host database path must be on a local drive; UNC and detected mapped-network drives are rejected. In-app backups are written to `Backups` beside the host database. A first-run compatibility copy preserves existing data from the former `HammerTrackPro2` locations when the new destination is empty.
 
 ## Live-auction keys
 
@@ -64,6 +68,6 @@ The host database defaults to `%ProgramData%\HammerTrackPro2\hammertrack.db`. Wo
 
 ## Current boundaries
 
-There is no CI configuration, packaging/installer, authentication model, or auction reopening. Cashier supports current-auction bidder lookup, itemized invoices, partial/split cash/check/card payments, cash change, status updates, and Windows invoice printing. After an auction is closed, Cashier can look up a current-auction consignor, calculate commission using override → consignor default → auction default, record check/cash/ACH payouts, and print a settlement statement. Closing an auction is audited and locks buyer payments while enabling consignor payouts. Standard xUnit tests are in `HammerTrackPro2.Tests`; after restore, run `dotnet test .\HammerTrackPro2.sln`.
+There is no CI configuration, user/role authentication model, or auction reopening. A WiX MSI and offline signed machine-license system are included; production code signing remains required before broad distribution. Cashier supports current-auction bidder lookup, itemized invoices, partial/split cash/check/card payments, cash change, status updates, and Windows invoice printing. After an auction is closed, Cashier can look up a current-auction consignor, calculate commission using override → consignor default → auction default, record check/cash/ACH payouts, and print a settlement statement. Closing an auction is audited and locks buyer payments while enabling consignor payouts. Standard xUnit tests are in `HammerTrackPro2.Tests`; after restore, run `dotnet test .\HammerTrackPro2.sln`.
 
 Lot entry lists consignors by consignor number and name, refreshes after Consignor Management closes, and retains inactive consignors for historical/controlled assignment with a visible inactive label.

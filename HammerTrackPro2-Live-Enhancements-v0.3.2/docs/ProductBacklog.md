@@ -35,7 +35,7 @@ This is the approved release sequence. Do not pull work forward from a later rel
 ## Version 1.0
 
 - [ ] Production release
-- [ ] Installer
+- [x] Installer (WiX MSI; production code signing remains)
 - [ ] User manual
 - [ ] Backup/restore
 - [ ] Multi-workstation testing

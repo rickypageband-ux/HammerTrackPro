@@ -15,6 +15,7 @@ HammerTrack Pro 2 is a Windows auction-clerking application designed to keep bid
 - Current-auction dashboard counts, gross sales, average sale price, and recent activity
 - Current-auction Cashier with persistent invoices, partial/split payments, cash change, and invoice printing
 - Paired two-PC LAN mode with a live-auction HTTPS host and dedicated remote cashier workstation
+- Self-contained WiX MSI packaging with persistent ProgramData storage and signed offline per-PC licensing
 - Standard and multi-buyer pass-out sale recording
 - Last-sale undo, lot closing, queued next lot, per-lot auctioneer notes, fullscreen mode, hotkeys, and confirmation sounds
 - SQLite initialization/upgrade, audit log writes, legacy JSON import, WAL mode, and in-app backup
@@ -46,7 +47,7 @@ HammerTrack Pro 2 is a Windows auction-clerking application designed to keep bid
 
 ### Phase 4 — Distribution and supportability
 
-- Add repeatable packaging/installer, version display, release notes, and upgrade/rollback procedures.
+- Complete production code signing and release notes around the repeatable WiX installer and documented upgrade/rollback procedure.
 - Add CI build and automated test checks.
 - Define telemetry/logging and support bundles with explicit privacy controls.
 - Establish supported Windows versions and release acceptance tests.
