@@ -57,4 +57,6 @@ public sealed class Consignor
     public string DisplayName => string.IsNullOrWhiteSpace(BusinessName) ? ContactName : BusinessName;
     [Browsable(false)]
     public string LotDisplayName => $"#{ConsignorNumber} — {DisplayName}{(Active ? string.Empty : " (Inactive)")}";
+
+    public override string ToString() => LotDisplayName;
 }

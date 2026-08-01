@@ -6,6 +6,15 @@ namespace HammerTrackPro2.Tests;
 public sealed class ConsignorServiceTests
 {
     [Fact]
+    public void Consignor_DropdownTextUsesNumberAndDisplayName()
+    {
+        var consignor=new Consignor { ConsignorNumber=42,BusinessName="Smith Farms",Active=true };
+        Assert.Equal("#42 — Smith Farms",consignor.ToString());
+        consignor.Active=false;
+        Assert.Equal("#42 — Smith Farms (Inactive)",consignor.ToString());
+    }
+
+    [Fact]
     public void SaveConsignor_CreatesUpdatesAndDeletesRecord()
     {
         var repository = new InMemoryConsignorRepository();
