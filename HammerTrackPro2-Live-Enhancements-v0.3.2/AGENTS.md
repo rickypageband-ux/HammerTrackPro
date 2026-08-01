@@ -24,6 +24,7 @@ If a requested change conflicts with one of these rules, stop and obtain a maint
 2. Inspect the existing implementation; do not treat proposed roadmap items as shipped behavior.
 3. State assumptions when the repository does not establish a fact. Record decisions that still need an owner under “Open decisions” in the relevant document.
 4. Keep work scoped. Do not silently add product features, dependencies, schema changes, or deployment assumptions.
+5. Follow `docs/ProductBacklog.md` release boundaries. Do not pull later-version work into the current sprint without explicit approval, and do not guess when an architectural decision is unclear.
 
 ## Architectural guardrails
 
@@ -65,5 +66,6 @@ Also exercise the affected workflow with a disposable database. For persistence 
 - `docs/DatabaseDesign.md`: current schema plus explicit migration/concurrency notes.
 - `docs/CodingStandards.md`: durable engineering rules.
 - `docs/CurrentSprint.md`: only the immediate, owner-approved work and acceptance criteria.
+- `docs/ProductBacklog.md`: approved release sequence and scope boundaries.
 
 If no owner has approved sprint scope, label it as a proposed baseline rather than inventing dates, owners, or commitments.

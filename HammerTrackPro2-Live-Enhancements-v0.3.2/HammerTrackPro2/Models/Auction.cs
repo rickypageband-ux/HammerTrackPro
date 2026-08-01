@@ -9,4 +9,5 @@ public sealed class Auction
     public decimal DefaultConsignorCommissionPercent { get; set; }
     public decimal SalesTaxPercent { get; set; }
     public string Status { get; set; } = "Setup";
+    public DateTime CreatedDate { get; set; }
 }

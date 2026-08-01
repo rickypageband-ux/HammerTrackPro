@@ -23,7 +23,16 @@ public sealed class Consignor
     public bool HoldCheck { get; set; }
     public bool TaxExempt { get; set; }
     [DisplayName("1099 Required")]
-    public bool Is1099Required { get; set; }
+    public bool Require1099 { get; set; }
+    public DateTime CreatedDate { get; set; }
+
+    [Browsable(false)]
+    [Obsolete("Use Require1099. This compatibility alias will be removed after legacy callers migrate.")]
+    public bool Is1099Required
+    {
+        get => Require1099;
+        set => Require1099 = value;
+    }
     public string ContactName => $"{FirstName} {LastName}".Trim();
     public string DisplayName => string.IsNullOrWhiteSpace(BusinessName) ? ContactName : BusinessName;
 }

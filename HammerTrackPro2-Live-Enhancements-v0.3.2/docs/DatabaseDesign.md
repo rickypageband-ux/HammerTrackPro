@@ -10,9 +10,9 @@ Optional workstation override: `%LocalAppData%\HammerTrackPro2\workstation.json`
 
 > Operational assumption requiring validation: a path may point to a network share, but the repository contains no evidence defining or proving a supported shared-filesystem topology. SQLite WAL and network filesystem semantics must be validated for the chosen environment before production use.
 
-## Current schema (version 5)
+## Current schema (version 6)
 
-Version 4 additively creates Consignors. Version 5 creates an Auction from retained legacy Settings values, creates a disabled Legacy / Unassigned consignor when needed, and links legacy lots to both records. Existing columns and Settings are not deleted.
+Version 4 additively creates Consignors. Version 5 creates an Auction from retained legacy Settings values, creates a disabled Legacy / Unassigned consignor when needed, and links legacy lots to both records. Version 6 adds the requested `Require1099` and `CreatedDate` fields while retaining and copying values from the earlier `Is1099Required` and `CreatedUtc` fields. Existing columns and Settings are not deleted.
 
 ### `Auctions`
 
@@ -20,7 +20,7 @@ Version 4 additively creates Consignors. Version 5 creates an Auction from retai
 
 ### `Consignors`
 
-`ConsignorId` is the stable primary key and `ConsignorNumber` is unique. Records include business/contact/address details, Tax ID, default/override commission, notes, Active, PrintCheck, HoldCheck, TaxExempt, and Is1099Required. Name, phone, email, and Active are indexed.
+`ConsignorId` is the stable primary key and `ConsignorNumber` is unique. Records include business/contact/address details, Tax ID, default/override commission, PrintCheck, HoldCheck, TaxExempt, Require1099, notes, Active, and CreatedDate. The legacy `Is1099Required` and `CreatedUtc` fields remain for backward compatibility. Number, name, phone, email, and Active are indexed.
 
 ### `Bidders`
 
@@ -73,6 +73,10 @@ The data store writes audit events for bidder, lot, sale, undo, close, and legac
 - `Value TEXT NOT NULL DEFAULT ''`
 
 Known keys include `DatabaseSchemaVersion`, `CurrentAuctionId`, retained legacy auction values, clerk/cashier settings, and per-lot notes using `LotNotes:{lotNumber}`.
+
+## Sprint 1 identifier decision
+
+`BidderNumber` remains the buyer identifier. Sprint 1 does not introduce a separate Buyer entity or `BuyerNumber` column. Named lookup indexes cover `Consignors.ConsignorNumber`, `Lots.LotNumber`, and `Bidders.BidderNumber` in addition to existing uniqueness constraints.
 
 ## Integrity and transaction rules
 

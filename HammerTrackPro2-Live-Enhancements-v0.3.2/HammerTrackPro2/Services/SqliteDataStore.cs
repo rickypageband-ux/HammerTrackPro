@@ -172,12 +172,12 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
             using var connection = OpenConnection(); using var command = connection.CreateCommand();
             command.CommandText = """
                 SELECT a.AuctionId, a.AuctionName, a.AuctionDate, a.Location, a.BuyerPremiumPercent,
-                       a.DefaultConsignorCommissionPercent, a.SalesTaxPercent, a.Status
+                       a.DefaultConsignorCommissionPercent, a.SalesTaxPercent, a.Status, a.CreatedDate
                 FROM Auctions a LEFT JOIN Settings s ON s.Key='CurrentAuctionId'
                 ORDER BY CASE WHEN a.AuctionId=CAST(s.Value AS INTEGER) THEN 0 ELSE 1 END, a.AuctionDate DESC, a.AuctionId DESC LIMIT 1;
                 """;
             using var reader = command.ExecuteReader(); if (!reader.Read()) throw new InvalidOperationException("No auction is configured.");
-            return new Auction { AuctionId=reader.GetInt64(0), AuctionName=reader.GetString(1), AuctionDate=DateTime.Parse(reader.GetString(2), CultureInfo.InvariantCulture), Location=reader.GetString(3), BuyerPremiumPercent=decimal.Parse(reader.GetString(4), CultureInfo.InvariantCulture), DefaultConsignorCommissionPercent=decimal.Parse(reader.GetString(5), CultureInfo.InvariantCulture), SalesTaxPercent=decimal.Parse(reader.GetString(6), CultureInfo.InvariantCulture), Status=reader.GetString(7) };
+            return new Auction { AuctionId=reader.GetInt64(0), AuctionName=reader.GetString(1), AuctionDate=DateTime.Parse(reader.GetString(2), CultureInfo.InvariantCulture), Location=reader.GetString(3), BuyerPremiumPercent=decimal.Parse(reader.GetString(4), CultureInfo.InvariantCulture), DefaultConsignorCommissionPercent=decimal.Parse(reader.GetString(5), CultureInfo.InvariantCulture), SalesTaxPercent=decimal.Parse(reader.GetString(6), CultureInfo.InvariantCulture), Status=reader.GetString(7), CreatedDate=DateTime.Parse(reader.GetString(8), CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind) };
         }
     }
 
@@ -205,7 +205,7 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
             command.CommandText = """
                 SELECT ConsignorId, ConsignorNumber, BusinessName, FirstName, LastName, Address, City, State, Zip,
                        Phone, Email, TaxId, DefaultCommissionPercent, CommissionOverridePercent, Notes, Active,
-                       PrintCheck, HoldCheck, TaxExempt, Is1099Required
+                       PrintCheck, HoldCheck, TaxExempt, Require1099, CreatedDate
                 FROM Consignors ORDER BY ConsignorNumber;
                 """;
             using var reader = command.ExecuteReader();
@@ -219,7 +219,8 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
                     State = reader.GetString(7), Zip = reader.GetString(8), Phone = reader.GetString(9), Email = reader.GetString(10),
                     TaxId = reader.GetString(11), DefaultCommissionPercent = decimal.Parse(reader.GetString(12), CultureInfo.InvariantCulture),
                     CommissionOverridePercent = decimal.Parse(reader.GetString(13), CultureInfo.InvariantCulture), Notes = reader.GetString(14), Active = reader.GetInt32(15) != 0,
-                    PrintCheck = reader.GetInt32(16) != 0, HoldCheck = reader.GetInt32(17) != 0, TaxExempt = reader.GetInt32(18) != 0, Is1099Required = reader.GetInt32(19) != 0
+                    PrintCheck = reader.GetInt32(16) != 0, HoldCheck = reader.GetInt32(17) != 0, TaxExempt = reader.GetInt32(18) != 0,
+                    Require1099 = reader.GetInt32(19) != 0, CreatedDate = DateTime.Parse(reader.GetString(20), CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind)
                 });
             }
             return consignors;
@@ -250,10 +251,10 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
             command.CommandText = """
                 INSERT INTO Consignors
                 (ConsignorNumber, BusinessName, FirstName, LastName, Address, City, State, Zip, Phone, Email, TaxId,
-                 DefaultCommissionPercent, CommissionOverridePercent, Notes, Active, PrintCheck, HoldCheck, TaxExempt, Is1099Required, CreatedUtc, UpdatedUtc)
+                 DefaultCommissionPercent, CommissionOverridePercent, Notes, Active, PrintCheck, HoldCheck, TaxExempt, Is1099Required, Require1099, CreatedDate, CreatedUtc, UpdatedUtc)
                 VALUES
                 ($number, $business, $first, $last, $address, $city, $state, $zip, $phone, $email, $taxId,
-                 $defaultCommission, $overrideCommission, $notes, $active, $printCheck, $holdCheck, $taxExempt, $required1099, $created, $updated)
+                 $defaultCommission, $overrideCommission, $notes, $active, $printCheck, $holdCheck, $taxExempt, $required1099, $required1099, $createdDate, $created, $updated)
                 ON CONFLICT(ConsignorNumber) DO UPDATE SET
                     BusinessName = excluded.BusinessName,
                     FirstName = excluded.FirstName,
@@ -265,7 +266,8 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
                     TaxId = excluded.TaxId,
                     DefaultCommissionPercent = excluded.DefaultCommissionPercent,
                     CommissionOverridePercent = excluded.CommissionOverridePercent, Notes = excluded.Notes, Active = excluded.Active,
-                    PrintCheck = excluded.PrintCheck, HoldCheck = excluded.HoldCheck, TaxExempt = excluded.TaxExempt, Is1099Required = excluded.Is1099Required,
+                    PrintCheck = excluded.PrintCheck, HoldCheck = excluded.HoldCheck, TaxExempt = excluded.TaxExempt,
+                    Is1099Required = excluded.Is1099Required, Require1099 = excluded.Require1099,
                     UpdatedUtc = excluded.UpdatedUtc;
                 """;
             AddConsignorParameters(command, consignor);
@@ -703,10 +705,10 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
             transaction.Commit();
             version = 4;
         }
-        if (version >= 5) return;
-        using (var transaction = connection.BeginTransaction())
-        using (var migration = connection.CreateCommand())
+        if (version < 5)
         {
+            using var transaction = connection.BeginTransaction();
+            using var migration = connection.CreateCommand();
             migration.Transaction = transaction;
             migration.CommandText = """
                 CREATE TABLE Auctions (
@@ -739,6 +741,28 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
                 INSERT INTO Settings(Key, Value) VALUES ('CurrentAuctionId', (SELECT CAST(MIN(AuctionId) AS TEXT) FROM Auctions))
                 ON CONFLICT(Key) DO NOTHING;
                 INSERT INTO Settings(Key, Value) VALUES ('DatabaseSchemaVersion', '5') ON CONFLICT(Key) DO UPDATE SET Value='5';
+                """;
+            migration.ExecuteNonQuery();
+            transaction.Commit();
+            version = 5;
+        }
+        if (version < 6)
+        {
+            using var transaction = connection.BeginTransaction();
+            using var migration = connection.CreateCommand();
+            migration.Transaction = transaction;
+            migration.CommandText = """
+                ALTER TABLE Consignors ADD COLUMN Require1099 INTEGER NOT NULL DEFAULT 0;
+                ALTER TABLE Consignors ADD COLUMN CreatedDate TEXT NOT NULL DEFAULT '';
+                UPDATE Consignors SET Require1099 = Is1099Required,
+                    CreatedDate = CASE WHEN CreatedUtc = '' THEN strftime('%Y-%m-%dT%H:%M:%fZ','now') ELSE CreatedUtc END;
+                ALTER TABLE Auctions ADD COLUMN CreatedDate TEXT NOT NULL DEFAULT '';
+                UPDATE Auctions SET CreatedDate = CASE WHEN CreatedUtc = '' THEN strftime('%Y-%m-%dT%H:%M:%fZ','now') ELSE CreatedUtc END;
+                CREATE INDEX IF NOT EXISTS IX_Consignors_ConsignorNumber ON Consignors(ConsignorNumber);
+                CREATE INDEX IF NOT EXISTS IX_Lots_LotNumber ON Lots(LotNumber);
+                CREATE INDEX IF NOT EXISTS IX_Bidders_BidderNumber ON Bidders(BidderNumber);
+                INSERT INTO Settings(Key, Value) VALUES ('DatabaseSchemaVersion', '6')
+                ON CONFLICT(Key) DO UPDATE SET Value = excluded.Value;
                 """;
             migration.ExecuteNonQuery();
             transaction.Commit();
@@ -965,7 +989,8 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
         command.Parameters.AddWithValue("$overrideCommission", consignor.CommissionOverridePercent.ToString(CultureInfo.InvariantCulture));
         command.Parameters.AddWithValue("$notes", consignor.Notes ?? string.Empty); command.Parameters.AddWithValue("$active", consignor.Active ? 1 : 0);
         command.Parameters.AddWithValue("$printCheck", consignor.PrintCheck ? 1 : 0); command.Parameters.AddWithValue("$holdCheck", consignor.HoldCheck ? 1 : 0);
-        command.Parameters.AddWithValue("$taxExempt", consignor.TaxExempt ? 1 : 0); command.Parameters.AddWithValue("$required1099", consignor.Is1099Required ? 1 : 0);
+        command.Parameters.AddWithValue("$taxExempt", consignor.TaxExempt ? 1 : 0); command.Parameters.AddWithValue("$required1099", consignor.Require1099 ? 1 : 0);
+        command.Parameters.AddWithValue("$createdDate", (consignor.CreatedDate == default ? DateTime.UtcNow : consignor.CreatedDate).ToString("O", CultureInfo.InvariantCulture));
         command.Parameters.AddWithValue("$created", now);
         command.Parameters.AddWithValue("$updated", now);
     }

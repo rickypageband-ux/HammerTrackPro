@@ -2,7 +2,9 @@
 
 ## Status
 
-No sprint dates or owner are present. The additive Consignor/Auction/Lot ownership slice is implemented as schema versions 4 and 5. The remaining section is a **proposed planning baseline**, not a commitment.
+No sprint dates or owner are present. The additive Consignor/Auction/Lot ownership slice is implemented through schema version 6. The remaining section is a **proposed planning baseline**, not a commitment.
+
+Sprint 1 is function-first. Do not add UI styling in this sprint; limit presentation work to functional CRUD and setup wiring while architecture, database integrity, business rules, and tests are stabilized.
 
 ## Proposed sprint goal
 

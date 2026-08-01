@@ -56,8 +56,9 @@ The folder is created when possible. In-app backups are written to a `Backups` d
 - [Database design](docs/DatabaseDesign.md)
 - [Coding standards](docs/CodingStandards.md)
 - [Current sprint](docs/CurrentSprint.md)
+- [Product backlog](docs/ProductBacklog.md)
 - [Contributor and agent guidance](AGENTS.md)
 
 ## Current boundaries
 
-There is no CI configuration, packaging/installer, authentication model, or cashier workflow. A dependency-free unit-test harness is in `HammerTrackPro2.Tests`; after restore, run `dotnet run --project .\HammerTrackPro2.Tests\HammerTrackPro2.Tests.csproj`. See the roadmap and current sprint for proposed next steps; proposed items are not commitments until a maintainer approves them.
+There is no CI configuration, packaging/installer, authentication model, or cashier workflow. Standard xUnit tests are in `HammerTrackPro2.Tests`; after restore, run `dotnet test .\HammerTrackPro2.sln`. See the roadmap, backlog, and current sprint for approved boundaries and proposed next steps.
