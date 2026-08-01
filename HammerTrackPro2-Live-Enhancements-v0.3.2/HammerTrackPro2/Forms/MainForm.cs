@@ -416,15 +416,7 @@ public sealed class MainForm : Form
 
     private static SplitContainer CreateEditorSplit(int editorWidth)
     {
-        var split=new SplitContainer { Dock=DockStyle.Fill,FixedPanel=FixedPanel.Panel1,SplitterWidth=7,Panel1MinSize=400,Panel2MinSize=300 };
-        void EnsureOpen()
-        {
-            if(split.IsDisposed||split.ClientSize.Width<split.Panel1MinSize+split.Panel2MinSize+split.SplitterWidth)return;
-            split.Panel1Collapsed=false;
-            if(split.SplitterDistance<split.Panel1MinSize) split.SplitterDistance=Math.Min(editorWidth,split.ClientSize.Width-split.Panel2MinSize-split.SplitterWidth);
-        }
-        split.HandleCreated+=(_,_)=>{split.SplitterDistance=editorWidth;EnsureOpen();};
-        split.Resize+=(_,_)=>EnsureOpen();
+        var split=new SplitContainer { Dock=DockStyle.Fill,FixedPanel=FixedPanel.Panel1,Size=new Size(editorWidth+707,600),SplitterWidth=7,SplitterDistance=editorWidth,Panel1MinSize=400,Panel2MinSize=300 };
         return split;
     }
 
