@@ -153,7 +153,7 @@ public sealed class MainForm : Form
         cards.Controls.Add(BuildCard("Average Sale", _averageSalePrice), 4, 0);
         content.Controls.Add(cards, 0, 1);
 
-        var middle = new TableLayoutPanel { Dock = DockStyle.Top, AutoSize = true, ColumnCount = 2, Margin = new Padding(0, 0, 0, 16) };
+        var middle = new TableLayoutPanel { Dock = DockStyle.Top, Height = 430, ColumnCount = 2, Margin = new Padding(0, 0, 0, 16) };
         middle.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 58));
         middle.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 42));
         middle.Controls.Add(BuildAuctionInformationPanel(), 0, 0);
@@ -201,11 +201,11 @@ public sealed class MainForm : Form
         {
             Text = "Auction Information",
             Dock = DockStyle.Fill,
-            Height = 265,
+            Height = 420,
             Padding = new Padding(14),
             Margin = new Padding(8)
         };
-        var table = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 0, AutoSize = true };
+        var table = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 0, AutoScroll = true, Padding = new Padding(4) };
         table.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 125));
         table.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         AddRow(table, "Auction Name", _auctionName);
@@ -213,7 +213,7 @@ public sealed class MainForm : Form
         AddRow(table, "Auction Date", _auctionDate);
         AddRow(table, "Location", _auctionLocation);
         ConfigurePercent(_buyerPremium); AddRow(table, "Buyer Premium %", _buyerPremium);
-        ConfigurePercent(_defaultConsignorCommission); AddRow(table, "Consignor Commission %", _defaultConsignorCommission);
+        ConfigurePercent(_defaultConsignorCommission); AddRow(table, "Seller Commission %", _defaultConsignorCommission);
         ConfigurePercent(_salesTax); AddRow(table, "Sales Tax %", _salesTax);
         AddRow(table, "Clerk", _clerkName);
         AddRow(table, "Cashier", _cashierName);
@@ -235,7 +235,7 @@ public sealed class MainForm : Form
         {
             Text = "Quick Actions",
             Dock = DockStyle.Fill,
-            Height = 265,
+            Height = 420,
             Padding = new Padding(14),
             Margin = new Padding(8)
         };
@@ -359,7 +359,8 @@ public sealed class MainForm : Form
         AddRow(form, "Description", _description);
         AddRow(form, "Category", _category);
         _lotConsignor.DropDownStyle = ComboBoxStyle.DropDownList;
-        _lotConsignor.DisplayMember = nameof(Consignor.DisplayName); _lotConsignor.ValueMember = nameof(Consignor.ConsignorId);
+        _lotConsignor.DisplayMember = nameof(Consignor.LotDisplayName); _lotConsignor.ValueMember = nameof(Consignor.ConsignorId);
+        _lotConsignor.DropDownWidth = 360;
         AddRow(form, "Consignor", _lotConsignor);
         _startingBid.DecimalPlaces = 2;
         _startingBid.Maximum = 100000000;
@@ -426,12 +427,23 @@ public sealed class MainForm : Form
         grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
         grid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
         grid.MultiSelect = false;
+        grid.BackgroundColor = Color.White;
+        grid.BorderStyle = BorderStyle.None;
+        grid.RowHeadersVisible = false;
+        grid.EnableHeadersVisualStyles = false;
+        grid.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(24, 50, 74);
+        grid.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
+        grid.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+        grid.DefaultCellStyle.SelectionBackColor = Color.FromArgb(214, 232, 245);
+        grid.DefaultCellStyle.SelectionForeColor = Color.FromArgb(24, 50, 74);
+        grid.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(246, 249, 251);
     }
 
     private void RefreshAll()
     {
         _auctionSetup.Load();
         _data = _service.Load();
+        RefreshConsignorChoices();
         RefreshBidders();
         RefreshLots();
         RefreshDashboard();
@@ -635,9 +647,17 @@ public sealed class MainForm : Form
         _category.Clear();
         _startingBid.Value = 0;
         _reservePrice.Value = 0; _passOutMode.Checked = false;
-        _lotConsignor.DataSource = _consignorService.GetConsignors().Where(x => x.Active).OrderBy(x => x.ConsignorNumber).ToList();
+        RefreshConsignorChoices();
         _status.SelectedIndex = 0;
         _description.Focus();
+    }
+
+    private void RefreshConsignorChoices()
+    {
+        var selectedId=_lotConsignor.SelectedValue is long id ? id : (long?)null;
+        var consignors=_consignorService.GetConsignors().OrderByDescending(item=>item.Active).ThenBy(item=>item.ConsignorNumber).ToList();
+        _lotConsignor.DataSource=null; _lotConsignor.DataSource=consignors;
+        if(selectedId.HasValue && consignors.Any(item=>item.ConsignorId==selectedId.Value)) _lotConsignor.SelectedValue=selectedId.Value;
     }
 
     private void SaveLot()

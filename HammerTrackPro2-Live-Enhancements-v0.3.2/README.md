@@ -63,3 +63,5 @@ The folder is created when possible. In-app backups are written to a `Backups` d
 ## Current boundaries
 
 There is no CI configuration, packaging/installer, authentication model, or auction reopening. Cashier supports current-auction bidder lookup, itemized invoices, partial/split cash/check/card payments, cash change, status updates, and Windows invoice printing. Closing an auction is audited and locks new payments while still allowing invoice viewing and reprinting. Standard xUnit tests are in `HammerTrackPro2.Tests`; after restore, run `dotnet test .\HammerTrackPro2.sln`.
+
+Lot entry lists consignors by consignor number and name, refreshes after Consignor Management closes, and retains inactive consignors for historical/controlled assignment with a visible inactive label.

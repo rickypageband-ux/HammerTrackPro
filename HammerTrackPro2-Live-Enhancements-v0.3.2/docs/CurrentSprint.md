@@ -28,3 +28,9 @@ Status: implemented; pending final verification and feature commit.
 - Refund/void authorization and audit workflow.
 - Whether payment references require method-specific formatting or validation.
 - Supported multi-workstation topology and recovery testing.
+
+## Post-sprint usability correction
+
+- Lot entry refreshes its consignor list immediately after Consignor Management changes and displays both active and inactive consignors with number, name, and inactive state.
+- Auction Information no longer clips Seller Commission or lower fields at common window sizes.
+- Auction and consignor properties are grouped into readable categories, and affected grids/forms use clearer spacing, headers, and selection colors.
