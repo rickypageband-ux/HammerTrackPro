@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net8.0-windows</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable><IsPackable>false</IsPackable><BaseOutputPath>C:\Users\Shop75\AppData\Local\Temp\HammerTrackTestsBuild\bin\</BaseOutputPath><BaseIntermediateOutputPath>C:\Users\Shop75\AppData\Local\Temp\HammerTrackTestsBuild\obj\</BaseIntermediateOutputPath></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\HammerTrackPro2\HammerTrackPro2.csproj" />
+  </ItemGroup>
+</Project>
