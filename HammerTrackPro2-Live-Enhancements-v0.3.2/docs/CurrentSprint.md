@@ -45,3 +45,4 @@ Status: Cashier is implemented. A two-workstation LAN deployment slice is now im
 - Lot entry refreshes its consignor list immediately after Consignor Management changes and displays both active and inactive consignors with number, name, and inactive state.
 - Auction Information no longer clips Seller Commission or lower fields at common window sizes.
 - Auction and consignor properties are grouped into readable categories, and affected grids/forms use clearer spacing, headers, and selection colors.
+- Bidder, consignor, and lot editor panels open at a usable width and cannot collapse below the data-entry minimum, eliminating the need to drag the divider open.

@@ -11,7 +11,14 @@ public sealed class ConsignorForm : Form
     public ConsignorForm(ConsignorService service)
     {
         _viewModel = new ConsignorViewModel(service); Text="Consignor Management"; StartPosition=FormStartPosition.CenterParent; Width=1300; Height=800; MinimumSize=new Size(1000,650); BackColor=Color.FromArgb(242,245,248);
-        var split=new SplitContainer { Dock=DockStyle.Fill, SplitterDistance=450, FixedPanel=FixedPanel.Panel1 };
+        var split=new SplitContainer { Dock=DockStyle.Fill,FixedPanel=FixedPanel.Panel1,SplitterWidth=7,Panel1MinSize=440,Panel2MinSize=400 };
+        void EnsureEditorOpen()
+        {
+            if(split.IsDisposed||split.ClientSize.Width<split.Panel1MinSize+split.Panel2MinSize+split.SplitterWidth)return;
+            split.Panel1Collapsed=false;
+            if(split.SplitterDistance<split.Panel1MinSize) split.SplitterDistance=Math.Min(480,split.ClientSize.Width-split.Panel2MinSize-split.SplitterWidth);
+        }
+        split.HandleCreated+=(_,_)=>{split.SplitterDistance=480;EnsureEditorOpen();}; split.Resize+=(_,_)=>EnsureEditorOpen();
         var left=new TableLayoutPanel { Dock=DockStyle.Fill, RowCount=2 }; left.RowStyles.Add(new RowStyle(SizeType.Percent,100)); left.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         var buttons=new FlowLayoutPanel { Dock=DockStyle.Fill, AutoSize=true }; buttons.Controls.Add(Button("New", (_,_)=>New())); buttons.Controls.Add(Button("Save", (_,_)=>Save())); buttons.Controls.Add(Button("Delete", (_,_)=>Delete())); left.Controls.Add(_editor,0,0); left.Controls.Add(buttons,0,1);
         var right=new TableLayoutPanel { Dock=DockStyle.Fill, RowCount=2 }; right.RowStyles.Add(new RowStyle(SizeType.Absolute,46)); right.RowStyles.Add(new RowStyle(SizeType.Percent,100));

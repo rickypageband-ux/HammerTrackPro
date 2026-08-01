@@ -298,7 +298,7 @@ public sealed class MainForm : Form
     private TabPage BuildBiddersTab()
     {
         var tab = new TabPage("Bidders");
-        var split = new SplitContainer { Dock = DockStyle.Fill, SplitterDistance = 430, FixedPanel = FixedPanel.Panel1 };
+        var split = CreateEditorSplit(460);
 
         var editor = new Panel { Dock = DockStyle.Fill, AutoScroll = true, Padding = new Padding(12) };
         var form = new TableLayoutPanel { Dock = DockStyle.Top, AutoSize = true, ColumnCount = 2, Padding = new Padding(4) };
@@ -351,7 +351,7 @@ public sealed class MainForm : Form
     private TabPage BuildLotsTab()
     {
         var tab = new TabPage("Lots");
-        var split = new SplitContainer { Dock = DockStyle.Fill, SplitterDistance = 400, FixedPanel = FixedPanel.Panel1 };
+        var split = CreateEditorSplit(440);
 
         var editor = new Panel { Dock = DockStyle.Fill, AutoScroll = true, Padding = new Padding(12) };
         var form = new TableLayoutPanel { Dock = DockStyle.Top, AutoSize = true, ColumnCount = 2, Padding = new Padding(4) };
@@ -412,6 +412,20 @@ public sealed class MainForm : Form
         control.Margin = new Padding(3, 4, 3, 4);
         table.Controls.Add(label, 0, row);
         table.Controls.Add(control, 1, row);
+    }
+
+    private static SplitContainer CreateEditorSplit(int editorWidth)
+    {
+        var split=new SplitContainer { Dock=DockStyle.Fill,FixedPanel=FixedPanel.Panel1,SplitterWidth=7,Panel1MinSize=400,Panel2MinSize=300 };
+        void EnsureOpen()
+        {
+            if(split.IsDisposed||split.ClientSize.Width<split.Panel1MinSize+split.Panel2MinSize+split.SplitterWidth)return;
+            split.Panel1Collapsed=false;
+            if(split.SplitterDistance<split.Panel1MinSize) split.SplitterDistance=Math.Min(editorWidth,split.ClientSize.Width-split.Panel2MinSize-split.SplitterWidth);
+        }
+        split.HandleCreated+=(_,_)=>{split.SplitterDistance=editorWidth;EnsureOpen();};
+        split.Resize+=(_,_)=>EnsureOpen();
+        return split;
     }
 
     private static void ConfigurePercent(NumericUpDown control) { control.DecimalPlaces = 2; control.Maximum = 100; control.Increment = 0.25m; }
