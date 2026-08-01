@@ -9,6 +9,7 @@ public sealed class MainForm : Form
     private readonly IAuctionService _service;
     private readonly ConsignorService _consignorService;
     private readonly ICashierService _cashierService;
+    private readonly WorkstationConfiguration _workstationConfiguration;
     private readonly AuctionSetupViewModel _auctionSetup;
     private AppData _data;
 
@@ -59,11 +60,12 @@ public sealed class MainForm : Form
     private int? _editingBidderNumber;
     private int? _editingLotNumber;
 
-    public MainForm(IAuctionService service, ConsignorService consignorService, ICashierService cashierService)
+    public MainForm(IAuctionService service, ConsignorService consignorService, ICashierService cashierService,WorkstationConfiguration workstationConfiguration)
     {
         _service = service ?? throw new ArgumentNullException(nameof(service));
         _consignorService = consignorService ?? throw new ArgumentNullException(nameof(consignorService));
         _cashierService = cashierService ?? throw new ArgumentNullException(nameof(cashierService));
+        _workstationConfiguration=workstationConfiguration;
         _auctionSetup = new AuctionSetupViewModel(_service);
         _auctionSetup.Load();
         _data = _service.Load();
@@ -105,9 +107,13 @@ public sealed class MainForm : Form
         backup.Left = 1080;
         backup.Top = 15;
         backup.Click += (_, _) => BackupDatabase();
-        header.Resize += (_, _) => backup.Left = header.ClientSize.Width - backup.Width - 20;
+        var network=new Button { Text="Network Information",Width=160,Height=34,Top=15,Anchor=AnchorStyles.Top|AnchorStyles.Right };
+        network.Left=backup.Left-network.Width-10;
+        network.Click+=(_,_)=>{ using var info=new NetworkInformationForm(_workstationConfiguration); info.ShowDialog(this); };
+        header.Resize += (_, _) => { backup.Left=header.ClientSize.Width-backup.Width-20; network.Left=backup.Left-network.Width-10; };
         header.Controls.Add(title);
         header.Controls.Add(backup);
+        header.Controls.Add(network);
 
         _tabs.Dock = DockStyle.Fill;
         _tabs.TabPages.Add(BuildDashboardTab());
@@ -522,7 +528,7 @@ public sealed class MainForm : Form
 
     private void OpenCashier()
     {
-        using var cashier=new CashierForm(new CashierViewModel(_cashierService),_service);
+        using var cashier=new CashierForm(new CashierViewModel(_cashierService),_cashierService);
         cashier.ShowDialog(this); RefreshAll();
     }
 

@@ -1,38 +1,21 @@
-using System.Text.Json;
-
 namespace HammerTrackPro2.Services;
 
 public static class DatabaseLocationService
 {
-    private sealed class WorkstationConfiguration
-    {
-        public string DatabasePath { get; set; } = string.Empty;
-    }
-
-    public static string ResolveDatabasePath()
+    public static string ResolveDatabasePath(WorkstationConfiguration? configuration=null)
     {
         var localFolder = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "HammerTrackPro2");
         Directory.CreateDirectory(localFolder);
 
-        var configurationFile = Path.Combine(localFolder, "workstation.json");
-        if (File.Exists(configurationFile))
+        configuration ??= WorkstationConfigurationService.Load();
+        if (!string.IsNullOrWhiteSpace(configuration.DatabasePath))
         {
-            try
-            {
-                var configuration = JsonSerializer.Deserialize<WorkstationConfiguration>(File.ReadAllText(configurationFile));
-                if (!string.IsNullOrWhiteSpace(configuration?.DatabasePath))
-                {
-                    var configuredPath = Path.GetFullPath(Environment.ExpandEnvironmentVariables(configuration.DatabasePath));
-                    Directory.CreateDirectory(Path.GetDirectoryName(configuredPath)!);
-                    return configuredPath;
-                }
-            }
-            catch (JsonException)
-            {
-                // Fall back to the standard local database path.
-            }
+            var configuredPath=Path.GetFullPath(Environment.ExpandEnvironmentVariables(configuration.DatabasePath));
+            if(configuredPath.StartsWith("\\\\",StringComparison.Ordinal)||IsNetworkDrive(configuredPath))
+                throw new InvalidOperationException("The host database must be stored on a local drive. Use Network Setup for the cashier PC instead of a shared database path.");
+            Directory.CreateDirectory(Path.GetDirectoryName(configuredPath)!); return configuredPath;
         }
 
         var sharedDataFolder = Path.Combine(
@@ -40,5 +23,12 @@ public static class DatabaseLocationService
             "HammerTrackPro2");
         Directory.CreateDirectory(sharedDataFolder);
         return Path.Combine(sharedDataFolder, "hammertrack.db");
+    }
+
+    private static bool IsNetworkDrive(string path)
+    {
+        var root=Path.GetPathRoot(path); if(string.IsNullOrWhiteSpace(root))return false;
+        try { return new DriveInfo(root).DriveType==DriveType.Network; }
+        catch(Exception exception) when(exception is IOException or UnauthorizedAccessException) { return false; }
     }
 }

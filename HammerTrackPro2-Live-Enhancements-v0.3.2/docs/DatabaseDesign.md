@@ -2,9 +2,9 @@
 
 ## Overview
 
-HammerTrack Pro uses SQLite through `SqliteDataStore`. Connections enable foreign keys, WAL, shared cache, pooling, `synchronous=NORMAL`, and a 15-second busy timeout. Decimals are invariant-culture `TEXT`; timestamps are UTC ISO-8601. The default database is `%ProgramData%\HammerTrackPro2\hammertrack.db` with an optional workstation path override.
+HammerTrack Pro uses SQLite through `SqliteDataStore` on the live-auction host only. Connections enable foreign keys, WAL, shared cache, pooling, `synchronous=NORMAL`, and a 15-second busy timeout. The default database is `%ProgramData%\HammerTrackPro2\hammertrack.db`; custom paths must remain on a local host drive.
 
-> Open operational decision: a configurable network path does not establish that SQLite/WAL is safe on every network filesystem. The supported topology, workstation count, disconnect behavior, and recovery procedure still require testing.
+The supported two-PC topology is `Cashier -> paired HTTPS API -> live-auction host -> local SQLite`. The cashier pins the host certificate fingerprint, sends a high-entropy pairing key, and never receives a database path or SQL access. Cashier writes execute through the same transactional service/data-store path as local writes. A disconnected cashier retries health checks; the live-auction host continues locally.
 
 ## Schema version 9
 

@@ -7,7 +7,11 @@ namespace HammerTrackPro2.Forms;
 public sealed class CashierForm : Form
 {
     private readonly CashierViewModel _viewModel;
-    private readonly IAuctionSetupService _auctionService;
+    private readonly ICashierService _cashierService;
+    private readonly Label _connection=new() { AutoSize=true,Text="Checking host connection..." };
+    private readonly System.Windows.Forms.Timer _connectionTimer=new() { Interval=5000 };
+    private readonly WorkstationConfiguration? _configuration;
+    private bool _checkingConnection;
     private readonly NumericUpDown _bidderNumber=new() { Minimum=1,Maximum=999999 };
     private readonly Label _heading=new() { AutoSize=true };
     private readonly Label _totals=new() { AutoSize=true };
@@ -18,12 +22,14 @@ public sealed class CashierForm : Form
     private readonly NumericUpDown _amount=new() { DecimalPlaces=2,Maximum=100000000 };
     private readonly TextBox _reference=new();
 
-    public CashierForm(CashierViewModel viewModel,IAuctionSetupService auctionService)
+    public CashierForm(CashierViewModel viewModel,ICashierService cashierService,WorkstationConfiguration? configuration=null)
     {
-        _viewModel=viewModel; _auctionService=auctionService; Text="Cashier"; Width=1000; Height=760;
+        _viewModel=viewModel; _cashierService=cashierService; _configuration=configuration; Text="HammerTrack Cashier"; Width=1000; Height=760;
         var lookup=new FlowLayoutPanel { Dock=DockStyle.Fill,AutoSize=true };
         lookup.Controls.Add(new Label { Text="Auction Bidder Number",AutoSize=true }); lookup.Controls.Add(_bidderNumber);
         lookup.Controls.Add(Button("Lookup",Lookup)); lookup.Controls.Add(Button("Print Invoice",PrintInvoice));
+        if(configuration is not null) lookup.Controls.Add(Button("Network Setup",OpenNetworkSetup));
+        lookup.Controls.Add(_connection);
         var paymentEntry=new FlowLayoutPanel { Dock=DockStyle.Fill,AutoSize=true };
         paymentEntry.Controls.Add(new Label { Text="Method",AutoSize=true }); paymentEntry.Controls.Add(_method);
         paymentEntry.Controls.Add(new Label { Text="Amount",AutoSize=true }); paymentEntry.Controls.Add(_amount);
@@ -37,6 +43,8 @@ public sealed class CashierForm : Form
         layout.RowStyles.Add(new RowStyle(SizeType.AutoSize)); layout.RowStyles.Add(new RowStyle(SizeType.Percent,100)); layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         layout.Controls.Add(lookup,0,0); layout.Controls.Add(_heading,0,1); layout.Controls.Add(_totals,0,2); layout.Controls.Add(tabs,0,3); layout.Controls.Add(paymentEntry,0,4);
         Controls.Add(layout);
+        Shown+=async(_,_)=>await CheckConnection(); _connectionTimer.Tick+=async(_,_)=>await CheckConnection(); _connectionTimer.Start();
+        FormClosed+=(_,_)=>{_connectionTimer.Stop();_connectionTimer.Dispose();};
     }
 
     private static TabPage Page(string name,Control content) { var page=new TabPage(name); page.Controls.Add(content); return page; }
@@ -48,9 +56,26 @@ public sealed class CashierForm : Form
     private void PrintInvoice()
     {
         var invoice=_viewModel.Invoice ?? throw new InvalidOperationException("Look up a bidder before printing.");
-        using var document=new InvoicePrinter().CreateDocument(invoice,_auctionService.GetCurrentAuction());
+        using var document=new InvoicePrinter().CreateDocument(invoice,_cashierService.GetCurrentAuction());
         using var dialog=new PrintDialog { Document=document,UseEXDialog=true };
         if (dialog.ShowDialog(this)==DialogResult.OK) document.Print();
+    }
+    private async Task CheckConnection()
+    {
+        if(_checkingConnection)return; _checkingConnection=true;
+        try
+        {
+            var connected=await _cashierService.CheckConnectionAsync();
+            _connection.Text=connected?"Connected to auction host":"Host disconnected — retrying";
+            _connection.ForeColor=connected?Color.DarkGreen:Color.DarkRed;
+        }
+        finally {_checkingConnection=false;}
+    }
+    private void OpenNetworkSetup()
+    {
+        if(_configuration is null)return;
+        using var setup=new WorkstationSetupForm(_configuration);
+        if(setup.ShowDialog(this)==DialogResult.OK) MessageBox.Show("Restart HammerTrack to apply the network change.","Network Setup",MessageBoxButtons.OK,MessageBoxIcon.Information);
     }
     private void RefreshInvoice()
     {

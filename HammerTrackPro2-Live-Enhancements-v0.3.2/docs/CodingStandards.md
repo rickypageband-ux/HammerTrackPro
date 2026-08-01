@@ -7,6 +7,7 @@ Favor correctness and operator safety over cleverness. Live-auction actions are 
 ## Architecture
 
 - Maintain `Forms -> IAuctionService -> IDataStore -> SQLite` dependency direction.
+- For the two-PC cashier path, maintain `CashierForm -> ICashierService -> HTTPS host -> CashierService -> IDataStore -> local SQLite`. Never expose SQL or a database filename over the API.
 - Forms own layout, input collection, keyboard behavior, confirmations, and presentation only.
 - `AuctionService` owns business validation and workflow rules.
 - `SqliteDataStore` owns SQL, transactions, migrations, backups, and materialization.

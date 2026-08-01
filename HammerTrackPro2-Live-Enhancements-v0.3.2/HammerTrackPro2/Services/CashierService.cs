@@ -6,6 +6,8 @@ public sealed class CashierService : ICashierService
 {
     private readonly IDataStore _dataStore;
     public CashierService(IDataStore dataStore) => _dataStore = dataStore ?? throw new ArgumentNullException(nameof(dataStore));
+    public Auction GetCurrentAuction() => _dataStore.GetCurrentAuction();
+    public Task<bool> CheckConnectionAsync(CancellationToken cancellationToken=default) => Task.FromResult(true);
 
     public Invoice LoadInvoice(int bidderNumber)
     {

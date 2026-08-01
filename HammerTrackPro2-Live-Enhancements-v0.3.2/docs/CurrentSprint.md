@@ -2,7 +2,7 @@
 
 ## Cashier module
 
-Status: implemented; pending final verification and feature commit.
+Status: Cashier is implemented. A two-workstation LAN deployment slice is now implemented and pending final verification/feature commit.
 
 ## Scope and acceptance criteria
 
@@ -22,6 +22,17 @@ Status: implemented; pending final verification and feature commit.
 ## Out of scope
 
 - Refunds, voids, card processing gateways, receipt printing, user authentication, reports, settlements, check printing, and UI styling.
+
+## Two-workstation deployment acceptance
+
+- Live-auction PC is the only SQLite/WAL database owner and hosts the Cashier API on the private LAN.
+- Cashier workstation runs a dedicated remote Cashier screen and never opens a local/shared auction database.
+- HTTPS, certificate fingerprint pinning, and a high-entropy pairing key protect the connection.
+- One-time Host/Cashier setup is persisted per workstation; the host displays computer-name and IPv4 connection addresses.
+- Cashier displays connection state and retries health checks after disconnects.
+- Remote invoice reads and payment writes retain current-auction scoping, validation, transactions, audit entries, and invoice status behavior.
+- UNC and detected mapped-network database paths are rejected.
+- Integration tests cover a host/client invoice and payment round trip plus invalid-pairing rejection.
 
 ## Remaining decisions
 

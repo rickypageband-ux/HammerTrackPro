@@ -27,19 +27,21 @@ dotnet restore .\HammerTrackPro2.sln
 dotnet build .\HammerTrackPro2.sln
 ```
 
+## Two-computer setup
+
+HammerTrack supports one live-auction host PC and one cashier PC on the same private LAN. The host owns the local SQLite database and runs a paired HTTPS cashier service. The cashier never opens or copies the database file.
+
+1. Install/run HammerTrack on the live-auction PC and choose **Live Auction Host** at first start.
+2. Allow HammerTrack on **Private networks** if Windows Firewall prompts.
+3. Open **Network Information** on the host and keep HammerTrack running.
+4. Start HammerTrack on the cashier PC, choose **Cashier Workstation**, and enter the host address, pairing key, and certificate fingerprint shown by the host.
+5. The cashier screen shows connection state and retries automatically after a temporary disconnect.
+
+If the computer-name address does not connect, use the alternate IP address displayed by Network Information. Restart HammerTrack after changing a workstation role or connection setting.
+
 ## Data location and backups
 
-The default database is `%ProgramData%\HammerTrackPro2\hammertrack.db`. A workstation can instead use a configured path from `%LocalAppData%\HammerTrackPro2\workstation.json`:
-
-```json
-{
-  "DatabasePath": "\\\\server\\auction-share\\hammertrack.db"
-}
-```
-
-The folder is created when possible. In-app backups are written to a `Backups` directory beside the active database. Database files and sidecar files are ignored by source control.
-
-> Assumption/open decision: the configurable path and SQLite shared-cache/WAL settings indicate intended shared or network use, but supported share types, workstation count, locking behavior, permissions, and recovery procedures are not documented or tested in this repository. Validate these before treating a network share as production-safe.
+The host database defaults to `%ProgramData%\HammerTrackPro2\hammertrack.db`. Workstation configuration is stored in `%LocalAppData%\HammerTrackPro2\workstation.json`. A custom host database path must be on a local drive; UNC and detected mapped-network drives are rejected. In-app backups are written to `Backups` beside the host database.
 
 ## Live-auction keys
 
