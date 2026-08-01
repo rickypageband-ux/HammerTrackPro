@@ -47,13 +47,34 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
             using var connection = OpenConnection();
             return new AppData
             {
-                Bidders = LoadBidders(connection),
-                Lots = LoadLots(connection)
+                Bidders = LoadAuctionBidders(connection, GetCurrentAuctionId(connection)),
+                Lots = LoadAuctionLots(connection, GetCurrentAuctionId(connection))
             };
         }
     }
 
-    public void SaveBidder(Bidder bidder, int? originalBidderNumber)
+    public IReadOnlyList<Buyer> GetBuyers()
+    {
+        lock (_sync)
+        {
+            using var connection = OpenConnection();
+            using var command = connection.CreateCommand();
+            command.CommandText = """
+                SELECT BuyerId,FirstName,LastName,DriversLicense,Address,City,State,Zip,Phone,Email
+                FROM Buyers ORDER BY LastName,FirstName,BuyerId;
+                """;
+            using var reader = command.ExecuteReader();
+            var buyers = new List<Buyer>();
+            while (reader.Read()) buyers.Add(new Buyer
+            {
+                BuyerId=reader.GetInt64(0),FirstName=reader.GetString(1),LastName=reader.GetString(2),DriversLicense=reader.GetString(3),
+                Address=reader.GetString(4),City=reader.GetString(5),State=reader.GetString(6),Zip=reader.GetString(7),Phone=reader.GetString(8),Email=reader.GetString(9)
+            });
+            return buyers;
+        }
+    }
+
+    public void SaveBidder(AuctionBidder bidder, int? originalBidderNumber)
     {
         ArgumentNullException.ThrowIfNull(bidder);
 
@@ -62,36 +83,46 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
             using var connection = OpenConnection();
             using var transaction = connection.BeginTransaction();
 
-            if (originalBidderNumber.HasValue && originalBidderNumber.Value != bidder.BidderNumber)
+            var auctionId = GetCurrentAuctionId(connection);
+            if (bidder.AuctionId != auctionId) throw new InvalidOperationException("Bidder registration must use the current auction.");
+
+            long buyerId = bidder.BuyerId;
+            using (var buyer = connection.CreateCommand())
             {
-                using var deleteOld = connection.CreateCommand();
-                deleteOld.Transaction = transaction;
-                deleteOld.CommandText = "DELETE FROM Bidders WHERE BidderNumber = $original;";
-                deleteOld.Parameters.AddWithValue("$original", originalBidderNumber.Value);
-                deleteOld.ExecuteNonQuery();
+                buyer.Transaction = transaction;
+                buyer.CommandText = buyerId == 0
+                    ? """
+                        INSERT INTO Buyers(FirstName,LastName,DriversLicense,Address,City,State,Zip,Phone,Email,CreatedUtc,UpdatedUtc)
+                        VALUES($first,$last,$license,$address,$city,$state,$zip,$phone,$email,$created,$updated);
+                        SELECT last_insert_rowid();
+                        """
+                    : """
+                        UPDATE Buyers SET FirstName=$first,LastName=$last,DriversLicense=$license,Address=$address,City=$city,State=$state,
+                            Zip=$zip,Phone=$phone,Email=$email,UpdatedUtc=$updated WHERE BuyerId=$buyerId;
+                        SELECT $buyerId;
+                        """;
+                AddBuyerParameters(buyer, bidder);
+                buyer.Parameters.AddWithValue("$buyerId", buyerId);
+                buyerId = Convert.ToInt64(buyer.ExecuteScalar(), CultureInfo.InvariantCulture);
             }
 
             using var command = connection.CreateCommand();
             command.Transaction = transaction;
             command.CommandText = """
-                INSERT INTO Bidders
-                (BidderNumber, FirstName, LastName, DriversLicense, Address, City, State, Zip, Phone, Email, Notes, CreatedUtc, UpdatedUtc)
-                VALUES
-                ($number, $first, $last, $license, $address, $city, $state, $zip, $phone, $email, $notes, $created, $updated)
-                ON CONFLICT(BidderNumber) DO UPDATE SET
-                    FirstName = excluded.FirstName,
-                    LastName = excluded.LastName,
-                    DriversLicense = excluded.DriversLicense,
-                    Address = excluded.Address,
-                    City = excluded.City,
-                    State = excluded.State,
-                    Zip = excluded.Zip,
-                    Phone = excluded.Phone,
-                    Email = excluded.Email,
-                    Notes = excluded.Notes,
-                    UpdatedUtc = excluded.UpdatedUtc;
+                INSERT INTO AuctionBidders(AuctionId,BuyerId,BidderNumber,Notes,RegisteredUtc,UpdatedUtc)
+                VALUES($auctionId,$buyerId,$number,$notes,$created,$updated)
+                ON CONFLICT(AuctionId,BidderNumber) DO UPDATE SET BuyerId=excluded.BuyerId,Notes=excluded.Notes,UpdatedUtc=excluded.UpdatedUtc;
                 """;
-            AddBidderParameters(command, bidder);
+            if (originalBidderNumber.HasValue && originalBidderNumber.Value != bidder.BidderNumber)
+            {
+                using var renumber = connection.CreateCommand();
+                renumber.Transaction = transaction;
+                renumber.CommandText = "UPDATE AuctionBidders SET BidderNumber=$number WHERE AuctionId=$auctionId AND BidderNumber=$original;";
+                renumber.Parameters.AddWithValue("$number", bidder.BidderNumber); renumber.Parameters.AddWithValue("$auctionId", auctionId);
+                renumber.Parameters.AddWithValue("$original", originalBidderNumber.Value);
+                renumber.ExecuteNonQuery();
+            }
+            AddRegistrationParameters(command, bidder, buyerId);
             command.ExecuteNonQuery();
             WriteAudit(connection, transaction, "BidderSaved", $"Bidder #{bidder.BidderNumber}: {bidder.FirstName} {bidder.LastName}".Trim());
             transaction.Commit();
@@ -104,14 +135,15 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
         {
             using var connection = OpenConnection();
             using var command = connection.CreateCommand();
-            command.CommandText = "DELETE FROM Bidders WHERE BidderNumber = $number;";
+            command.CommandText = "DELETE FROM AuctionBidders WHERE AuctionId=$auctionId AND BidderNumber=$number;";
+            command.Parameters.AddWithValue("$auctionId", GetCurrentAuctionId(connection));
             command.Parameters.AddWithValue("$number", bidderNumber);
             command.ExecuteNonQuery();
             WriteAudit(connection, null, "BidderDeleted", $"Bidder #{bidderNumber}");
         }
     }
 
-    public void SaveLot(Lot lot, int? originalLotNumber)
+    public void SaveLot(AuctionLot lot, int? originalLotNumber)
     {
         ArgumentNullException.ThrowIfNull(lot);
 
@@ -124,7 +156,8 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
             {
                 using var deleteOld = connection.CreateCommand();
                 deleteOld.Transaction = transaction;
-                deleteOld.CommandText = "DELETE FROM Lots WHERE LotNumber = $original;";
+                deleteOld.CommandText = "DELETE FROM AuctionLots WHERE AuctionId = $auctionId AND LotNumber = $original;";
+                deleteOld.Parameters.AddWithValue("$auctionId", lot.AuctionId);
                 deleteOld.Parameters.AddWithValue("$original", originalLotNumber.Value);
                 deleteOld.ExecuteNonQuery();
             }
@@ -132,11 +165,11 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
             using var command = connection.CreateCommand();
             command.Transaction = transaction;
             command.CommandText = """
-                INSERT INTO Lots
+                INSERT INTO AuctionLots
                 (LotNumber, Description, Category, StartingBid, Status, AuctionId, ConsignorId, ReservePrice, PassOutMode, LotStatus, CreatedUtc, UpdatedUtc)
                 VALUES
                 ($number, $description, $category, $startingBid, $status, $auctionId, $consignorId, $reservePrice, $passOutMode, $lotStatus, $created, $updated)
-                ON CONFLICT(LotNumber) DO UPDATE SET
+                ON CONFLICT(AuctionId, LotNumber) DO UPDATE SET
                     Description = excluded.Description,
                     Category = excluded.Category,
                     StartingBid = excluded.StartingBid,
@@ -158,7 +191,8 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
         {
             using var connection = OpenConnection();
             using var command = connection.CreateCommand();
-            command.CommandText = "DELETE FROM Lots WHERE LotNumber = $number;";
+            command.CommandText = "DELETE FROM AuctionLots WHERE AuctionId = $auctionId AND LotNumber = $number;";
+            command.Parameters.AddWithValue("$auctionId", GetCurrentAuctionId(connection));
             command.Parameters.AddWithValue("$number", lotNumber);
             command.ExecuteNonQuery();
             WriteAudit(connection, null, "LotDeleted", $"Lot #{lotNumber}");
@@ -169,30 +203,108 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
     {
         lock (_sync)
         {
-            using var connection = OpenConnection(); using var command = connection.CreateCommand();
-            command.CommandText = """
-                SELECT a.AuctionId, a.AuctionName, a.AuctionDate, a.Location, a.BuyerPremiumPercent,
-                       a.DefaultConsignorCommissionPercent, a.SalesTaxPercent, a.Status, a.CreatedDate
-                FROM Auctions a LEFT JOIN Settings s ON s.Key='CurrentAuctionId'
-                ORDER BY CASE WHEN a.AuctionId=CAST(s.Value AS INTEGER) THEN 0 ELSE 1 END, a.AuctionDate DESC, a.AuctionId DESC LIMIT 1;
-                """;
-            using var reader = command.ExecuteReader(); if (!reader.Read()) throw new InvalidOperationException("No auction is configured.");
-            return new Auction { AuctionId=reader.GetInt64(0), AuctionName=reader.GetString(1), AuctionDate=DateTime.Parse(reader.GetString(2), CultureInfo.InvariantCulture), Location=reader.GetString(3), BuyerPremiumPercent=decimal.Parse(reader.GetString(4), CultureInfo.InvariantCulture), DefaultConsignorCommissionPercent=decimal.Parse(reader.GetString(5), CultureInfo.InvariantCulture), SalesTaxPercent=decimal.Parse(reader.GetString(6), CultureInfo.InvariantCulture), Status=reader.GetString(7), CreatedDate=DateTime.Parse(reader.GetString(8), CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind) };
+            using var connection = OpenConnection();
+            var currentAuctionId = GetCurrentAuctionId(connection);
+            return GetAuction(connection, currentAuctionId);
         }
     }
 
-    public void SaveAuction(Auction auction)
+    public IReadOnlyList<Auction> GetAuctions()
     {
         lock (_sync)
         {
-            using var connection=OpenConnection(); using var transaction=connection.BeginTransaction(); using var command=connection.CreateCommand(); command.Transaction=transaction;
-            command.CommandText="""
-                UPDATE Auctions SET AuctionName=$name, AuctionDate=$date, Location=$location, BuyerPremiumPercent=$premium,
-                    DefaultConsignorCommissionPercent=$commission, SalesTaxPercent=$tax, Status=$status, UpdatedUtc=$updated WHERE AuctionId=$id;
+            using var connection = OpenConnection();
+            using var command = connection.CreateCommand();
+            command.CommandText = AuctionSelectSql + " ORDER BY AuctionDate DESC, AuctionTime DESC, AuctionId DESC;";
+            using var reader = command.ExecuteReader();
+            var auctions = new List<Auction>();
+            while (reader.Read()) auctions.Add(ReadAuction(reader));
+            return auctions;
+        }
+    }
+
+    public Auction SaveAuction(Auction auction)
+    {
+        lock (_sync)
+        {
+            using var connection = OpenConnection();
+            using var transaction = connection.BeginTransaction();
+            var now = DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture);
+            using var command = connection.CreateCommand();
+            command.Transaction = transaction;
+            command.CommandText = auction.AuctionId == 0
+                ? """
+                    INSERT INTO Auctions(AuctionNumber, AuctionName, AuctionDate, AuctionTime, Location, Auctioneer, Clerk, Cashier,
+                        BuyerPremiumPercent, DefaultConsignorCommissionPercent, SalesTaxPercent, InvoiceFooter, ReceiptFooter,
+                        Status, CreatedDate, CreatedUtc, UpdatedUtc)
+                    VALUES($number, $name, $date, $time, $location, $auctioneer, $clerk, $cashier,
+                        $premium, $commission, $tax, $invoiceFooter, $receiptFooter, $status, $created, $created, $updated);
+                    SELECT last_insert_rowid();
+                    """
+                : """
+                    UPDATE Auctions SET AuctionNumber=$number, AuctionName=$name, AuctionDate=$date, AuctionTime=$time,
+                        Location=$location, Auctioneer=$auctioneer, Clerk=$clerk, Cashier=$cashier,
+                        BuyerPremiumPercent=$premium, DefaultConsignorCommissionPercent=$commission, SalesTaxPercent=$tax,
+                        InvoiceFooter=$invoiceFooter, ReceiptFooter=$receiptFooter, Status=$status, UpdatedUtc=$updated
+                    WHERE AuctionId=$id;
+                    SELECT $id;
+                    """;
+            AddAuctionParameters(command, auction, now);
+            auction.AuctionId = Convert.ToInt64(command.ExecuteScalar(), CultureInfo.InvariantCulture);
+            WriteAudit(connection, transaction, "AuctionSaved", $"Auction {auction.AuctionNumber}: {auction.AuctionName}");
+            transaction.Commit();
+            return GetAuction(connection, auction.AuctionId);
+        }
+    }
+
+    public void SelectAuction(long auctionId)
+    {
+        lock (_sync)
+        {
+            using var connection = OpenConnection();
+            _ = GetAuction(connection, auctionId);
+            using var transaction = connection.BeginTransaction();
+            SaveSetting(connection, transaction, "CurrentAuctionId", auctionId.ToString(CultureInfo.InvariantCulture));
+            WriteAudit(connection, transaction, "AuctionSelected", $"Auction #{auctionId}");
+            transaction.Commit();
+        }
+    }
+
+    public void CloseAuction(long auctionId)
+    {
+        lock (_sync)
+        {
+            using var connection = OpenConnection();
+            using var transaction = connection.BeginTransaction();
+            using var command = connection.CreateCommand();
+            command.Transaction = transaction;
+            command.CommandText = "UPDATE Auctions SET Status='Closed', UpdatedUtc=$updated WHERE AuctionId=$id AND lower(Status) <> 'closed';";
+            command.Parameters.AddWithValue("$updated", DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture));
+            command.Parameters.AddWithValue("$id", auctionId);
+            if (command.ExecuteNonQuery() != 1) throw new InvalidOperationException("The auction was not found or is already closed.");
+            WriteAudit(connection, transaction, "AuctionClosed", $"Auction #{auctionId}");
+            transaction.Commit();
+        }
+    }
+
+    public void CopyConsignorAssociations(long sourceAuctionId, long destinationAuctionId)
+    {
+        lock (_sync)
+        {
+            using var connection = OpenConnection();
+            using var transaction = connection.BeginTransaction();
+            using var command = connection.CreateCommand();
+            command.Transaction = transaction;
+            command.CommandText = """
+                INSERT OR IGNORE INTO AuctionConsignors(AuctionId, ConsignorId, CreatedDate)
+                SELECT $destination, ConsignorId, $created FROM AuctionConsignors WHERE AuctionId=$source;
                 """;
-            command.Parameters.AddWithValue("$id", auction.AuctionId); command.Parameters.AddWithValue("$name", auction.AuctionName); command.Parameters.AddWithValue("$date", auction.AuctionDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)); command.Parameters.AddWithValue("$location", auction.Location);
-            command.Parameters.AddWithValue("$premium", auction.BuyerPremiumPercent.ToString(CultureInfo.InvariantCulture)); command.Parameters.AddWithValue("$commission", auction.DefaultConsignorCommissionPercent.ToString(CultureInfo.InvariantCulture)); command.Parameters.AddWithValue("$tax", auction.SalesTaxPercent.ToString(CultureInfo.InvariantCulture)); command.Parameters.AddWithValue("$status", auction.Status); command.Parameters.AddWithValue("$updated", DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture));
-            if(command.ExecuteNonQuery()!=1) throw new InvalidOperationException("The auction was not found."); WriteAudit(connection, transaction, "AuctionSaved", $"Auction #{auction.AuctionId}: {auction.AuctionName}"); transaction.Commit();
+            command.Parameters.AddWithValue("$destination", destinationAuctionId);
+            command.Parameters.AddWithValue("$source", sourceAuctionId);
+            command.Parameters.AddWithValue("$created", DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture));
+            command.ExecuteNonQuery();
+            WriteAudit(connection, transaction, "AuctionConsignorsCopied", $"Auction #{sourceAuctionId} to #{destinationAuctionId}");
+            transaction.Commit();
         }
     }
 
@@ -293,6 +405,26 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
         }
     }
 
+    public void AssociateConsignorWithCurrentAuction(int consignorNumber)
+    {
+        lock (_sync)
+        {
+            using var connection = OpenConnection();
+            using var transaction = connection.BeginTransaction();
+            using var command = connection.CreateCommand();
+            command.Transaction = transaction;
+            command.CommandText = """
+                INSERT OR IGNORE INTO AuctionConsignors(AuctionId, ConsignorId, CreatedDate)
+                SELECT $auctionId, ConsignorId, $created FROM Consignors WHERE ConsignorNumber=$number;
+                """;
+            command.Parameters.AddWithValue("$auctionId", GetCurrentAuctionId(connection));
+            command.Parameters.AddWithValue("$number", consignorNumber);
+            command.Parameters.AddWithValue("$created", DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture));
+            command.ExecuteNonQuery();
+            transaction.Commit();
+        }
+    }
+
 
 
     public Sale RecordSale(int lotNumber, int bidderNumber, decimal hammerPrice, bool keepLotOpen = false)
@@ -302,24 +434,32 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
             using var connection = OpenConnection();
             using var transaction = connection.BeginTransaction();
 
+            var auctionId = GetCurrentAuctionId(connection);
+            long auctionLotId;
             using (var verify = connection.CreateCommand())
             {
                 verify.Transaction = transaction;
-                verify.CommandText = "SELECT Status FROM Lots WHERE LotNumber = $lot LIMIT 1;";
+                verify.CommandText = "SELECT AuctionLotId, Status FROM AuctionLots WHERE AuctionId=$auctionId AND LotNumber=$lot LIMIT 1;";
+                verify.Parameters.AddWithValue("$auctionId", auctionId);
                 verify.Parameters.AddWithValue("$lot", lotNumber);
-                var status = verify.ExecuteScalar()?.ToString();
-                if (status is null) throw new InvalidOperationException($"Lot #{lotNumber} was not found.");
+                using var reader = verify.ExecuteReader();
+                if (!reader.Read()) throw new InvalidOperationException($"Lot #{lotNumber} was not found.");
+                auctionLotId = reader.GetInt64(0);
+                var status = reader.GetString(1);
                 if (string.Equals(status, "Sold", StringComparison.OrdinalIgnoreCase))
                     throw new InvalidOperationException($"Lot #{lotNumber} is closed and has already been sold.");
             }
 
+            long auctionBidderId;
             using (var bidderCheck = connection.CreateCommand())
             {
                 bidderCheck.Transaction = transaction;
-                bidderCheck.CommandText = "SELECT COUNT(*) FROM Bidders WHERE BidderNumber = $bidder;";
+                bidderCheck.CommandText = "SELECT AuctionBidderId FROM AuctionBidders WHERE AuctionId=$auctionId AND BidderNumber=$bidder;";
+                bidderCheck.Parameters.AddWithValue("$auctionId", auctionId);
                 bidderCheck.Parameters.AddWithValue("$bidder", bidderNumber);
-                if (Convert.ToInt32(bidderCheck.ExecuteScalar(), CultureInfo.InvariantCulture) == 0)
-                    throw new InvalidOperationException($"Bidder #{bidderNumber} was not found.");
+                var value = bidderCheck.ExecuteScalar();
+                if (value is null) throw new InvalidOperationException($"Bidder #{bidderNumber} was not found in the current auction.");
+                auctionBidderId = Convert.ToInt64(value, CultureInfo.InvariantCulture);
             }
 
             var saleUtc = DateTime.UtcNow;
@@ -328,11 +468,14 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
             {
                 insert.Transaction = transaction;
                 insert.CommandText = """
-                    INSERT INTO Sales(LotNumber, BidderNumber, HammerPrice, SaleUtc, Paid)
-                    VALUES ($lot, $bidder, $price, $saleUtc, 0);
+                    INSERT INTO Sales(AuctionId,AuctionLotId,AuctionBidderId,LotNumber,BidderNumber,HammerPrice,SaleUtc,Paid)
+                    VALUES($auctionId,$auctionLotId,$auctionBidderId,$lot,$bidder,$price,$saleUtc,0);
                     SELECT last_insert_rowid();
                     """;
                 insert.Parameters.AddWithValue("$lot", lotNumber);
+                insert.Parameters.AddWithValue("$auctionId", auctionId);
+                insert.Parameters.AddWithValue("$auctionLotId", auctionLotId);
+                insert.Parameters.AddWithValue("$auctionBidderId", auctionBidderId);
                 insert.Parameters.AddWithValue("$bidder", bidderNumber);
                 insert.Parameters.AddWithValue("$price", hammerPrice.ToString(CultureInfo.InvariantCulture));
                 insert.Parameters.AddWithValue("$saleUtc", saleUtc.ToString("O", CultureInfo.InvariantCulture));
@@ -342,11 +485,11 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
             using (var updateLot = connection.CreateCommand())
             {
                 updateLot.Transaction = transaction;
-                updateLot.CommandText = "UPDATE Lots SET Status = $status, LotStatus = $status, PassOutMode = $passOut, UpdatedUtc = $updated WHERE LotNumber = $lot;";
+                updateLot.CommandText = "UPDATE AuctionLots SET Status=$status, LotStatus=$status, PassOutMode=$passOut, UpdatedUtc=$updated WHERE AuctionLotId=$auctionLotId;";
                 updateLot.Parameters.AddWithValue("$status", keepLotOpen ? "Pass-Out" : "Sold");
                 updateLot.Parameters.AddWithValue("$passOut", keepLotOpen ? 1 : 0);
                 updateLot.Parameters.AddWithValue("$updated", saleUtc.ToString("O", CultureInfo.InvariantCulture));
-                updateLot.Parameters.AddWithValue("$lot", lotNumber);
+                updateLot.Parameters.AddWithValue("$auctionLotId", auctionLotId);
                 if (updateLot.ExecuteNonQuery() != 1)
                     throw new InvalidOperationException("The lot could not be marked sold.");
             }
@@ -356,6 +499,7 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
             return new Sale
             {
                 Id = saleId,
+                AuctionId = auctionId,
                 LotNumber = lotNumber,
                 BidderNumber = bidderNumber,
                 HammerPrice = hammerPrice,
@@ -371,7 +515,8 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
         {
             using var connection = OpenConnection();
             using var command = connection.CreateCommand();
-            command.CommandText = "UPDATE Lots SET Status = 'Sold', LotStatus = 'Sold', PassOutMode = 0, UpdatedUtc = $updated WHERE LotNumber = $lot;";
+            command.CommandText = "UPDATE AuctionLots SET Status='Sold', LotStatus='Sold', PassOutMode=0, UpdatedUtc=$updated WHERE AuctionId=$auctionId AND LotNumber=$lot;";
+            command.Parameters.AddWithValue("$auctionId", GetCurrentAuctionId(connection));
             command.Parameters.AddWithValue("$updated", DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture));
             command.Parameters.AddWithValue("$lot", lotNumber);
             if (command.ExecuteNonQuery() != 1)
@@ -387,11 +532,12 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
             using var connection = OpenConnection();
             using var command = connection.CreateCommand();
             command.CommandText = """
-                SELECT Id, LotNumber, BidderNumber, HammerPrice, SaleUtc, Paid
-                FROM Sales
+                SELECT Id, AuctionId, LotNumber, BidderNumber, HammerPrice, SaleUtc, Paid
+                FROM Sales WHERE AuctionId=$auctionId
                 ORDER BY Id DESC
                 LIMIT 1;
                 """;
+            command.Parameters.AddWithValue("$auctionId", GetCurrentAuctionId(connection));
             using var reader = command.ExecuteReader();
             if (!reader.Read()) return null;
             return ReadSale(reader);
@@ -406,20 +552,23 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
             using var transaction = connection.BeginTransaction();
 
             int lotNumber;
+            long auctionId;
+            long auctionLotId;
             using (var getSale = connection.CreateCommand())
             {
                 getSale.Transaction = transaction;
-                getSale.CommandText = "SELECT LotNumber FROM Sales WHERE Id = $id LIMIT 1;";
+                getSale.CommandText = "SELECT AuctionId, AuctionLotId, LotNumber FROM Sales WHERE Id=$id LIMIT 1;";
                 getSale.Parameters.AddWithValue("$id", saleId);
-                var value = getSale.ExecuteScalar();
-                if (value is null) throw new InvalidOperationException("The sale could not be found.");
-                lotNumber = Convert.ToInt32(value, CultureInfo.InvariantCulture);
+                using var reader = getSale.ExecuteReader();
+                if (!reader.Read()) throw new InvalidOperationException("The sale could not be found.");
+                auctionId = reader.GetInt64(0); auctionLotId = reader.GetInt64(1); lotNumber = reader.GetInt32(2);
             }
 
             using (var ensureLast = connection.CreateCommand())
             {
                 ensureLast.Transaction = transaction;
-                ensureLast.CommandText = "SELECT Id FROM Sales ORDER BY Id DESC LIMIT 1;";
+                ensureLast.CommandText = "SELECT Id FROM Sales WHERE AuctionId=$auctionId ORDER BY Id DESC LIMIT 1;";
+                ensureLast.Parameters.AddWithValue("$auctionId", auctionId);
                 var lastId = Convert.ToInt64(ensureLast.ExecuteScalar(), CultureInfo.InvariantCulture);
                 if (lastId != saleId) throw new InvalidOperationException("Only the most recent sale can be undone.");
             }
@@ -436,19 +585,19 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
             using (var countSales = connection.CreateCommand())
             {
                 countSales.Transaction = transaction;
-                countSales.CommandText = "SELECT COUNT(*) FROM Sales WHERE LotNumber = $lot;";
-                countSales.Parameters.AddWithValue("$lot", lotNumber);
+                countSales.CommandText = "SELECT COUNT(*) FROM Sales WHERE AuctionLotId=$auctionLotId;";
+                countSales.Parameters.AddWithValue("$auctionLotId", auctionLotId);
                 remainingSales = Convert.ToInt32(countSales.ExecuteScalar(), CultureInfo.InvariantCulture);
             }
 
             using (var updateLot = connection.CreateCommand())
             {
                 updateLot.Transaction = transaction;
-                updateLot.CommandText = "UPDATE Lots SET Status = $status, LotStatus = $status, PassOutMode = $passOut, UpdatedUtc = $updated WHERE LotNumber = $lot;";
+                updateLot.CommandText = "UPDATE AuctionLots SET Status=$status, LotStatus=$status, PassOutMode=$passOut, UpdatedUtc=$updated WHERE AuctionLotId=$auctionLotId;";
                 updateLot.Parameters.AddWithValue("$status", remainingSales > 0 ? "Pass-Out" : "Available");
                 updateLot.Parameters.AddWithValue("$passOut", remainingSales > 0 ? 1 : 0);
                 updateLot.Parameters.AddWithValue("$updated", DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture));
-                updateLot.Parameters.AddWithValue("$lot", lotNumber);
+                updateLot.Parameters.AddWithValue("$auctionLotId", auctionLotId);
                 updateLot.ExecuteNonQuery();
             }
 
@@ -463,7 +612,8 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
         {
             using var connection = OpenConnection();
             using var command = connection.CreateCommand();
-            command.CommandText = "SELECT COUNT(*) FROM Sales WHERE LotNumber = $lot;";
+            command.CommandText = "SELECT COUNT(*) FROM Sales WHERE AuctionId=$auctionId AND LotNumber=$lot;";
+            command.Parameters.AddWithValue("$auctionId", GetCurrentAuctionId(connection));
             command.Parameters.AddWithValue("$lot", lotNumber);
             return Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture);
         }
@@ -480,12 +630,13 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
             {
                 command.CommandText = """
                     SELECT
-                        (SELECT COUNT(*) FROM Bidders),
-                        (SELECT COUNT(*) FROM Lots),
-                        (SELECT COUNT(*) FROM Lots WHERE lower(Status) = 'sold'),
-                        COALESCE((SELECT SUM(CAST(HammerPrice AS REAL)) FROM Sales), 0),
-                        COALESCE((SELECT AVG(CAST(HammerPrice AS REAL)) FROM Sales), 0);
+                        (SELECT COUNT(*) FROM AuctionBidders WHERE AuctionId=$auctionId),
+                        (SELECT COUNT(*) FROM AuctionLots WHERE AuctionId=$auctionId),
+                        (SELECT COUNT(*) FROM AuctionLots WHERE AuctionId=$auctionId AND lower(Status)='sold'),
+                        COALESCE((SELECT SUM(CAST(HammerPrice AS REAL)) FROM Sales WHERE AuctionId=$auctionId), 0),
+                        COALESCE((SELECT AVG(CAST(HammerPrice AS REAL)) FROM Sales WHERE AuctionId=$auctionId), 0);
                     """;
+                command.Parameters.AddWithValue("$auctionId", GetCurrentAuctionId(connection));
                 using var reader = command.ExecuteReader();
                 if (reader.Read())
                 {
@@ -502,21 +653,22 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
                 command.CommandText = """
                     SELECT ActivityText
                     FROM (
-                        SELECT 'Bidder #' || BidderNumber || ' registered: ' || trim(FirstName || ' ' || LastName) AS ActivityText,
-                               UpdatedUtc AS ActivityUtc
-                        FROM Bidders
+                        SELECT 'Bidder #' || ab.BidderNumber || ' registered: ' || trim(b.FirstName || ' ' || b.LastName) AS ActivityText,
+                               ab.UpdatedUtc AS ActivityUtc
+                        FROM AuctionBidders ab JOIN Buyers b ON b.BuyerId=ab.BuyerId WHERE ab.AuctionId=$auctionId
                         UNION ALL
                         SELECT 'Lot #' || LotNumber || ' saved: ' || Description AS ActivityText,
                                UpdatedUtc AS ActivityUtc
-                        FROM Lots
+                        FROM AuctionLots WHERE AuctionId=$auctionId
                         UNION ALL
                         SELECT 'Lot #' || LotNumber || ' sold to bidder #' || BidderNumber || ' for $' || HammerPrice AS ActivityText,
                                SaleUtc AS ActivityUtc
-                        FROM Sales
+                        FROM Sales WHERE AuctionId=$auctionId
                     )
                     ORDER BY ActivityUtc DESC
                     LIMIT 8;
                     """;
+                command.Parameters.AddWithValue("$auctionId", GetCurrentAuctionId(connection));
                 using var reader = command.ExecuteReader();
                 while (reader.Read()) snapshot.RecentActivity.Add(reader.GetString(0));
             }
@@ -766,6 +918,143 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
                 """;
             migration.ExecuteNonQuery();
             transaction.Commit();
+            version = 6;
+        }
+        if (version < 7)
+        {
+            using var transaction = connection.BeginTransaction();
+            using var migration = connection.CreateCommand();
+            migration.Transaction = transaction;
+            migration.CommandText = """
+                ALTER TABLE Auctions ADD COLUMN AuctionNumber TEXT NOT NULL DEFAULT '';
+                ALTER TABLE Auctions ADD COLUMN AuctionTime TEXT NOT NULL DEFAULT '00:00:00';
+                ALTER TABLE Auctions ADD COLUMN Auctioneer TEXT NOT NULL DEFAULT '';
+                ALTER TABLE Auctions ADD COLUMN Clerk TEXT NOT NULL DEFAULT '';
+                ALTER TABLE Auctions ADD COLUMN Cashier TEXT NOT NULL DEFAULT '';
+                ALTER TABLE Auctions ADD COLUMN InvoiceFooter TEXT NOT NULL DEFAULT '';
+                ALTER TABLE Auctions ADD COLUMN ReceiptFooter TEXT NOT NULL DEFAULT '';
+                UPDATE Auctions SET AuctionNumber = 'LEGACY-' || AuctionId WHERE AuctionNumber = '';
+                CREATE UNIQUE INDEX IF NOT EXISTS IX_Auctions_AuctionNumber ON Auctions(AuctionNumber);
+
+                CREATE TABLE AuctionConsignors (
+                    AuctionId INTEGER NOT NULL,
+                    ConsignorId INTEGER NOT NULL,
+                    CreatedDate TEXT NOT NULL,
+                    PRIMARY KEY (AuctionId, ConsignorId),
+                    FOREIGN KEY (AuctionId) REFERENCES Auctions(AuctionId) ON DELETE CASCADE,
+                    FOREIGN KEY (ConsignorId) REFERENCES Consignors(ConsignorId) ON DELETE CASCADE
+                );
+                CREATE INDEX IX_AuctionConsignors_ConsignorId ON AuctionConsignors(ConsignorId);
+                INSERT OR IGNORE INTO AuctionConsignors(AuctionId, ConsignorId, CreatedDate)
+                SELECT CAST((SELECT Value FROM Settings WHERE Key='CurrentAuctionId') AS INTEGER), ConsignorId,
+                       strftime('%Y-%m-%dT%H:%M:%fZ','now') FROM Consignors;
+
+                CREATE TABLE AuctionLots (
+                    AuctionLotId INTEGER PRIMARY KEY AUTOINCREMENT,
+                    AuctionId INTEGER NOT NULL,
+                    ConsignorId INTEGER NOT NULL,
+                    LotNumber INTEGER NOT NULL,
+                    Description TEXT NOT NULL DEFAULT '', Category TEXT NOT NULL DEFAULT '', StartingBid TEXT NOT NULL DEFAULT '0',
+                    Status TEXT NOT NULL DEFAULT 'Available', CreatedUtc TEXT NOT NULL, UpdatedUtc TEXT NOT NULL,
+                    ReservePrice TEXT NOT NULL DEFAULT '0', PassOutMode INTEGER NOT NULL DEFAULT 0,
+                    LotStatus TEXT NOT NULL DEFAULT 'Available',
+                    UNIQUE (AuctionId, LotNumber),
+                    FOREIGN KEY (AuctionId) REFERENCES Auctions(AuctionId) ON DELETE RESTRICT,
+                    FOREIGN KEY (ConsignorId) REFERENCES Consignors(ConsignorId) ON DELETE RESTRICT
+                );
+                INSERT INTO AuctionLots(AuctionId, ConsignorId, LotNumber, Description, Category, StartingBid, Status,
+                                        CreatedUtc, UpdatedUtc, ReservePrice, PassOutMode, LotStatus)
+                SELECT AuctionId, ConsignorId, LotNumber, Description, Category, StartingBid, Status,
+                       CreatedUtc, UpdatedUtc, ReservePrice, PassOutMode, LotStatus FROM Lots;
+
+                CREATE TABLE Sales_New (
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    AuctionId INTEGER NOT NULL, AuctionLotId INTEGER NOT NULL, LotNumber INTEGER NOT NULL, BidderNumber INTEGER NOT NULL,
+                    HammerPrice TEXT NOT NULL DEFAULT '0', SaleUtc TEXT NOT NULL, Paid INTEGER NOT NULL DEFAULT 0,
+                    FOREIGN KEY (AuctionLotId) REFERENCES AuctionLots(AuctionLotId) ON UPDATE CASCADE ON DELETE RESTRICT,
+                    FOREIGN KEY (BidderNumber) REFERENCES Bidders(BidderNumber) ON UPDATE CASCADE ON DELETE RESTRICT
+                );
+                INSERT INTO Sales_New(Id, AuctionId, AuctionLotId, LotNumber, BidderNumber, HammerPrice, SaleUtc, Paid)
+                SELECT s.Id, al.AuctionId, al.AuctionLotId, s.LotNumber, s.BidderNumber, s.HammerPrice, s.SaleUtc, s.Paid
+                FROM Sales s JOIN AuctionLots al ON al.LotNumber = s.LotNumber;
+
+                DROP TABLE Sales;
+                ALTER TABLE Sales_New RENAME TO Sales;
+                CREATE INDEX IX_AuctionLots_LotNumber ON AuctionLots(LotNumber);
+                CREATE INDEX IX_AuctionLots_AuctionId ON AuctionLots(AuctionId);
+                CREATE INDEX IX_AuctionLots_ConsignorId ON AuctionLots(ConsignorId);
+                CREATE INDEX IX_AuctionLots_AuctionLotNumber ON AuctionLots(AuctionId, LotNumber);
+                CREATE INDEX IX_AuctionLots_Description ON AuctionLots(Description);
+                CREATE INDEX IX_AuctionLots_Category ON AuctionLots(Category);
+                CREATE INDEX IX_AuctionLots_Status ON AuctionLots(Status);
+                CREATE INDEX IX_Sales_AuctionId ON Sales(AuctionId);
+                CREATE INDEX IX_Sales_AuctionLotId ON Sales(AuctionLotId);
+                CREATE INDEX IX_Sales_BidderNumber ON Sales(BidderNumber);
+                INSERT INTO Settings(Key, Value) VALUES ('DatabaseSchemaVersion', '7')
+                ON CONFLICT(Key) DO UPDATE SET Value = excluded.Value;
+                """;
+            migration.ExecuteNonQuery();
+            transaction.Commit();
+            version = 7;
+        }
+        if (version < 8)
+        {
+            using var transaction = connection.BeginTransaction();
+            using var migration = connection.CreateCommand();
+            migration.Transaction = transaction;
+            migration.CommandText = """
+                CREATE TABLE Buyers (
+                    BuyerId INTEGER PRIMARY KEY AUTOINCREMENT,
+                    FirstName TEXT NOT NULL DEFAULT '', LastName TEXT NOT NULL DEFAULT '', DriversLicense TEXT NOT NULL DEFAULT '',
+                    Address TEXT NOT NULL DEFAULT '', City TEXT NOT NULL DEFAULT '', State TEXT NOT NULL DEFAULT '', Zip TEXT NOT NULL DEFAULT '',
+                    Phone TEXT NOT NULL DEFAULT '', Email TEXT NOT NULL DEFAULT '', CreatedUtc TEXT NOT NULL, UpdatedUtc TEXT NOT NULL
+                );
+                CREATE INDEX IX_Buyers_Name ON Buyers(LastName,FirstName);
+                CREATE INDEX IX_Buyers_DriversLicense ON Buyers(DriversLicense);
+                CREATE INDEX IX_Buyers_Phone ON Buyers(Phone);
+                CREATE INDEX IX_Buyers_Email ON Buyers(Email);
+                INSERT INTO Buyers(BuyerId,FirstName,LastName,DriversLicense,Address,City,State,Zip,Phone,Email,CreatedUtc,UpdatedUtc)
+                SELECT Id,FirstName,LastName,DriversLicense,Address,City,State,Zip,Phone,Email,CreatedUtc,UpdatedUtc FROM Bidders;
+
+                CREATE TABLE AuctionBidders (
+                    AuctionBidderId INTEGER PRIMARY KEY AUTOINCREMENT,
+                    AuctionId INTEGER NOT NULL, BuyerId INTEGER NOT NULL, BidderNumber INTEGER NOT NULL,
+                    Notes TEXT NOT NULL DEFAULT '', RegisteredUtc TEXT NOT NULL, UpdatedUtc TEXT NOT NULL,
+                    UNIQUE(AuctionId,BidderNumber), UNIQUE(AuctionId,BuyerId),
+                    FOREIGN KEY(AuctionId) REFERENCES Auctions(AuctionId) ON DELETE CASCADE,
+                    FOREIGN KEY(BuyerId) REFERENCES Buyers(BuyerId) ON DELETE RESTRICT
+                );
+                INSERT INTO AuctionBidders(AuctionId,BuyerId,BidderNumber,Notes,RegisteredUtc,UpdatedUtc)
+                SELECT CAST((SELECT Value FROM Settings WHERE Key='CurrentAuctionId') AS INTEGER), Id, BidderNumber, Notes, CreatedUtc, UpdatedUtc FROM Bidders;
+                INSERT OR IGNORE INTO AuctionBidders(AuctionId,BuyerId,BidderNumber,Notes,RegisteredUtc,UpdatedUtc)
+                SELECT DISTINCT s.AuctionId,b.Id,b.BidderNumber,b.Notes,b.CreatedUtc,b.UpdatedUtc
+                FROM Sales s JOIN Bidders b ON b.BidderNumber=s.BidderNumber;
+                CREATE INDEX IX_AuctionBidders_BuyerId ON AuctionBidders(BuyerId);
+                CREATE INDEX IX_AuctionBidders_BidderNumber ON AuctionBidders(BidderNumber);
+                CREATE INDEX IX_AuctionBidders_AuctionBidderNumber ON AuctionBidders(AuctionId,BidderNumber);
+
+                CREATE TABLE Sales_v8 (
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT, AuctionId INTEGER NOT NULL, AuctionLotId INTEGER NOT NULL,
+                    AuctionBidderId INTEGER NOT NULL, LotNumber INTEGER NOT NULL, BidderNumber INTEGER NOT NULL,
+                    HammerPrice TEXT NOT NULL DEFAULT '0', SaleUtc TEXT NOT NULL, Paid INTEGER NOT NULL DEFAULT 0,
+                    FOREIGN KEY(AuctionId) REFERENCES Auctions(AuctionId) ON DELETE RESTRICT,
+                    FOREIGN KEY(AuctionLotId) REFERENCES AuctionLots(AuctionLotId) ON DELETE RESTRICT,
+                    FOREIGN KEY(AuctionBidderId) REFERENCES AuctionBidders(AuctionBidderId) ON DELETE RESTRICT
+                );
+                INSERT INTO Sales_v8(Id,AuctionId,AuctionLotId,AuctionBidderId,LotNumber,BidderNumber,HammerPrice,SaleUtc,Paid)
+                SELECT s.Id,s.AuctionId,s.AuctionLotId,ab.AuctionBidderId,s.LotNumber,s.BidderNumber,s.HammerPrice,s.SaleUtc,s.Paid
+                FROM Sales s JOIN AuctionBidders ab ON ab.AuctionId=s.AuctionId AND ab.BidderNumber=s.BidderNumber;
+                DROP TABLE Sales;
+                ALTER TABLE Sales_v8 RENAME TO Sales;
+                CREATE INDEX IX_Sales_AuctionId ON Sales(AuctionId);
+                CREATE INDEX IX_Sales_AuctionLotId ON Sales(AuctionLotId);
+                CREATE INDEX IX_Sales_AuctionBidderId ON Sales(AuctionBidderId);
+                CREATE INDEX IX_Sales_BidderNumber ON Sales(BidderNumber);
+                INSERT INTO Settings(Key,Value) VALUES('DatabaseSchemaVersion','8')
+                ON CONFLICT(Key) DO UPDATE SET Value=excluded.Value;
+                """;
+            migration.ExecuteNonQuery();
+            transaction.Commit();
         }
     }
 
@@ -851,8 +1140,31 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
                     VALUES
                     ($number, $first, $last, $license, $address, $city, $state, $zip, $phone, $email, $notes, $created, $updated);
                     """;
-                AddBidderParameters(command, bidder);
+                AddLegacyBidderParameters(command, bidder);
                 command.ExecuteNonQuery();
+
+                var registration = new AuctionBidder
+                {
+                    AuctionId = GetCurrentAuctionId(connection), BidderNumber = bidder.BidderNumber, FirstName = bidder.FirstName,
+                    LastName = bidder.LastName, DriversLicense = bidder.DriversLicense, Address = bidder.Address, City = bidder.City,
+                    State = bidder.State, Zip = bidder.Zip, Phone = bidder.Phone, Email = bidder.Email, Notes = bidder.Notes
+                };
+                using var buyer = connection.CreateCommand();
+                buyer.Transaction = transaction;
+                buyer.CommandText = """
+                    INSERT INTO Buyers(FirstName,LastName,DriversLicense,Address,City,State,Zip,Phone,Email,CreatedUtc,UpdatedUtc)
+                    VALUES($first,$last,$license,$address,$city,$state,$zip,$phone,$email,$created,$updated); SELECT last_insert_rowid();
+                    """;
+                AddBuyerParameters(buyer, registration);
+                var buyerId = Convert.ToInt64(buyer.ExecuteScalar(), CultureInfo.InvariantCulture);
+                using var auctionBidder = connection.CreateCommand();
+                auctionBidder.Transaction = transaction;
+                auctionBidder.CommandText = """
+                    INSERT OR IGNORE INTO AuctionBidders(AuctionId,BuyerId,BidderNumber,Notes,RegisteredUtc,UpdatedUtc)
+                    VALUES($auctionId,$buyerId,$number,$notes,$created,$updated);
+                    """;
+                AddRegistrationParameters(auctionBidder, registration, buyerId);
+                auctionBidder.ExecuteNonQuery();
             }
 
             foreach (var lot in legacy.Lots)
@@ -867,6 +1179,24 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
                     """;
                 AddLotParameters(command, lot);
                 command.ExecuteNonQuery();
+
+                lot.AuctionId = GetCurrentAuctionId(connection);
+                if (lot.ConsignorId <= 0)
+                {
+                    using var defaultConsignor = connection.CreateCommand();
+                    defaultConsignor.Transaction = transaction;
+                    defaultConsignor.CommandText = "SELECT MIN(ConsignorId) FROM Consignors;";
+                    lot.ConsignorId = Convert.ToInt64(defaultConsignor.ExecuteScalar(), CultureInfo.InvariantCulture);
+                }
+                using var auctionLot = connection.CreateCommand();
+                auctionLot.Transaction = transaction;
+                auctionLot.CommandText = """
+                    INSERT OR IGNORE INTO AuctionLots
+                    (AuctionId, ConsignorId, LotNumber, Description, Category, StartingBid, Status, ReservePrice, PassOutMode, LotStatus, CreatedUtc, UpdatedUtc)
+                    VALUES($auctionId, $consignorId, $number, $description, $category, $startingBid, $status, $reservePrice, $passOutMode, $lotStatus, $created, $updated);
+                    """;
+                AddLotParameters(auctionLot, lot);
+                auctionLot.ExecuteNonQuery();
             }
 
             transaction.Commit();
@@ -874,56 +1204,48 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
         }
     }
 
-    private static List<Bidder> LoadBidders(SqliteConnection connection)
+    private static List<AuctionBidder> LoadAuctionBidders(SqliteConnection connection, long auctionId)
     {
-        var bidders = new List<Bidder>();
+        var bidders = new List<AuctionBidder>();
         using var command = connection.CreateCommand();
         command.CommandText = """
-            SELECT BidderNumber, FirstName, LastName, DriversLicense, Address, City, State, Zip, Phone, Email, Notes
-            FROM Bidders
-            ORDER BY BidderNumber;
+            SELECT ab.AuctionBidderId,ab.AuctionId,ab.BuyerId,ab.BidderNumber,b.FirstName,b.LastName,b.DriversLicense,
+                   b.Address,b.City,b.State,b.Zip,b.Phone,b.Email,ab.Notes
+            FROM AuctionBidders ab JOIN Buyers b ON b.BuyerId=ab.BuyerId
+            WHERE ab.AuctionId=$auctionId ORDER BY ab.BidderNumber;
             """;
+        command.Parameters.AddWithValue("$auctionId", auctionId);
         using var reader = command.ExecuteReader();
         while (reader.Read())
         {
-            bidders.Add(new Bidder
+            bidders.Add(new AuctionBidder
             {
-                BidderNumber = reader.GetInt32(0),
-                FirstName = reader.GetString(1),
-                LastName = reader.GetString(2),
-                DriversLicense = reader.GetString(3),
-                Address = reader.GetString(4),
-                City = reader.GetString(5),
-                State = reader.GetString(6),
-                Zip = reader.GetString(7),
-                Phone = reader.GetString(8),
-                Email = reader.GetString(9),
-                Notes = reader.GetString(10)
+                AuctionBidderId=reader.GetInt64(0),AuctionId=reader.GetInt64(1),BuyerId=reader.GetInt64(2),BidderNumber=reader.GetInt32(3),
+                FirstName=reader.GetString(4),LastName=reader.GetString(5),DriversLicense=reader.GetString(6),Address=reader.GetString(7),
+                City=reader.GetString(8),State=reader.GetString(9),Zip=reader.GetString(10),Phone=reader.GetString(11),Email=reader.GetString(12),Notes=reader.GetString(13)
             });
         }
         return bidders;
     }
 
-    private static List<Lot> LoadLots(SqliteConnection connection)
+    private static List<AuctionLot> LoadAuctionLots(SqliteConnection connection, long auctionId)
     {
-        var lots = new List<Lot>();
+        var lots = new List<AuctionLot>();
         using var command = connection.CreateCommand();
         command.CommandText = """
-            SELECT LotNumber, Description, Category, StartingBid, Status, AuctionId, ConsignorId, ReservePrice, PassOutMode, LotStatus
-            FROM Lots
+            SELECT AuctionLotId, LotNumber, Description, Category, StartingBid, Status, AuctionId, ConsignorId, ReservePrice, PassOutMode, LotStatus
+            FROM AuctionLots WHERE AuctionId=$auctionId
             ORDER BY LotNumber;
             """;
+        command.Parameters.AddWithValue("$auctionId", auctionId);
         using var reader = command.ExecuteReader();
         while (reader.Read())
         {
-            lots.Add(new Lot
+            lots.Add(new AuctionLot
             {
-                LotNumber = reader.GetInt32(0),
-                Description = reader.GetString(1),
-                Category = reader.GetString(2),
-                StartingBid = decimal.Parse(reader.GetString(3), CultureInfo.InvariantCulture),
-                Status = reader.GetString(4), AuctionId = reader.IsDBNull(5) ? 0 : reader.GetInt64(5), ConsignorId = reader.IsDBNull(6) ? 0 : reader.GetInt64(6),
-                ReservePrice = decimal.Parse(reader.GetString(7), CultureInfo.InvariantCulture), PassOutMode = reader.GetInt32(8) != 0, LotStatus = reader.GetString(9)
+                AuctionLotId = reader.GetInt64(0), LotNumber = reader.GetInt32(1), Description = reader.GetString(2), Category = reader.GetString(3),
+                StartingBid = decimal.Parse(reader.GetString(4), CultureInfo.InvariantCulture), Status = reader.GetString(5), AuctionId = reader.GetInt64(6), ConsignorId = reader.GetInt64(7),
+                ReservePrice = decimal.Parse(reader.GetString(8), CultureInfo.InvariantCulture), PassOutMode = reader.GetInt32(9) != 0, LotStatus = reader.GetString(10)
             });
         }
         return lots;
@@ -934,19 +1256,15 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
     {
         return new Sale
         {
-            Id = reader.GetInt64(0),
-            LotNumber = reader.GetInt32(1),
-            BidderNumber = reader.GetInt32(2),
-            HammerPrice = decimal.Parse(reader.GetString(3), CultureInfo.InvariantCulture),
-            SaleUtc = DateTime.Parse(reader.GetString(4), CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind),
-            Paid = reader.GetInt32(5) != 0
+            Id = reader.GetInt64(0), AuctionId = reader.GetInt64(1), LotNumber = reader.GetInt32(2), BidderNumber = reader.GetInt32(3),
+            HammerPrice = decimal.Parse(reader.GetString(4), CultureInfo.InvariantCulture), SaleUtc = DateTime.Parse(reader.GetString(5), CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind),
+            Paid = reader.GetInt32(6) != 0
         };
     }
 
-    private static void AddBidderParameters(SqliteCommand command, Bidder bidder)
+    private static void AddBuyerParameters(SqliteCommand command, AuctionBidder bidder)
     {
         var now = DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture);
-        command.Parameters.AddWithValue("$number", bidder.BidderNumber);
         command.Parameters.AddWithValue("$first", bidder.FirstName ?? string.Empty);
         command.Parameters.AddWithValue("$last", bidder.LastName ?? string.Empty);
         command.Parameters.AddWithValue("$license", bidder.DriversLicense ?? string.Empty);
@@ -956,12 +1274,25 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
         command.Parameters.AddWithValue("$zip", bidder.Zip ?? string.Empty);
         command.Parameters.AddWithValue("$phone", bidder.Phone ?? string.Empty);
         command.Parameters.AddWithValue("$email", bidder.Email ?? string.Empty);
-        command.Parameters.AddWithValue("$notes", bidder.Notes ?? string.Empty);
         command.Parameters.AddWithValue("$created", now);
         command.Parameters.AddWithValue("$updated", now);
     }
 
-    private static void AddLotParameters(SqliteCommand command, Lot lot)
+    private static void AddLegacyBidderParameters(SqliteCommand command, AuctionBidder bidder)
+    {
+        AddBuyerParameters(command, bidder);
+        command.Parameters.AddWithValue("$number", bidder.BidderNumber); command.Parameters.AddWithValue("$notes", bidder.Notes ?? string.Empty);
+    }
+
+    private static void AddRegistrationParameters(SqliteCommand command, AuctionBidder bidder, long buyerId)
+    {
+        var now = DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture);
+        command.Parameters.AddWithValue("$auctionId", bidder.AuctionId); command.Parameters.AddWithValue("$buyerId", buyerId);
+        command.Parameters.AddWithValue("$number", bidder.BidderNumber); command.Parameters.AddWithValue("$notes", bidder.Notes ?? string.Empty);
+        command.Parameters.AddWithValue("$created", now); command.Parameters.AddWithValue("$updated", now);
+    }
+
+    private static void AddLotParameters(SqliteCommand command, AuctionLot lot)
     {
         var now = DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture);
         command.Parameters.AddWithValue("$number", lot.LotNumber);
@@ -993,5 +1324,66 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
         command.Parameters.AddWithValue("$createdDate", (consignor.CreatedDate == default ? DateTime.UtcNow : consignor.CreatedDate).ToString("O", CultureInfo.InvariantCulture));
         command.Parameters.AddWithValue("$created", now);
         command.Parameters.AddWithValue("$updated", now);
+    }
+
+    private const string AuctionSelectSql = """
+        SELECT AuctionId, AuctionNumber, AuctionName, AuctionDate, AuctionTime, Location, Auctioneer, Clerk, Cashier,
+               BuyerPremiumPercent, DefaultConsignorCommissionPercent, SalesTaxPercent, InvoiceFooter, ReceiptFooter,
+               Status, CreatedDate
+        FROM Auctions
+        """;
+
+    private static long GetCurrentAuctionId(SqliteConnection connection)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT CAST(Value AS INTEGER) FROM Settings WHERE Key='CurrentAuctionId' LIMIT 1;";
+        var value = command.ExecuteScalar();
+        if (value is not null && value != DBNull.Value) return Convert.ToInt64(value, CultureInfo.InvariantCulture);
+        command.CommandText = "SELECT AuctionId FROM Auctions ORDER BY AuctionId LIMIT 1;";
+        return Convert.ToInt64(command.ExecuteScalar() ?? throw new InvalidOperationException("No auction is configured."), CultureInfo.InvariantCulture);
+    }
+
+    private static Auction GetAuction(SqliteConnection connection, long auctionId)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = AuctionSelectSql + " WHERE AuctionId=$id LIMIT 1;";
+        command.Parameters.AddWithValue("$id", auctionId);
+        using var reader = command.ExecuteReader();
+        if (!reader.Read()) throw new InvalidOperationException($"Auction #{auctionId} was not found.");
+        return ReadAuction(reader);
+    }
+
+    private static Auction ReadAuction(SqliteDataReader reader) => new()
+    {
+        AuctionId = reader.GetInt64(0), AuctionNumber = reader.GetString(1), AuctionName = reader.GetString(2),
+        AuctionDate = DateTime.Parse(reader.GetString(3), CultureInfo.InvariantCulture),
+        AuctionTime = TimeSpan.Parse(reader.GetString(4), CultureInfo.InvariantCulture), Location = reader.GetString(5),
+        Auctioneer = reader.GetString(6), Clerk = reader.GetString(7), Cashier = reader.GetString(8),
+        BuyerPremiumPercent = decimal.Parse(reader.GetString(9), CultureInfo.InvariantCulture),
+        DefaultConsignorCommissionPercent = decimal.Parse(reader.GetString(10), CultureInfo.InvariantCulture),
+        SalesTaxPercent = decimal.Parse(reader.GetString(11), CultureInfo.InvariantCulture), InvoiceFooter = reader.GetString(12),
+        ReceiptFooter = reader.GetString(13), Status = reader.GetString(14),
+        CreatedDate = DateTime.Parse(reader.GetString(15), CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind)
+    };
+
+    private static void AddAuctionParameters(SqliteCommand command, Auction auction, string now)
+    {
+        command.Parameters.AddWithValue("$id", auction.AuctionId); command.Parameters.AddWithValue("$number", auction.AuctionNumber.Trim());
+        command.Parameters.AddWithValue("$name", auction.AuctionName.Trim()); command.Parameters.AddWithValue("$date", auction.AuctionDate.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+        command.Parameters.AddWithValue("$time", auction.AuctionTime.ToString("c", CultureInfo.InvariantCulture)); command.Parameters.AddWithValue("$location", auction.Location ?? string.Empty);
+        command.Parameters.AddWithValue("$auctioneer", auction.Auctioneer ?? string.Empty); command.Parameters.AddWithValue("$clerk", auction.Clerk ?? string.Empty);
+        command.Parameters.AddWithValue("$cashier", auction.Cashier ?? string.Empty); command.Parameters.AddWithValue("$premium", auction.BuyerPremiumPercent.ToString(CultureInfo.InvariantCulture));
+        command.Parameters.AddWithValue("$commission", auction.DefaultConsignorCommissionPercent.ToString(CultureInfo.InvariantCulture)); command.Parameters.AddWithValue("$tax", auction.SalesTaxPercent.ToString(CultureInfo.InvariantCulture));
+        command.Parameters.AddWithValue("$invoiceFooter", auction.InvoiceFooter ?? string.Empty); command.Parameters.AddWithValue("$receiptFooter", auction.ReceiptFooter ?? string.Empty);
+        command.Parameters.AddWithValue("$status", string.IsNullOrWhiteSpace(auction.Status) ? "Setup" : auction.Status); command.Parameters.AddWithValue("$created", now);
+        command.Parameters.AddWithValue("$updated", now);
+    }
+
+    private static void SaveSetting(SqliteConnection connection, SqliteTransaction transaction, string key, string value)
+    {
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = "INSERT INTO Settings(Key,Value) VALUES($key,$value) ON CONFLICT(Key) DO UPDATE SET Value=excluded.Value;";
+        command.Parameters.AddWithValue("$key", key); command.Parameters.AddWithValue("$value", value); command.ExecuteNonQuery();
     }
 }

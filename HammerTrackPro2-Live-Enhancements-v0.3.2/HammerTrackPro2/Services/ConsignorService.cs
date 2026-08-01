@@ -12,6 +12,7 @@ public sealed class ConsignorService
         if (string.IsNullOrWhiteSpace(consignor.BusinessName) && string.IsNullOrWhiteSpace(consignor.FirstName) && string.IsNullOrWhiteSpace(consignor.LastName)) throw new InvalidOperationException("Enter a business name or contact name.");
         if (consignor.DefaultCommissionPercent is < 0 or > 100 || consignor.CommissionOverridePercent is < 0 or > 100) throw new InvalidOperationException("Commission percentages must be between 0 and 100.");
         _repository.SaveConsignor(consignor, originalNumber);
+        _repository.AssociateConsignorWithCurrentAuction(consignor.ConsignorNumber);
     }
     public void DeleteConsignor(int number)
     {

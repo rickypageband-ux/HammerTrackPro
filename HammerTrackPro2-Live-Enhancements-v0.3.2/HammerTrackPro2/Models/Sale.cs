@@ -3,6 +3,7 @@ namespace HammerTrackPro2.Models;
 public sealed class Sale
 {
     public long Id { get; set; }
+    public long AuctionId { get; set; }
     public int LotNumber { get; set; }
     public int BidderNumber { get; set; }
     public decimal HammerPrice { get; set; }

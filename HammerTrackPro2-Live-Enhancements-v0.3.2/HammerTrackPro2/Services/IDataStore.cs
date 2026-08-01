@@ -5,12 +5,17 @@ namespace HammerTrackPro2.Services;
 public interface IDataStore
 {
     AppData Load();
-    void SaveBidder(Bidder bidder, int? originalBidderNumber);
+    IReadOnlyList<Buyer> GetBuyers();
+    void SaveBidder(AuctionBidder bidder, int? originalBidderNumber);
     void DeleteBidder(int bidderNumber);
-    void SaveLot(Lot lot, int? originalLotNumber);
+    void SaveLot(AuctionLot lot, int? originalLotNumber);
     void DeleteLot(int lotNumber);
     Auction GetCurrentAuction();
-    void SaveAuction(Auction auction);
+    IReadOnlyList<Auction> GetAuctions();
+    Auction SaveAuction(Auction auction);
+    void SelectAuction(long auctionId);
+    void CloseAuction(long auctionId);
+    void CopyConsignorAssociations(long sourceAuctionId, long destinationAuctionId);
     Sale RecordSale(int lotNumber, int bidderNumber, decimal hammerPrice, bool keepLotOpen = false);
     void CloseLot(int lotNumber);
     Sale? GetLastSale();

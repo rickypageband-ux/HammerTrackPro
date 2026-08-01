@@ -52,7 +52,7 @@ public sealed class MigrationTests
         }, null);
         var consignor = store.GetConsignors().Single(item => item.ConsignorNumber == 22);
 
-        store.SaveLot(new Lot
+        store.SaveLot(new AuctionLot
         {
             AuctionId = auction.AuctionId,
             ConsignorId = consignor.ConsignorId,
@@ -67,10 +67,10 @@ public sealed class MigrationTests
         Assert.Equal(consignor.ConsignorId, lot.ConsignorId);
         Assert.True(consignor.Require1099);
         Assert.NotEqual(default, consignor.CreatedDate);
-        Assert.Equal("6", Scalar(database.Path, "SELECT Value FROM Settings WHERE Key='DatabaseSchemaVersion';"));
+        Assert.Equal("8", Scalar(database.Path, "SELECT Value FROM Settings WHERE Key='DatabaseSchemaVersion';"));
         Assert.Equal("IX_Consignors_ConsignorNumber", Scalar(database.Path, "SELECT name FROM sqlite_master WHERE type='index' AND name='IX_Consignors_ConsignorNumber';"));
-        Assert.Equal("IX_Lots_LotNumber", Scalar(database.Path, "SELECT name FROM sqlite_master WHERE type='index' AND name='IX_Lots_LotNumber';"));
-        Assert.Equal("IX_Bidders_BidderNumber", Scalar(database.Path, "SELECT name FROM sqlite_master WHERE type='index' AND name='IX_Bidders_BidderNumber';"));
+        Assert.Equal("IX_AuctionLots_AuctionLotNumber", Scalar(database.Path, "SELECT name FROM sqlite_master WHERE type='index' AND name='IX_AuctionLots_AuctionLotNumber';"));
+        Assert.Equal("IX_AuctionBidders_AuctionBidderNumber", Scalar(database.Path, "SELECT name FROM sqlite_master WHERE type='index' AND name='IX_AuctionBidders_AuctionBidderNumber';"));
     }
 
     [Fact]
@@ -85,9 +85,88 @@ public sealed class MigrationTests
         Assert.Equal(7, lot.LotNumber);
         Assert.True(lot.AuctionId > 0);
         Assert.True(lot.ConsignorId > 0);
-        Assert.Equal("6", Scalar(database.Path, "SELECT Value FROM Settings WHERE Key='DatabaseSchemaVersion';"));
+        Assert.Equal("8", Scalar(database.Path, "SELECT Value FROM Settings WHERE Key='DatabaseSchemaVersion';"));
         Assert.Equal("7", Scalar(database.Path, "SELECT LotNumber FROM Lots WHERE LotNumber=7;"));
+        Assert.Equal("7", Scalar(database.Path, "SELECT LotNumber FROM AuctionLots WHERE LotNumber=7;"));
     }
+
+    [Fact]
+    public void AuctionLots_AllowTheSameLotNumberInDifferentAuctions()
+    {
+        using var database = TemporaryDatabase.Create();
+        var store = new SqliteDataStore(database.Path);
+        var first = store.GetCurrentAuction();
+        var second = store.SaveAuction(NewAuction("FALL-26", "Fall Auction"));
+        var consignorId = long.Parse(Scalar(database.Path, "SELECT MIN(ConsignorId) FROM Consignors;")!, CultureInfo.InvariantCulture);
+
+        store.SaveLot(new AuctionLot { AuctionId = first.AuctionId, ConsignorId = consignorId, LotNumber = 100, Description = "First" }, null);
+        store.SelectAuction(second.AuctionId);
+        store.SaveLot(new AuctionLot { AuctionId = second.AuctionId, ConsignorId = consignorId, LotNumber = 100, Description = "Second" }, null);
+
+        Assert.Equal("2", Scalar(database.Path, "SELECT COUNT(*) FROM AuctionLots WHERE LotNumber=100;"));
+        Assert.Equal("Second", Assert.Single(store.Load().Lots).Description);
+    }
+
+    [Fact]
+    public void CopyConsignors_CopiesAssociationsAndNeverDuplicatesMasterRows()
+    {
+        using var database = TemporaryDatabase.Create();
+        var store = new SqliteDataStore(database.Path);
+        var first = store.GetCurrentAuction();
+        store.SaveConsignor(new Consignor { ConsignorNumber = 50, BusinessName = "Smith Farm" }, null);
+        store.AssociateConsignorWithCurrentAuction(50);
+        var second = store.SaveAuction(NewAuction("SUMMER-26", "Summer Auction"));
+
+        store.CopyConsignorAssociations(first.AuctionId, second.AuctionId);
+
+        Assert.Equal("2", Scalar(database.Path, "SELECT COUNT(*) FROM Consignors;"));
+        Assert.Equal("2", Scalar(database.Path, "SELECT COUNT(*) FROM AuctionConsignors WHERE ConsignorId=(SELECT ConsignorId FROM Consignors WHERE ConsignorNumber=50);"));
+    }
+
+    [Fact]
+    public void CloseAuction_WritesAuditAndLocksOperationalChanges()
+    {
+        using var database = TemporaryDatabase.Create();
+        var store = new SqliteDataStore(database.Path);
+        var service = new AuctionService(store);
+        var auction = store.GetCurrentAuction();
+
+        service.CloseAuction(auction.AuctionId);
+
+        Assert.Equal("Closed", store.GetCurrentAuction().Status);
+        Assert.Equal("1", Scalar(database.Path, "SELECT COUNT(*) FROM AuditLog WHERE Action='AuctionClosed';"));
+        Assert.Throws<InvalidOperationException>(() => service.SaveBidder(new AuctionBidder { AuctionId=auction.AuctionId, BidderNumber=10, FirstName="Pat" }, null));
+        Assert.Throws<NotSupportedException>(() => service.ReopenAuction(auction.AuctionId));
+    }
+
+    [Fact]
+    public void AuctionBidders_ReuseGlobalBuyerAndAllowNumberInDifferentAuctions()
+    {
+        using var database = TemporaryDatabase.Create();
+        var store = new SqliteDataStore(database.Path);
+        var first = store.GetCurrentAuction();
+        store.SaveBidder(new AuctionBidder { AuctionId=first.AuctionId,BidderNumber=25,FirstName="John",LastName="Smith" }, null);
+        var buyer = Assert.Single(store.GetBuyers());
+        var second = store.SaveAuction(NewAuction("SECOND-26", "Second Auction"));
+        store.SelectAuction(second.AuctionId);
+
+        store.SaveBidder(new AuctionBidder { AuctionId=second.AuctionId,BuyerId=buyer.BuyerId,BidderNumber=25,FirstName=buyer.FirstName,LastName=buyer.LastName }, null);
+        var consignorId = long.Parse(Scalar(database.Path, "SELECT MIN(ConsignorId) FROM Consignors;")!, CultureInfo.InvariantCulture);
+        store.SaveLot(new AuctionLot { AuctionId=second.AuctionId,ConsignorId=consignorId,LotNumber=1,Description="Test lot" }, null);
+        var sale = store.RecordSale(1, 25, 100m);
+
+        Assert.Equal("1", Scalar(database.Path, "SELECT COUNT(*) FROM Buyers;"));
+        Assert.Equal("2", Scalar(database.Path, "SELECT COUNT(*) FROM AuctionBidders WHERE BidderNumber=25;"));
+        Assert.Equal(1, store.GetDashboardSnapshot().BidderCount);
+        Assert.Single(store.Load().Bidders);
+        Assert.Equal(second.AuctionId, sale.AuctionId);
+        Assert.Equal("1", Scalar(database.Path, "SELECT COUNT(*) FROM Sales WHERE AuctionId=(SELECT AuctionId FROM Auctions WHERE AuctionNumber='SECOND-26');"));
+    }
+
+    private static Auction NewAuction(string number, string name) => new()
+    {
+        AuctionNumber = number, AuctionName = name, AuctionDate = DateTime.Today, Status = "Setup"
+    };
 
     private static string? Scalar(string path, string sql)
     {

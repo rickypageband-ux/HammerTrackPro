@@ -44,7 +44,7 @@ Favor correctness and operator safety over cleverness. Live-auction actions are 
 
 ## Testing and verification
 
-The repository currently has no automated test project. New work should introduce tests where practical, prioritizing service validation and data-store integration against disposable databases. Until coverage exists, record manual checks in the change description.
+The repository has an xUnit test project. Every feature must add focused service/view-model and data-store integration coverage using disposable databases where persistence is involved.
 
 Minimum verification for code changes:
 

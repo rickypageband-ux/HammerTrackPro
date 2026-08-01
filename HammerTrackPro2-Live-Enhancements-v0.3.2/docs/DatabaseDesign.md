@@ -2,101 +2,58 @@
 
 ## Overview
 
-The application uses SQLite through `Microsoft.Data.Sqlite`. `SqliteDataStore` owns schema creation, queries, transactions, audit writes, legacy import, and backup. On every connection it enables foreign keys, WAL journaling, `synchronous=NORMAL`, and a 15-second busy timeout. The connection also uses shared cache and pooling.
+HammerTrack Pro uses SQLite through `SqliteDataStore`. Connections enable foreign keys, WAL, shared cache, pooling, `synchronous=NORMAL`, and a 15-second busy timeout. Decimals are invariant-culture `TEXT`; timestamps are UTC ISO-8601. The default database is `%ProgramData%\HammerTrackPro2\hammertrack.db` with an optional workstation path override.
 
-Default path: `%ProgramData%\HammerTrackPro2\hammertrack.db`.
+> Open operational decision: a configurable network path does not establish that SQLite/WAL is safe on every network filesystem. The supported topology, workstation count, disconnect behavior, and recovery procedure still require testing.
 
-Optional workstation override: `%LocalAppData%\HammerTrackPro2\workstation.json`, whose `DatabasePath` may be an absolute or environment-variable-expanded path. Backups are timestamped `.db` files in `Backups` beside the active database.
-
-> Operational assumption requiring validation: a path may point to a network share, but the repository contains no evidence defining or proving a supported shared-filesystem topology. SQLite WAL and network filesystem semantics must be validated for the chosen environment before production use.
-
-## Current schema (version 6)
-
-Version 4 additively creates Consignors. Version 5 creates an Auction from retained legacy Settings values, creates a disabled Legacy / Unassigned consignor when needed, and links legacy lots to both records. Version 6 adds the requested `Require1099` and `CreatedDate` fields while retaining and copying values from the earlier `Is1099Required` and `CreatedUtc` fields. Existing columns and Settings are not deleted.
+## Schema version 8
 
 ### `Auctions`
 
-`AuctionId` is the primary key. Auction name/date, location, buyer premium, default consignor commission, sales tax, status, and UTC timestamps are persisted. Commercial terms are invariant decimal text and must be read from the current Auction record, never hard-coded. Date and status are indexed.
+`AuctionId` is the integer primary key. `AuctionNumber` is a unique text business identifier. The record also stores name, date, time, location, auctioneer, clerk, cashier, buyer premium %, default consignor commission %, sales tax %, invoice footer, receipt footer, status, and retained creation/update timestamps. Indexes cover number, date, and status.
 
-### `Consignors`
+Commercial terms must always come from the current persisted Auction. Runtime code must not hard-code buyer premium, sales tax, or commission percentages.
 
-`ConsignorId` is the stable primary key and `ConsignorNumber` is unique. Records include business/contact/address details, Tax ID, default/override commission, PrintCheck, HoldCheck, TaxExempt, Require1099, notes, Active, and CreatedDate. The legacy `Is1099Required` and `CreatedUtc` fields remain for backward compatibility. Number, name, phone, email, and Active are indexed.
+### `Consignors` and `AuctionConsignors`
 
-### `Bidders`
+`Consignors` is the global master identity, keyed by `ConsignorId` with unique `ConsignorNumber`. It retains all Sprint 1 business/contact, settlement/tax, commission, notes, active, and timestamp fields, including legacy compatibility columns.
 
-- `Id INTEGER PRIMARY KEY AUTOINCREMENT`
-- `BidderNumber INTEGER NOT NULL UNIQUE` — application-facing identity
-- `FirstName`, `LastName`, `DriversLicense`, `Address`, `City`, `State`, `Zip`, `Phone`, `Email`, `Notes` — non-null text, default empty
-- `CreatedUtc`, `UpdatedUtc TEXT NOT NULL` — ISO-8601 UTC
-- Indexes: name `(LastName, FirstName)`, driver’s license, and phone
+`AuctionConsignors(AuctionId, ConsignorId, CreatedDate)` is a junction table with a composite primary key and foreign keys to Auctions and Consignors. Copying consignors between auctions inserts association rows only; it never duplicates master records. `ConsignorId` has a reverse-lookup index.
 
-### `Lots`
+### `AuctionLots`
 
-- `Id INTEGER PRIMARY KEY AUTOINCREMENT`
-- `LotNumber INTEGER NOT NULL UNIQUE` — application-facing identity
-- `Description`, `Category TEXT NOT NULL DEFAULT ''`
-- `StartingBid TEXT NOT NULL DEFAULT '0'` — invariant-culture decimal text
-- `Status TEXT NOT NULL DEFAULT 'Available'`
-- `AuctionId` -> `Auctions.AuctionId`; `ConsignorId` -> `Consignors.ConsignorId`
-- `ReservePrice`, `PassOutMode`, and `LotStatus`; legacy `StartingBid` and `Status` remain
-- `CreatedUtc`, `UpdatedUtc TEXT NOT NULL`
-- Indexes: description, category, and status
-- Ownership/lookup indexes: auction, consignor, and `(AuctionId, LotNumber)`
+`AuctionLotId` is the primary key. Every row requires `AuctionId`, `ConsignorId`, `LotNumber`, description, category, starting bid, reserve price, pass-out mode, lot status/status, and timestamps. Foreign keys use `ON DELETE RESTRICT`. `(AuctionId, LotNumber)` is unique, so the same lot number is valid in separate auctions.
 
-Observed UI status values are `Available`, `Hold`, and `Sold`; this is not enforced by a database constraint.
+Indexes cover `LotNumber`, `AuctionId`, `ConsignorId`, `(AuctionId, LotNumber)`, description, category, and status. The version-7 migration copies existing `Lots` rows into `AuctionLots`; the legacy `Lots` table and fields remain intact for backward compatibility.
 
-### `Sales`
+### `Buyers`, `AuctionBidders`, and `Sales`
 
-- `Id INTEGER PRIMARY KEY AUTOINCREMENT`
-- `LotNumber INTEGER NOT NULL` -> `Lots.LotNumber` (`ON UPDATE CASCADE`, `ON DELETE RESTRICT`)
-- `BidderNumber INTEGER NOT NULL` -> `Bidders.BidderNumber` (`ON UPDATE CASCADE`, `ON DELETE RESTRICT`)
-- `HammerPrice TEXT NOT NULL DEFAULT '0'` — invariant-culture decimal text
-- `SaleUtc TEXT NOT NULL`
-- `Paid INTEGER NOT NULL DEFAULT 0` — modeled as boolean; no current cashier workflow updates it
-- Indexes: bidder number; lot number is created by the v3 upgrade path (see caveat below)
+`Buyers` is the global person/contact identity keyed by `BuyerId`; it has no bidder number. `AuctionBidders` is the registration junction containing `AuctionBidderId`, `AuctionId`, `BuyerId`, `BidderNumber`, registration notes, and timestamps. Both `(AuctionId, BidderNumber)` and `(AuctionId, BuyerId)` are unique. This allows bidder number 25 in many auctions while keeping one buyer history.
 
-Multiple rows per lot support pass-out sales. A standard sale marks its lot `Sold`; pass-out recording leaves it open until explicitly closed.
+`Sales` stores `AuctionId`, `AuctionLotId`, `AuctionBidderId`, retained `LotNumber`, retained `BidderNumber`, hammer price, sale UTC, and paid state. Foreign keys connect sales to the auction, auction lot, and exact auction registration; indexes cover all join paths.
 
-### `AuditLog`
+Multiple sale rows per auction lot preserve pass-out behavior. Sale lookup, latest-sale undo, dashboard totals, activity, and lot counts filter by the current Auction.
 
-- `Id INTEGER PRIMARY KEY AUTOINCREMENT`
-- `EventUtc TEXT NOT NULL`
-- `Action TEXT NOT NULL`
-- `Details TEXT NOT NULL DEFAULT ''`
-- Index: event UTC
+### `AuditLog` and `Settings`
 
-The data store writes audit events for bidder, lot, sale, undo, close, and legacy-import mutations. Audit entries are append-only by convention, not by database permissions or triggers.
+AuditLog remains append-only by convention and now includes auction save/select/close and association-copy events. Settings retains legacy values and `CurrentAuctionId`; global commercial values are migration sources only, not runtime configuration.
 
-### `Settings`
+## Migrations 7 and 8
 
-- `Key TEXT PRIMARY KEY`
-- `Value TEXT NOT NULL DEFAULT ''`
+The ordered transaction:
 
-Known keys include `DatabaseSchemaVersion`, `CurrentAuctionId`, retained legacy auction values, clerk/cashier settings, and per-lot notes using `LotNotes:{lotNumber}`.
+1. Adds Auction Setup columns and gives legacy auctions stable `LEGACY-{AuctionId}` numbers.
+2. Creates and populates `AuctionConsignors` without duplicating consignors.
+3. Creates `AuctionLots` and copies existing lot data.
+4. Rebuilds Sales with auction/auction-lot ownership while retaining the original lot number.
+5. Creates scale-oriented foreign-key and lookup indexes and records schema version 7.
 
-## Sprint 1 identifier decision
+Migration 8 creates Buyers and AuctionBidders, migrates every legacy Bidders row to one global Buyer plus a registration in the current auction, and rebuilds Sales with an `AuctionBidderId` foreign key. The legacy Bidders table and globally unique legacy number column remain untouched for backward compatibility but are no longer used for runtime registration.
 
-`BidderNumber` remains the buyer identifier. Sprint 1 does not introduce a separate Buyer entity or `BuyerNumber` column. Named lookup indexes cover `Consignors.ConsignorNumber`, `Lots.LotNumber`, and `Bidders.BidderNumber` in addition to existing uniqueness constraints.
+Verification covers a new database, a representative version-3 upgrade, retained legacy lots, repeated lot numbers across auctions, association-only copying, closure audit/locking, and current-auction data loading.
 
-## Integrity and transaction rules
+## Open decisions
 
-- Use parameterized SQL exclusively.
-- Wrap related writes and their audit entry in one transaction.
-- Store UTC timestamps in round-trip ISO-8601 form and decimals as invariant text, matching current behavior.
-- Keep `PRAGMA foreign_keys = ON` for every connection.
-- Back up before schema upgrades and test both fresh creation and representative upgrades.
-- Never commit databases, WAL/SHM files, backups, or workstation path configuration.
-
-## Current migrations and import
-
-Startup creates missing tables and sets schema version `3` if absent. A targeted upgrade detects the older `Sales` definition where `LotNumber` was unique, rebuilds that table without the uniqueness rule, copies data, recreates indexes, and updates the version. If an empty SQLite database sits beside `hammertrack-data.json`, bidder and lot data is imported once and the JSON file is renamed with `.migrated`.
-
-## Known gaps and open decisions
-
-- Fresh schema creation defines only the sales bidder index; the lot index is created only during the legacy pass-out upgrade. Decide whether to add an idempotent index migration.
-- Schema versioning is partly declarative and partly based on inspecting table SQL. Adopt ordered, transactional migrations before more schema changes.
-- The schema has no Auction/Event table, so settings, lots, bidders, sales, and the latest global undo all share one namespace.
-- `Status`, `Paid`, email/phone formats, and positive monetary/number rules are enforced incompletely or only in application code.
-- Renumbering a bidder/lot deletes the old row before upsert in current persistence code; define and test behavior when sales reference that row.
-- Define privacy, retention, encryption, backup access, restore testing, and audit retention requirements.
-- Define concurrency targets and failure recovery for multi-workstation use. In-process locking does not coordinate separate processes.
+- Administrator/authentication policy for reopening closed auctions.
+- Deletion/renumbering policy once financial history exists.
+- Privacy, retention, restore drills, and multi-workstation concurrency targets.

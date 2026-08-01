@@ -4,12 +4,15 @@
 
 HammerTrack Pro 2 is a Windows auction-clerking application designed to keep bidder, lot, and sale entry fast and locally available during a live event. The current implementation is a single desktop executable backed by one SQLite database whose path can be configured per workstation.
 
-## Current baseline (v0.3.2, observed in code)
+## Current baseline (Version 0.5 features, observed in code)
 
 - Bidder registration, editing, search, and deletion
 - Lot creation, editing, search, status, and deletion
-- Auction metadata stored as key/value settings
-- Dashboard counts, gross sales, average sale price, and recent activity
+- Auction Setup creation, editing, selection, closure, and configuration-only duplication
+- Global consignors linked to auctions through `AuctionConsignors`
+- Auction-owned lots with per-auction lot-number uniqueness
+- Persisted per-auction commercial terms; no hard-coded runtime premium/commission/tax values
+- Current-auction dashboard counts, gross sales, average sale price, and recent activity
 - Standard and multi-buyer pass-out sale recording
 - Last-sale undo, lot closing, queued next lot, per-lot auctioneer notes, fullscreen mode, hotkeys, and confirmation sounds
 - SQLite initialization/upgrade, audit log writes, legacy JSON import, WAL mode, and in-app backup
@@ -29,7 +32,7 @@ HammerTrack Pro 2 is a Windows auction-clerking application designed to keep bid
 
 - Define and implement cashier/payment behavior (currently shown as “Coming Next”).
 - Decide whether sales need taxes, buyer premiums, payment methods, receipts, refunds/voids, and settlement reporting.
-- Add event/session scoping if the product must retain multiple auctions in one database.
+- Extend the established Auction scoping to every future report and financial workflow.
 - Add exports and operational reports only after their required fields and accounting rules are approved.
 
 ### Phase 3 — Multi-workstation operations
@@ -48,13 +51,13 @@ HammerTrack Pro 2 is a Windows auction-clerking application designed to keep bid
 
 ## Open product and architecture decisions
 
-1. Is one database intended for one auction, many auctions, or one active auction plus archived exports? The current schema has no Auction/Event foreign key.
+1. Which roles may reopen a closed auction? Reopening intentionally awaits authentication/authorization.
 2. What network topology, number of simultaneous workstations, latency, and disconnect behavior must be supported?
 3. May a bidder or lot with historical sales ever be deleted or renumbered? Foreign keys restrict deletion and cascade number updates, while UI/service behavior needs an explicit policy.
 4. Is “Paid” part of the planned cashier workflow, and what audit/void semantics are legally or operationally required?
 5. Which lot statuses are valid? The model defaults to `Available`, the UI also uses `Hold` and `Sold`, but the database has no constraint.
 6. What retention, privacy, and access rules apply to driver’s-license and contact data?
-7. Is undo limited to the latest sale globally (current behavior), or should authorized corrections work per lot/event?
+7. Should future authorized corrections extend beyond the latest sale within the current auction?
 8. Who owns roadmap approval, releases, and production database recovery?
 
 ## Roadmap hygiene

@@ -1,7 +1,8 @@
 namespace HammerTrackPro2.Models;
 
-public sealed class Lot
+public class AuctionLot
 {
+    public long AuctionLotId { get; set; }
     public long AuctionId { get; set; }
     public long ConsignorId { get; set; }
     public int LotNumber { get; set; }
@@ -12,4 +13,9 @@ public sealed class Lot
     public bool PassOutMode { get; set; }
     public string Status { get; set; } = "Available";
     public string LotStatus { get; set; } = "Available";
+}
+
+[Obsolete("Use AuctionLot. Lot remains as a compatibility type for existing callers.")]
+public sealed class Lot : AuctionLot
+{
 }

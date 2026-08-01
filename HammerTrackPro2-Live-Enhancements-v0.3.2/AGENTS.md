@@ -15,6 +15,8 @@ These rules are mandatory for all future work and override less-specific guidanc
 7. **All database changes must be backward compatible.** Existing version-3 databases must open and retain their data; additive changes need safe defaults, and older application/data interactions must be considered and documented.
 8. **Never hard-code per-auction commercial terms.** Buyer premium, sales tax, default consignor commission, and similar values must come from the current persisted `Auction` record (for example, `CurrentAuction.BuyerPremiumPercent`). A safe default is permitted only while migrating legacy data; runtime calculations must not embed a percentage.
 9. **Design core relationships for durable scale.** Assume hundreds of auctions, thousands of consignors, tens of thousands of buyers, and hundreds of thousands of lots. Do not prematurely optimize, but require foreign keys for Auction/Consignor/Lot ownership and indexes for identifiers, search fields, foreign-key joins, auction status/date, and `(AuctionId, LotNumber)` lookup paths.
+10. **Keep buyers global and registrations auction-specific.** `Buyer` is the durable person identity. `AuctionBidder` assigns a `BidderNumber` within one auction; uniqueness is `(AuctionId, BidderNumber)`, never global. Do not duplicate a Buyer merely to register that person in another auction.
+11. **Scope operational views and reports to Current Auction.** Registration lists/counts, lots, sales, dashboard totals, undo, and all future reports must resolve through the selected Auction unless a screen is explicitly a cross-auction history view.
 
 If a requested change conflicts with one of these rules, stop and obtain a maintainer decision rather than weakening the rule silently.
 

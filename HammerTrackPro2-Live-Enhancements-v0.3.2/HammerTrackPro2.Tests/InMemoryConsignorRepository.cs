@@ -19,4 +19,6 @@ internal sealed class InMemoryConsignorRepository : IConsignorRepository
 
     public void DeleteConsignor(int consignorNumber) =>
         _items.RemoveAll(item => item.ConsignorNumber == consignorNumber);
+
+    public void AssociateConsignorWithCurrentAuction(int consignorNumber) { }
 }

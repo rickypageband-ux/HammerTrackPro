@@ -34,6 +34,7 @@ public sealed class MainForm : Form
     private readonly TextBox _lotSearch = new();
 
     private readonly NumericUpDown _bidderNumber = new();
+    private readonly ComboBox _existingBuyer = new() { DropDownStyle = ComboBoxStyle.DropDownList, DisplayMember = nameof(Buyer.FullName), ValueMember = nameof(Buyer.BuyerId) };
     private readonly TextBox _firstName = new();
     private readonly TextBox _lastName = new();
     private readonly TextBox _driversLicense = new();
@@ -236,18 +237,17 @@ public sealed class MainForm : Form
             Padding = new Padding(14),
             Margin = new Padding(8)
         };
-        var buttons = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 3 };
+        var buttons = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 4 };
         buttons.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
         buttons.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
-        buttons.RowStyles.Add(new RowStyle(SizeType.Percent, 33.33F));
-        buttons.RowStyles.Add(new RowStyle(SizeType.Percent, 33.33F));
-        buttons.RowStyles.Add(new RowStyle(SizeType.Percent, 33.33F));
+        for (var row = 0; row < 4; row++) buttons.RowStyles.Add(new RowStyle(SizeType.Percent, 25));
         buttons.Controls.Add(MakeDashboardButton("Register Bidder", (_, _) => { _tabs.SelectedIndex = 1; NewBidder(); }), 0, 0);
         buttons.Controls.Add(MakeDashboardButton("Add Lot", (_, _) => { _tabs.SelectedIndex = 2; NewLot(); }), 1, 0);
         buttons.Controls.Add(MakeDashboardButton("Backup Database", (_, _) => BackupDatabase()), 0, 1);
         buttons.Controls.Add(MakeDashboardButton("Refresh Dashboard", (_, _) => RefreshAll()), 1, 1);
         buttons.Controls.Add(MakeDashboardButton("Open Live Auction", (_, _) => OpenLiveAuction()), 0, 2);
         buttons.Controls.Add(MakeDashboardButton("Manage Consignors", (_, _) => OpenConsignors()), 1, 2);
+        buttons.Controls.Add(MakeDashboardButton("Auction Setup", (_, _) => OpenAuctionSetup()), 0, 3);
         group.Controls.Add(buttons);
         return group;
     }
@@ -298,6 +298,8 @@ public sealed class MainForm : Form
 
         AddRow(form, "Bidder Number", _bidderNumber);
         _bidderNumber.Maximum = 999999;
+        AddRow(form, "Existing Buyer", _existingBuyer);
+        _existingBuyer.SelectedIndexChanged += (_, _) => LoadExistingBuyer();
         AddRow(form, "First Name", _firstName);
         AddRow(form, "Last Name", _lastName);
         AddRow(form, "Driver's License", _driversLicense);
@@ -425,6 +427,7 @@ public sealed class MainForm : Form
 
     private void RefreshAll()
     {
+        _auctionSetup.Load();
         _data = _service.Load();
         RefreshBidders();
         RefreshLots();
@@ -449,15 +452,6 @@ public sealed class MainForm : Form
         _recentActivity.EndUpdate();
 
         if (!_auctionName.Focused) _auctionName.Text = _service.GetSetting("AuctionName", "New Auction");
-        if (!_clerkName.Focused) _clerkName.Text = _service.GetSetting("ClerkName");
-        if (!_cashierName.Focused) _cashierName.Text = _service.GetSetting("CashierName");
-        if (!_auctionDate.Focused && DateTime.TryParse(_service.GetSetting("AuctionDate"), out var auctionDate))
-            _auctionDate.Value = auctionDate;
-        if (!_auctionStatus.Focused)
-        {
-            _auctionStatus.SelectedItem = _service.GetSetting("AuctionStatus", "Setup");
-            if (_auctionStatus.SelectedIndex < 0) _auctionStatus.SelectedIndex = 0;
-        }
         var auction = _auctionSetup.CurrentAuction;
         if (!_auctionName.Focused) _auctionName.Text = auction.AuctionName;
         if (!_auctionDate.Focused) _auctionDate.Value = auction.AuctionDate;
@@ -465,6 +459,9 @@ public sealed class MainForm : Form
         if (!_buyerPremium.Focused) _buyerPremium.Value = auction.BuyerPremiumPercent;
         if (!_defaultConsignorCommission.Focused) _defaultConsignorCommission.Value = auction.DefaultConsignorCommissionPercent;
         if (!_salesTax.Focused) _salesTax.Value = auction.SalesTaxPercent;
+        if (!_clerkName.Focused) _clerkName.Text = auction.Clerk;
+        if (!_cashierName.Focused) _cashierName.Text = auction.Cashier;
+        if (!_auctionStatus.Focused) _auctionStatus.SelectedItem = auction.Status;
     }
 
     private void SaveAuctionSettings()
@@ -472,7 +469,7 @@ public sealed class MainForm : Form
         var auction = _auctionSetup.CurrentAuction;
         auction.AuctionName = _auctionName.Text.Trim(); auction.AuctionDate = _auctionDate.Value.Date; auction.Location = _auctionLocation.Text.Trim();
         auction.BuyerPremiumPercent = _buyerPremium.Value; auction.DefaultConsignorCommissionPercent = _defaultConsignorCommission.Value; auction.SalesTaxPercent = _salesTax.Value;
-        auction.Status = _auctionStatus.SelectedItem?.ToString() ?? "Setup";
+        auction.Clerk = _clerkName.Text.Trim(); auction.Cashier = _cashierName.Text.Trim();
         _auctionSetup.Save();
         _service.SaveSettings(new Dictionary<string, string>
         {
@@ -497,6 +494,14 @@ public sealed class MainForm : Form
     {
         using var consignors = new ConsignorForm(_consignorService);
         consignors.ShowDialog(this);
+        RefreshAll();
+    }
+
+    private void OpenAuctionSetup()
+    {
+        using var setup = new AuctionSetupForm(new AuctionSetupViewModel(_service));
+        setup.ShowDialog(this);
+        _auctionSetup.Load();
         RefreshAll();
     }
 
@@ -531,6 +536,8 @@ public sealed class MainForm : Form
     private void NewBidder()
     {
         _editingBidderNumber = null;
+        _existingBuyer.DataSource = new List<Buyer> { new() { BuyerId = 0, FirstName = "(Create new buyer)" } }.Concat(_service.GetBuyers()).ToList();
+        _existingBuyer.SelectedIndex = 0;
         _bidderNumber.Value = _data.Bidders.Count == 0 ? 1 : _data.Bidders.Max(b => b.BidderNumber) + 1;
         _firstName.Clear(); _lastName.Clear(); _driversLicense.Clear(); _address.Clear(); _city.Clear();
         _state.Clear(); _zip.Clear(); _phone.Clear(); _email.Clear(); _notes.Clear();
@@ -552,9 +559,10 @@ public sealed class MainForm : Form
         }
 
         var bidder = _editingBidderNumber is null
-            ? new Bidder()
+            ? new AuctionBidder { AuctionId = _auctionSetup.CurrentAuction.AuctionId }
             : _data.Bidders.First(b => b.BidderNumber == _editingBidderNumber.Value);
 
+        bidder.BuyerId = _existingBuyer.SelectedValue is long buyerId ? buyerId : bidder.BuyerId;
         bidder.BidderNumber = number;
         bidder.FirstName = _firstName.Text.Trim();
         bidder.LastName = _lastName.Text.Trim();
@@ -585,8 +593,10 @@ public sealed class MainForm : Form
 
     private void LoadSelectedBidder()
     {
-        if (_bidderGrid.CurrentRow?.DataBoundItem is not Bidder bidder) return;
+        if (_bidderGrid.CurrentRow?.DataBoundItem is not AuctionBidder bidder) return;
         _editingBidderNumber = bidder.BidderNumber;
+        _existingBuyer.DataSource = new List<Buyer> { new() { BuyerId=0, FirstName="(Create new buyer)" } }.Concat(_service.GetBuyers()).ToList();
+        _existingBuyer.SelectedValue = bidder.BuyerId;
         _bidderNumber.Value = bidder.BidderNumber;
         _firstName.Text = bidder.FirstName;
         _lastName.Text = bidder.LastName;
@@ -598,6 +608,14 @@ public sealed class MainForm : Form
         _phone.Text = bidder.Phone;
         _email.Text = bidder.Email;
         _notes.Text = bidder.Notes;
+    }
+
+    private void LoadExistingBuyer()
+    {
+        if (_existingBuyer.SelectedItem is not Buyer buyer || buyer.BuyerId == 0) return;
+        _firstName.Text=buyer.FirstName; _lastName.Text=buyer.LastName; _driversLicense.Text=buyer.DriversLicense;
+        _address.Text=buyer.Address; _city.Text=buyer.City; _state.Text=buyer.State; _zip.Text=buyer.Zip;
+        _phone.Text=buyer.Phone; _email.Text=buyer.Email;
     }
 
     private void NewLot()
@@ -628,7 +646,7 @@ public sealed class MainForm : Form
         }
 
         var lot = _editingLotNumber is null
-            ? new Lot()
+            ? new AuctionLot()
             : _data.Lots.First(l => l.LotNumber == _editingLotNumber.Value);
 
         lot.LotNumber = number;
@@ -658,7 +676,7 @@ public sealed class MainForm : Form
 
     private void LoadSelectedLot()
     {
-        if (_lotGrid.CurrentRow?.DataBoundItem is not Lot lot) return;
+        if (_lotGrid.CurrentRow?.DataBoundItem is not AuctionLot lot) return;
         _editingLotNumber = lot.LotNumber;
         _lotNumber.Value = lot.LotNumber;
         _description.Text = lot.Description;
