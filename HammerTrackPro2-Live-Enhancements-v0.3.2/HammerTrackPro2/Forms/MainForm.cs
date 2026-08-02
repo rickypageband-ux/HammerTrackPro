@@ -104,10 +104,12 @@ public sealed class MainForm : Form
             Top = 15
         };
         var backup = new Button { Text = "Backup Database", Width = 150, Height = 34, Anchor = AnchorStyles.Top | AnchorStyles.Right };
+        StyleHeaderButton(backup);
         backup.Left = 1080;
         backup.Top = 15;
         backup.Click += (_, _) => BackupDatabase();
         var network=new Button { Text="Network Information",Width=160,Height=34,Top=15,Anchor=AnchorStyles.Top|AnchorStyles.Right };
+        StyleHeaderButton(network);
         network.Left=backup.Left-network.Width-10;
         network.Click+=(_,_)=>{ using var info=new NetworkInformationForm(_workstationConfiguration); info.ShowDialog(this); };
         header.Resize += (_, _) => { backup.Left=header.ClientSize.Width-backup.Width-20; network.Left=backup.Left-network.Width-10; };
@@ -124,6 +126,17 @@ public sealed class MainForm : Form
         root.Controls.Add(header, 0, 0);
         root.Controls.Add(_tabs, 0, 1);
         return root;
+    }
+
+    private static void StyleHeaderButton(Button button)
+    {
+        button.BackColor=Color.FromArgb(24,50,74);
+        button.ForeColor=Color.White;
+        button.FlatStyle=FlatStyle.Flat;
+        button.Font=new Font("Segoe UI",10F,FontStyle.Bold);
+        button.FlatAppearance.BorderColor=Color.White;
+        button.FlatAppearance.BorderSize=1;
+        button.UseVisualStyleBackColor=false;
     }
 
     private TabPage BuildDashboardTab()
