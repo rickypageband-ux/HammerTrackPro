@@ -61,4 +61,5 @@ Status: Cashier and the approved closed-auction consignor payout extension are i
 - Copy missing legacy `HammerTrackPro2` database/configuration data without overwriting or deleting either copy.
 - Require an RSA-signed offline license listing the PC Machine IDs. Keep the private issuer key outside Git and outside the MSI.
 - Use a stable MSI UpgradeCode and increasing package versions for in-place upgrades.
+- Display the RPDAVID LLC HammerTrack Pro EULA and require acceptance before installation.
 - Remaining release requirement: sign the executable and MSI with a trusted publisher certificate before broad production distribution.

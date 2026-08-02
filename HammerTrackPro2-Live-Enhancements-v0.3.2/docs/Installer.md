@@ -4,6 +4,8 @@
 
 The WiX 5 MSI is a self-contained Windows x64 package. It installs application binaries under `%ProgramFiles%\HammerTrack Pro`, creates Desktop and Start Menu shortcuts, registers `.htpbackup`, and displays version `0.7.0` in its installation UI and Windows installed-app list.
 
+The installer displays the RPDAVID LLC HammerTrack Pro End User License Agreement and requires explicit acceptance before installation can continue. The installer source of record is `HammerTrackPro2.Installer/Eula.rtf`; approved legal changes must update that file without paraphrasing the agreement.
+
 The stable UpgradeCode supports in-place major upgrades. Each release must increase `ProductVersion`; users must not uninstall the previous release first. Application components are replaced, while `%ProgramData%\HammerTrackPro` is a permanent data root and is not removed on uninstall.
 
 The installer creates and grants normal users access to:

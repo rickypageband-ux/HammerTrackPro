@@ -11,6 +11,7 @@
     <MediaTemplate EmbedCab="yes" />
     <Icon Id="HammerTrackProIcon" SourceFile="..\HammerTrackPro2\Assets\HammerTrackPro.ico" />
     <Property Id="ARPPRODUCTICON" Value="HammerTrackProIcon" />
+    <WixVariable Id="WixUILicenseRtf" Value="Eula.rtf" />
     <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
     <util:QueryWindowsWellKnownSIDs />
 
