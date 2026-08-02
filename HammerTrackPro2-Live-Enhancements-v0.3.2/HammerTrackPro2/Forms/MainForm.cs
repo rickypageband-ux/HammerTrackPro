@@ -569,6 +569,8 @@ public sealed class MainForm : Form
     private void NewBidder()
     {
         _editingBidderNumber = null;
+        _bidderGrid.ClearSelection();
+        _bidderGrid.CurrentCell = null;
         _existingBuyer.DataSource = new List<Buyer> { new() { BuyerId = 0, FirstName = "(Create new buyer)" } }.Concat(_service.GetBuyers()).ToList();
         _existingBuyer.SelectedIndex = 0;
         _bidderNumber.Value = _data.Bidders.Count == 0 ? 1 : _data.Bidders.Max(b => b.BidderNumber) + 1;
@@ -615,9 +617,17 @@ public sealed class MainForm : Form
 
     private void DeleteBidder()
     {
-        if (_editingBidderNumber is null) return;
+        if (_editingBidderNumber is null)
+        {
+            MessageBox.Show("Select a bidder from the list before deleting.", "Select Bidder", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
         var bidder = _data.Bidders.FirstOrDefault(b => b.BidderNumber == _editingBidderNumber.Value);
-        if (bidder is null) return;
+        if (bidder is null)
+        {
+            MessageBox.Show("The selected bidder is no longer registered for the current auction. Refresh the list and try again.", "Bidder Not Found", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
         if (MessageBox.Show($"Delete bidder {bidder.BidderNumber} - {bidder.FullName}?", "Confirm Delete", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
         _service.DeleteBidder(bidder.BidderNumber);
         RefreshAll();

@@ -50,6 +50,8 @@ Status: Cashier and the approved closed-auction consignor payout extension are i
 - Auction Information no longer clips Seller Commission or lower fields at common window sizes.
 - Auction and consignor properties are grouped into readable categories, and affected grids/forms use clearer spacing, headers, and selection colors.
 - Bidder, consignor, and lot editor panels open at a usable width and cannot collapse below the data-entry minimum, eliminating the need to drag the divider open.
+- Starting a new bidder clears the bidder grid's visual selection so it cannot imply that a registration is selected for deletion; Delete now gives an actionable prompt when no current-auction bidder is selected.
+- Cashier invoice and consignor settlement print actions open a full print preview first; operators can print from the preview toolbar.
 
 ## Distribution and licensing extension
 
