@@ -18,7 +18,7 @@ internal static class Program
                 if(activation.ShowDialog()!=DialogResult.OK)return;
             }
             var configuration=WorkstationConfigurationService.Load();
-            if(!WorkstationConfigurationService.Exists)
+            if(WorkstationConfigurationService.RequiresSetup(WorkstationConfigurationService.Exists,configuration))
             {
                 using var setup=new WorkstationSetupForm(configuration);
                 if(setup.ShowDialog()!=DialogResult.OK) return;

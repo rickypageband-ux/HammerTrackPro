@@ -30,6 +30,7 @@ public sealed class WorkstationSetupForm : Form
         { MessageBox.Show("Enter the HTTPS host address, pairing key, and certificate fingerprint shown on the live-auction PC.","Network Setup",MessageBoxButtons.OK,MessageBoxIcon.Warning); return; }
         Configuration.Role=_cashier.Checked?WorkstationRole.Cashier:WorkstationRole.Host; Configuration.HostUrl=_hostUrl.Text.Trim();
         if(_cashier.Checked) { Configuration.PairingKey=_pairingKey.Text.Trim(); Configuration.CertificateThumbprint=_fingerprint.Text.Trim(); }
+        Configuration.SetupCompleted=true;
         WorkstationConfigurationService.Save(Configuration); DialogResult=DialogResult.OK; Close();
     }
 }

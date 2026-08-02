@@ -8,6 +8,7 @@ public enum WorkstationRole { Host, Cashier }
 public sealed class WorkstationConfiguration
 {
     public WorkstationRole Role { get; set; } = WorkstationRole.Host;
+    public bool SetupCompleted { get; set; }
     public string DatabasePath { get; set; } = string.Empty;
     public int ServicePort { get; set; } = 7443;
     public string PairingKey { get; set; } = string.Empty;
@@ -20,6 +21,8 @@ public static class WorkstationConfigurationService
     private static readonly JsonSerializerOptions JsonOptions=new() { WriteIndented=true };
     public static string ConfigurationFile { get { ApplicationDataLayoutService.EnsureAndMigrateLegacyData(); return ApplicationDataLayoutService.WorkstationConfigurationFile; } }
     public static bool Exists => File.Exists(ConfigurationFile);
+    internal static bool RequiresSetup(bool configurationFileExists,WorkstationConfiguration configuration) =>
+        !configurationFileExists || !configuration.SetupCompleted;
     public static WorkstationConfiguration Load()
     {
         if(!File.Exists(ConfigurationFile)) return CreateHostDefaults();

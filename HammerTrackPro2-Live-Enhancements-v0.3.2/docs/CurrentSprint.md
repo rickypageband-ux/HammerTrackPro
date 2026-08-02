@@ -63,4 +63,5 @@ Status: Cashier and the approved closed-auction consignor payout extension are i
 - Use a stable MSI UpgradeCode and increasing package versions for in-place upgrades.
 - Display the RPDAVID LLC HammerTrack Pro EULA and require acceptance before installation.
 - Assign the embedded HammerTrack Pro icon explicitly to Desktop and Start Menu shortcuts; package this correction as upgrade version 0.7.1.
+- Require an explicit completed workstation-role selection before startup; the presence of a default, migrated, or incomplete configuration file must not silently select Auction Host. Package this correction as upgrade version 0.7.2.
 - Remaining release requirement: sign the executable and MSI with a trusted publisher certificate before broad production distribution.
