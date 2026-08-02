@@ -9,6 +9,8 @@
     <SummaryInformation Description="HammerTrack Pro $(var.ProductVersion) Installer" Manufacturer="HammerTrack Pro" />
     <MajorUpgrade DowngradeErrorMessage="A newer version of HammerTrack Pro is already installed." Schedule="afterInstallInitialize" />
     <MediaTemplate EmbedCab="yes" />
+    <Icon Id="HammerTrackProIcon" SourceFile="..\HammerTrackPro2\Assets\HammerTrackPro.ico" />
+    <Property Id="ARPPRODUCTICON" Value="HammerTrackProIcon" />
     <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
     <util:QueryWindowsWellKnownSIDs />
 

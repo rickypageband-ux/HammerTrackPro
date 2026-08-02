@@ -31,6 +31,8 @@ dotnet build .\HammerTrackPro2.sln
 
 The repository includes a WiX MSI project for self-contained x64 deployment to multiple PCs. Installed application files live under `%ProgramFiles%\HammerTrack Pro`; persistent auction data, backups, logs, shared workstation settings, and the signed offline license live under `%ProgramData%\HammerTrackPro`. See [Installer and offline licensing](docs/Installer.md) for building the MSI, upgrades, legacy-data migration, and issuing a machine-limited license.
 
+The branded HammerTrack Pro icon is embedded in the application executable, inherited by the installed Desktop and Start Menu shortcuts, and displayed for the product in Windows Apps & Features. The transparent PNG master and multi-resolution Windows icon are maintained in `HammerTrackPro2/Assets`.
+
 ## Two-computer setup
 
 HammerTrack supports one live-auction host PC and one cashier PC on the same private LAN. The host owns the local SQLite database and runs a paired HTTPS cashier service. The cashier never opens or copies the database file.
