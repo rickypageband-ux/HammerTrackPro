@@ -33,6 +33,8 @@ The repository includes a WiX MSI project for self-contained x64 deployment to m
 
 The branded HammerTrack Pro icon is embedded in the application executable, inherited by the installed Desktop and Start Menu shortcuts, and displayed for the product in Windows Apps & Features. The transparent PNG master and multi-resolution Windows icon are maintained in `HammerTrackPro2/Assets`.
 
+For operator setup, print the [two-computer installation guide](output/pdf/HammerTrackPro-Two-Computer-Installation-Guide.pdf). It covers installation, two-PC activation, host/cashier pairing, pre-auction verification, and troubleshooting.
+
 ## Two-computer setup
 
 HammerTrack supports one live-auction host PC and one cashier PC on the same private LAN. The host owns the local SQLite database and runs a paired HTTPS cashier service. The cashier never opens or copies the database file.
