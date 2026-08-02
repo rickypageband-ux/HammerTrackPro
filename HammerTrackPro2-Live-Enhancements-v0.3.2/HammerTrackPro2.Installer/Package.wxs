@@ -10,6 +10,7 @@
     <MajorUpgrade DowngradeErrorMessage="A newer version of HammerTrack Pro is already installed." Schedule="afterInstallInitialize" />
     <MediaTemplate EmbedCab="yes" />
     <Icon Id="HammerTrackProIcon" SourceFile="..\HammerTrackPro2\Assets\HammerTrackPro.ico" />
+    <Icon Id="HammerTrackShortcut.exe" SourceFile="$(var.PublishDir)HammerTrack.exe" />
     <Property Id="ARPPRODUCTICON" Value="HammerTrackProIcon" />
     <WixVariable Id="WixUILicenseRtf" Value="Eula.rtf" />
     <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
@@ -35,8 +36,8 @@
       </Files>
       <Component Id="MainExecutable" Guid="E3D9B0F9-C689-47C4-B0E2-ED76F250346C">
         <File Id="HammerTrackExe" Source="$(var.PublishDir)HammerTrack.exe" KeyPath="yes">
-          <Shortcut Id="StartMenuShortcut" Directory="ProgramMenuFolder" Name="HammerTrack Pro" Description="HammerTrack Pro auction management" WorkingDirectory="INSTALLFOLDER" Advertise="yes" />
-          <Shortcut Id="DesktopShortcut" Directory="DesktopFolder" Name="HammerTrack Pro" Description="HammerTrack Pro auction management" WorkingDirectory="INSTALLFOLDER" Advertise="yes" />
+          <Shortcut Id="StartMenuShortcut" Directory="ProgramMenuFolder" Name="HammerTrack Pro" Description="HammerTrack Pro auction management" WorkingDirectory="INSTALLFOLDER" Advertise="yes" Icon="HammerTrackShortcut.exe" IconIndex="0" />
+          <Shortcut Id="DesktopShortcut" Directory="DesktopFolder" Name="HammerTrack Pro" Description="HammerTrack Pro auction management" WorkingDirectory="INSTALLFOLDER" Advertise="yes" Icon="HammerTrackShortcut.exe" IconIndex="0" />
         </File>
         <ProgId Id="HammerTrackPro.Backup" Description="HammerTrack Pro Backup" Icon="HammerTrackExe">
           <Extension Id="htpbackup" ContentType="application/x-hammertrack-backup">
