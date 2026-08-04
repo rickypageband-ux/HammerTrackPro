@@ -35,6 +35,7 @@ public sealed class SettlementPrinter
         if(endLine<settlement.Lots.Count) { graphics.DrawString($"Continued — {settlement.Lots.Count-endLine} lot(s) remain",body,Brushes.Black,bounds.Left,y+12); return endLine; }
         y+=6; graphics.DrawLine(pen,bounds.Left,y,bounds.Right,y); y+=10;
         Total(graphics,body,bounds,ref y,"Hammer subtotal",settlement.HammerSubtotal); Total(graphics,body,bounds,ref y,$"Commission ({settlement.CommissionPercent:0.##}%)",settlement.CommissionAmount);
+        Total(graphics,body,bounds,ref y,"Buyer purchase balance deduction",settlement.BuyerPurchaseBalanceDeduction);
         Total(graphics,heading,bounds,ref y,"Net proceeds",settlement.NetAmount); Total(graphics,body,bounds,ref y,"Payouts",settlement.AmountPaid); Total(graphics,heading,bounds,ref y,"Balance due",settlement.BalanceDue);
         y+=12; graphics.DrawString($"Status: {settlement.Status}",heading,Brushes.Black,bounds.Left,y);
         return endLine;

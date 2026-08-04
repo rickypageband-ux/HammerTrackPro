@@ -12,6 +12,7 @@ public sealed class ConsignorSettlement
     public decimal CommissionPercent { get; set; }
     public decimal HammerSubtotal { get; set; }
     public decimal CommissionAmount { get; set; }
+    public decimal BuyerPurchaseBalanceDeduction { get; set; }
     public decimal NetAmount { get; set; }
     public decimal AmountPaid { get; set; }
     public decimal BalanceDue { get; set; }

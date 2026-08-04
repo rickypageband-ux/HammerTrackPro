@@ -24,6 +24,7 @@ public sealed class ConsignorService
         if (consignor.DefaultCommissionPercent is < 0 or > 100 || consignor.CommissionOverridePercent is < 0 or > 100) throw new InvalidOperationException("Commission percentages must be between 0 and 100.");
         _repository.SaveConsignor(consignor, originalNumber);
         _repository.AssociateConsignorWithCurrentAuction(consignor.ConsignorNumber);
+        if(_repository is IDataStore store)store.EnsureConsignorBuyerLink(consignor.ConsignorNumber);
     }
     public void DeleteConsignor(int number)
     {

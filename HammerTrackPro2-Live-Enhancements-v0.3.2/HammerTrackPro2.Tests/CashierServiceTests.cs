@@ -6,6 +6,7 @@ namespace HammerTrackPro2.Tests;
 
 public sealed class CashierServiceTests
 {
+    [Fact] public void LinkedConsignorBuyer_UnpaidPurchasesReducePayout(){using var db=TemporaryDatabase.Create();var store=new SqliteDataStore(db.Path);var auction=store.GetCurrentAuction();var cs=new ConsignorService(store);cs.SaveConsignor(new Consignor{ConsignorNumber=70,BusinessName="Buyer Seller",Active=true},null);var linked=store.GetConsignors().Single(x=>x.ConsignorNumber==70);Assert.NotNull(linked.LinkedBuyerId);var owner=store.GetConsignors().First();store.SaveLot(new AuctionLot{AuctionId=auction.AuctionId,ConsignorId=owner.ConsignorId,LotNumber=1,Description="Purchase"},null);store.RecordSale(1,70,100);store.SaveLot(new AuctionLot{AuctionId=auction.AuctionId,ConsignorId=linked.ConsignorId,LotNumber=2,Description="Consigned"},null);store.SaveBidder(new AuctionBidder{AuctionId=auction.AuctionId,BidderNumber=71,FirstName="Other"},null);store.RecordSale(2,71,200);var settlement=new CashierService(store).LoadConsignorSettlement(70);Assert.Equal(100,settlement.BuyerPurchaseBalanceDeduction);Assert.Equal(100,settlement.NetAmount);}
     [Fact] public void UnpaidReview_UsesFreshCurrentAuctionBalances(){using var db=TemporaryDatabase.Create();var (store,cashier)=CreateAccount(db.Path,SalesTaxBasis.None);Assert.Single(cashier.GetUnpaidInvoices());cashier.RecordPayments(25,[new PaymentRequest{Method=PaymentMethod.Cash,Amount=110}]);Assert.Empty(cashier.GetUnpaidInvoices());}
     [Fact]
     public void CashierRegistration_CreatesAndSelectsCurrentAuctionRecords()

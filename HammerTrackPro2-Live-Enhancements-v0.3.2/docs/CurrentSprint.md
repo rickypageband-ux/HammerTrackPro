@@ -85,3 +85,8 @@ Status: Cashier and the approved closed-auction consignor payout extension are i
 
 - Cashier provides an on-demand current-auction list of Buyer Number, name, invoice total, paid amount, and balance due, with an explicit all-paid state.
 - Every press reloads host-owned invoice data; LAN Cashier uses the paired API.
+
+## Consignor/Buyer settlement offset
+
+- Consignor save creates or links the same-number current-auction Buyer registration and records a durable `LinkedBuyerId`; conflicting ownership is rejected.
+- Settlement detail and printing show gross sales, commission/fees, linked buyer unpaid-purchase deduction, adjusted net, payouts, and remaining balance.

@@ -128,7 +128,7 @@ public sealed class CashierForm : Form
     private void RefreshSettlement()
     {
         var settlement=_viewModel.Settlement; if(settlement is null)return;
-        _settlementHeading.Text=$"Settlement {settlement.FormattedSettlementNumber} — {settlement.ConsignorName} — {settlement.Status}   Hammer {settlement.HammerSubtotal:C2}   Commission {settlement.CommissionAmount:C2} ({settlement.CommissionPercent:0.##}%)   Net {settlement.NetAmount:C2}   Paid {settlement.AmountPaid:C2}   Balance {settlement.BalanceDue:C2}{(settlement.HoldCheck?"   HOLD CHECK":"")}";
+        _settlementHeading.Text=$"Settlement {settlement.FormattedSettlementNumber} — {settlement.ConsignorName} — {settlement.Status}   Gross {settlement.HammerSubtotal:C2}   Commission/fees {settlement.CommissionAmount:C2}   Buyer purchases deducted {settlement.BuyerPurchaseBalanceDeduction:C2}   Net {settlement.NetAmount:C2}   Paid {settlement.AmountPaid:C2}   Balance {settlement.BalanceDue:C2}{(settlement.HoldCheck?"   HOLD CHECK":"")}";
         _settlementLots.DataSource=settlement.Lots.ToList(); _payouts.DataSource=settlement.Payouts.ToList();
     }
     private static void Execute(Action action) { try { action(); } catch(Exception exception) { MessageBox.Show(exception.Message,"Cashier",MessageBoxButtons.OK,MessageBoxIcon.Error); } }

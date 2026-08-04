@@ -31,4 +31,5 @@ public interface IDataStore : IConsignorRepository
     void SaveSettings(IReadOnlyDictionary<string, string> settings);
     string Backup();
     string DataFilePath { get; }
+    void EnsureConsignorBuyerLink(int consignorNumber);
 }

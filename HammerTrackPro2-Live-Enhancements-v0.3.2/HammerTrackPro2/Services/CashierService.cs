@@ -106,7 +106,7 @@ public sealed class CashierService : ICashierService
     {
         settlement.HammerSubtotal=Money(settlement.Lots.Sum(item=>item.HammerPrice));
         settlement.CommissionAmount=Money(settlement.HammerSubtotal*settlement.CommissionPercent/100m);
-        settlement.NetAmount=settlement.HammerSubtotal-settlement.CommissionAmount;
+        settlement.NetAmount=Math.Max(0,settlement.HammerSubtotal-settlement.CommissionAmount-settlement.BuyerPurchaseBalanceDeduction);
         settlement.AmountPaid=Money(settlement.Payouts.Sum(item=>item.Amount));
         settlement.BalanceDue=Math.Max(0,settlement.NetAmount-settlement.AmountPaid);
         settlement.Status=settlement.BalanceDue==0?"Paid":settlement.AmountPaid>0?"Partially Paid":"Unpaid";

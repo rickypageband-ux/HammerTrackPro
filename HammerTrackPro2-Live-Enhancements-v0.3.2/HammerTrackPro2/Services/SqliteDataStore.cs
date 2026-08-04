@@ -289,6 +289,11 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
                 while(reader.Read()) result.Payouts.Add(new ConsignorPayout
                 { ConsignorPayoutId=reader.GetInt64(0),ConsignorSettlementId=reader.GetInt64(1),Method=Enum.Parse<ConsignorPayoutMethod>(reader.GetString(2)),Amount=decimal.Parse(reader.GetString(3),CultureInfo.InvariantCulture),Reference=reader.GetString(4),CreatedUtc=DateTime.Parse(reader.GetString(5),CultureInfo.InvariantCulture,DateTimeStyles.RoundtripKind) });
             }
+            using(var deduction=connection.CreateCommand())
+            {
+                deduction.CommandText="SELECT COALESCE(CAST(i.TotalAmount AS REAL)-COALESCE((SELECT SUM(CAST(p.AppliedAmount AS REAL)) FROM Payments p WHERE p.InvoiceId=i.InvoiceId),0),0) FROM Consignors c JOIN AuctionBidders ab ON ab.BuyerId=c.LinkedBuyerId AND ab.AuctionId=$auction JOIN Invoices i ON i.AuctionBidderId=ab.AuctionBidderId WHERE c.ConsignorId=$consignor LIMIT 1;";
+                deduction.Parameters.AddWithValue("$auction",auctionId);deduction.Parameters.AddWithValue("$consignor",consignorId);result.BuyerPurchaseBalanceDeduction=Math.Max(0,Convert.ToDecimal(deduction.ExecuteScalar()??0,CultureInfo.InvariantCulture));
+            }
             return result;
         }
     }
@@ -590,7 +595,7 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
             command.CommandText = """
                 SELECT ConsignorId, ConsignorNumber, BusinessName, FirstName, LastName, Address, City, State, Zip,
                        Phone, Email, TaxId, DefaultCommissionPercent, CommissionOverridePercent, Notes, Active,
-                       PrintCheck, HoldCheck, TaxExempt, Require1099, CreatedDate
+                       PrintCheck, HoldCheck, TaxExempt, Require1099, CreatedDate, LinkedBuyerId
                 FROM Consignors ORDER BY ConsignorNumber;
                 """;
             using var reader = command.ExecuteReader();
@@ -605,7 +610,7 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
                     TaxId = reader.GetString(11), DefaultCommissionPercent = decimal.Parse(reader.GetString(12), CultureInfo.InvariantCulture),
                     CommissionOverridePercent = decimal.Parse(reader.GetString(13), CultureInfo.InvariantCulture), Notes = reader.GetString(14), Active = reader.GetInt32(15) != 0,
                     PrintCheck = reader.GetInt32(16) != 0, HoldCheck = reader.GetInt32(17) != 0, TaxExempt = reader.GetInt32(18) != 0,
-                    Require1099 = reader.GetInt32(19) != 0, CreatedDate = DateTime.Parse(reader.GetString(20), CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind)
+                    Require1099 = reader.GetInt32(19) != 0, CreatedDate = DateTime.Parse(reader.GetString(20), CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind),LinkedBuyerId=reader.IsDBNull(21)?null:reader.GetInt64(21)
                 });
             }
             return consignors;
@@ -695,6 +700,27 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
             command.Parameters.AddWithValue("$created", DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture));
             command.ExecuteNonQuery();
             transaction.Commit();
+        }
+    }
+
+    public void EnsureConsignorBuyerLink(int consignorNumber)
+    {
+        lock(_sync)
+        {
+            using var connection=OpenConnection();using var transaction=connection.BeginTransaction();var auctionId=GetCurrentAuctionId(connection);
+            long consignorId;long? linked;string first,last,address,city,state,zip,phone,email;
+            using(var c=connection.CreateCommand()){c.Transaction=transaction;c.CommandText="SELECT ConsignorId,LinkedBuyerId,FirstName,LastName,Address,City,State,Zip,Phone,Email FROM Consignors WHERE ConsignorNumber=$n;";c.Parameters.AddWithValue("$n",consignorNumber);using var r=c.ExecuteReader();if(!r.Read())throw new InvalidOperationException($"Consignor #{consignorNumber} was not found.");consignorId=r.GetInt64(0);linked=r.IsDBNull(1)?null:r.GetInt64(1);first=r.GetString(2);last=r.GetString(3);address=r.GetString(4);city=r.GetString(5);state=r.GetString(6);zip=r.GetString(7);phone=r.GetString(8);email=r.GetString(9);}
+            long buyerId;
+            using(var find=connection.CreateCommand()){find.Transaction=transaction;find.CommandText="SELECT BuyerId FROM AuctionBidders WHERE AuctionId=$a AND BidderNumber=$n;";find.Parameters.AddWithValue("$a",auctionId);find.Parameters.AddWithValue("$n",consignorNumber);var value=find.ExecuteScalar();buyerId=value is null?0:Convert.ToInt64(value,CultureInfo.InvariantCulture);}
+            if(linked.HasValue&&buyerId>0&&linked.Value!=buyerId)throw new InvalidOperationException($"Buyer Number #{consignorNumber} belongs to a different buyer. Resolve that registration before linking Consignor #{consignorNumber}.");
+            var now=DateTime.UtcNow.ToString("O",CultureInfo.InvariantCulture);
+            if(buyerId==0)
+            {
+                if(linked.HasValue)buyerId=linked.Value;else{using var b=connection.CreateCommand();b.Transaction=transaction;b.CommandText="INSERT INTO Buyers(FirstName,LastName,DriversLicense,Address,City,State,Zip,Phone,Email,CreatedUtc,UpdatedUtc) VALUES($f,$l,'',$ad,$c,$s,$z,$p,$e,$now,$now);SELECT last_insert_rowid();";b.Parameters.AddWithValue("$f",first);b.Parameters.AddWithValue("$l",last);b.Parameters.AddWithValue("$ad",address);b.Parameters.AddWithValue("$c",city);b.Parameters.AddWithValue("$s",state);b.Parameters.AddWithValue("$z",zip);b.Parameters.AddWithValue("$p",phone);b.Parameters.AddWithValue("$e",email);b.Parameters.AddWithValue("$now",now);buyerId=Convert.ToInt64(b.ExecuteScalar(),CultureInfo.InvariantCulture);}
+                using var ab=connection.CreateCommand();ab.Transaction=transaction;ab.CommandText="INSERT INTO AuctionBidders(AuctionId,BuyerId,BidderNumber,Notes,RegisteredUtc,UpdatedUtc) VALUES($a,$b,$n,'Linked consignor',$now,$now);SELECT last_insert_rowid();";ab.Parameters.AddWithValue("$a",auctionId);ab.Parameters.AddWithValue("$b",buyerId);ab.Parameters.AddWithValue("$n",consignorNumber);ab.Parameters.AddWithValue("$now",now);var registration=Convert.ToInt64(ab.ExecuteScalar(),CultureInfo.InvariantCulture);using var inv=connection.CreateCommand();inv.Transaction=transaction;inv.CommandText="INSERT INTO Invoices(AuctionId,AuctionBidderId,BuyerPremiumPercent,SalesTaxPercent,SalesTaxBasis,HammerSubtotal,BuyerPremiumAmount,SalesTaxAmount,TotalAmount,Status,CreatedUtc,UpdatedUtc) SELECT AuctionId,$r,BuyerPremiumPercent,SalesTaxPercent,SalesTaxBasis,'0','0','0','0','Unpaid',$now,$now FROM Auctions WHERE AuctionId=$a;";inv.Parameters.AddWithValue("$r",registration);inv.Parameters.AddWithValue("$a",auctionId);inv.Parameters.AddWithValue("$now",now);inv.ExecuteNonQuery();
+            }
+            using(var update=connection.CreateCommand()){update.Transaction=transaction;update.CommandText="UPDATE Consignors SET LinkedBuyerId=$b WHERE ConsignorId=$c;";update.Parameters.AddWithValue("$b",buyerId);update.Parameters.AddWithValue("$c",consignorId);update.ExecuteNonQuery();}
+            WriteAudit(connection,transaction,"ConsignorBuyerLinked",$"Consignor #{consignorNumber}, BuyerId={buyerId}, AuctionId={auctionId}");transaction.Commit();
         }
     }
 
@@ -1439,7 +1465,9 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
                 ON CONFLICT(Key) DO UPDATE SET Value=excluded.Value;
                 """;
             migration.ExecuteNonQuery(); transaction.Commit();
+            version=10;
         }
+        if(version<11){using var transaction=connection.BeginTransaction();using var migration=connection.CreateCommand();migration.Transaction=transaction;migration.CommandText="ALTER TABLE Consignors ADD COLUMN LinkedBuyerId INTEGER NULL REFERENCES Buyers(BuyerId) ON DELETE RESTRICT; CREATE INDEX IX_Consignors_LinkedBuyerId ON Consignors(LinkedBuyerId); INSERT INTO Settings(Key,Value) VALUES('DatabaseSchemaVersion','11') ON CONFLICT(Key) DO UPDATE SET Value='11';";migration.ExecuteNonQuery();transaction.Commit();}
     }
 
     private static void UpgradeSalesTableForPassOut(SqliteConnection connection)
