@@ -709,15 +709,27 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
         lock (_sync)
         {
             using var connection = OpenConnection();
+            var auctionId = GetCurrentAuctionId(connection);
             using var command = connection.CreateCommand();
             command.CommandText = "SELECT BuyerId FROM AuctionBidders WHERE AuctionId=$auctionId AND BidderNumber=$number;";
-            command.Parameters.AddWithValue("$auctionId", GetCurrentAuctionId(connection));
+            command.Parameters.AddWithValue("$auctionId", auctionId);
             command.Parameters.AddWithValue("$number", sellerNumber);
             var existing = command.ExecuteScalar();
-            if (existing is null) return;
-            var buyerId = Convert.ToInt64(existing, CultureInfo.InvariantCulture);
-            if (linkedBuyerId == buyerId) return;
-            throw new InvalidOperationException($"Buyer Number #{sellerNumber} is already registered to another buyer in this auction. Choose a different Seller Number.");
+            if (existing is not null)
+            {
+                var buyerId = Convert.ToInt64(existing, CultureInfo.InvariantCulture);
+                if (linkedBuyerId == buyerId) return;
+                throw new InvalidOperationException($"Buyer Number #{sellerNumber} is already registered to another buyer in this auction. Choose a different Seller Number.");
+            }
+            if (!linkedBuyerId.HasValue) return;
+
+            using var linkedRegistration = connection.CreateCommand();
+            linkedRegistration.CommandText = "SELECT BidderNumber FROM AuctionBidders WHERE AuctionId=$auctionId AND BuyerId=$buyerId;";
+            linkedRegistration.Parameters.AddWithValue("$auctionId", auctionId);
+            linkedRegistration.Parameters.AddWithValue("$buyerId", linkedBuyerId.Value);
+            var registeredNumber = linkedRegistration.ExecuteScalar();
+            if (registeredNumber is null) return;
+            throw new InvalidOperationException($"This seller is already linked to Buyer Number #{Convert.ToInt32(registeredNumber, CultureInfo.InvariantCulture)} in the current auction. Use that number as the Seller Number, or remove that buyer registration before choosing a different number.");
         }
     }
 

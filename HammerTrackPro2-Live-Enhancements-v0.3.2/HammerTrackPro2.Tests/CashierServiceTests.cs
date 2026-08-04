@@ -94,6 +94,13 @@ public sealed class CashierServiceTests
         var error=Assert.Throws<InvalidOperationException>(()=>sellers.SaveConsignor(new Consignor { ConsignorNumber=82,BusinessName="Conflict Farm",Active=true },null));
         Assert.Contains("already registered to another buyer",error.Message);
         Assert.DoesNotContain(store.GetConsignors(),x=>x.ConsignorNumber==82);
+
+        var renumberedSeller=store.GetConsignors().Single(x=>x.ConsignorNumber==81);
+        renumberedSeller.ConsignorNumber=83;
+        var linkedError=Assert.Throws<InvalidOperationException>(()=>sellers.SaveConsignor(renumberedSeller,81));
+        Assert.Contains("already linked to Buyer Number #81",linkedError.Message);
+        Assert.Contains(store.GetConsignors(),x=>x.ConsignorNumber==81);
+        Assert.DoesNotContain(store.GetConsignors(),x=>x.ConsignorNumber==83);
     }
 
     [Fact]

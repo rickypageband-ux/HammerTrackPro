@@ -67,6 +67,7 @@ Status: Cashier and the approved closed-auction consignor payout extension are i
 - Render the Network Information and Backup Database header actions with explicit white text and a high-contrast border. Package this correction as upgrade version 0.7.3.
 - Remaining release requirement: sign the executable and MSI with a trusted publisher certificate before broad production distribution.
 - Package the Seller workflow and Live Auction entry corrections as upgrade version 0.7.7.
+- Package the linked-buyer conflict-message correction as upgrade version 0.7.8.
 
 ## Live Auction quick-add extension
 
@@ -94,6 +95,7 @@ Status: Cashier and the approved closed-auction consignor payout extension are i
 - Settlement detail and printing show gross sales, commission/fees, linked buyer unpaid-purchase deduction, adjusted net, payouts, and remaining balance.
 - Operator-facing screens and printed settlement documents use Seller terminology while internal Consignor schema/type names remain unchanged for compatibility.
 - A new Seller Number is preflighted against current-auction Buyer Numbers before the seller row is saved. A conflict stops the save with a clear request to choose another number; otherwise the matching Buyer registration is created and linked automatically.
+- Renumbering a seller whose linked buyer is already registered under another current-auction number is rejected before saving, and the message identifies the existing Buyer Number instead of exposing a SQLite constraint error.
 - The printed deduction label is shortened to `Buyer balance deducted` so it cannot overlap the amount column.
 
 ## Credit-card processing fee
