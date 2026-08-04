@@ -5,6 +5,17 @@ public sealed class ConsignorService
     private readonly IConsignorRepository _repository;
     public ConsignorService(IConsignorRepository repository) => _repository = repository ?? throw new ArgumentNullException(nameof(repository));
     public IReadOnlyList<Consignor> GetConsignors() => _repository.GetConsignors();
+    public Consignor GetByNumber(int consignorNumber)
+    {
+        if (consignorNumber <= 0) throw new InvalidOperationException("Enter a valid consignor number.");
+        return _repository.GetConsignors().SingleOrDefault(item => item.ConsignorNumber == consignorNumber)
+            ?? throw new InvalidOperationException($"Consignor #{consignorNumber} was not found.");
+    }
+    public void AssociateWithCurrentAuction(int consignorNumber)
+    {
+        GetByNumber(consignorNumber);
+        _repository.AssociateConsignorWithCurrentAuction(consignorNumber);
+    }
     public void SaveConsignor(Consignor consignor, int? originalNumber)
     {
         ArgumentNullException.ThrowIfNull(consignor);

@@ -24,6 +24,8 @@ Commercial terms must always come from the current persisted Auction. Runtime co
 
 `AuctionLotId` is the primary key. Every row requires `AuctionId`, `ConsignorId`, `LotNumber`, description, category, starting bid, reserve price, pass-out mode, lot status/status, and timestamps. Foreign keys use `ON DELETE RESTRICT`. `(AuctionId, LotNumber)` is unique, so the same lot number is valid in separate auctions.
 
+Live quick-add uses this same table and relationship model; it does not create a parallel lot type. An unsold item explicitly passed by the operator uses `Status` and `LotStatus` value `Passed`, writes a `LotPassed` audit entry, and is excluded from automatic next-lot selection. No schema migration is required.
+
 Indexes cover `LotNumber`, `AuctionId`, `ConsignorId`, `(AuctionId, LotNumber)`, description, category, and status. The version-7 migration copies existing `Lots` rows into `AuctionLots`; the legacy `Lots` table and fields remain intact for backward compatibility.
 
 ### `Buyers`, `AuctionBidders`, and `Sales`

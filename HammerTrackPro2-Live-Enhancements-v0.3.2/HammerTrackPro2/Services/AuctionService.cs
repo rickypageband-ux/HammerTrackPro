@@ -110,6 +110,15 @@ public sealed class AuctionService : IAuctionService
         _dataStore.CloseLot(lotNumber);
     }
 
+    public void PassLot(int lotNumber)
+    {
+        EnsureCurrentAuctionOpen();
+        if (lotNumber <= 0) throw new InvalidOperationException("Enter a valid lot number.");
+        if (_dataStore.GetSaleCountForLot(lotNumber) > 0)
+            throw new InvalidOperationException($"Lot #{lotNumber} already has buyer entries. Close the lot instead of passing it.");
+        _dataStore.PassLot(lotNumber);
+    }
+
     public Sale? GetLastSale() => _dataStore.GetLastSale();
     public int GetSaleCountForLot(int lotNumber) => lotNumber <= 0 ? 0 : _dataStore.GetSaleCountForLot(lotNumber);
 

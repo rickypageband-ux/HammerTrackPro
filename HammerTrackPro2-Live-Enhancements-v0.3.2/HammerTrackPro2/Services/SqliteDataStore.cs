@@ -799,6 +799,26 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
         }
     }
 
+    public void PassLot(int lotNumber)
+    {
+        lock (_sync)
+        {
+            using var connection = OpenConnection();
+            using var transaction = connection.BeginTransaction();
+            var auctionId = GetCurrentAuctionId(connection);
+            using var command = connection.CreateCommand();
+            command.Transaction = transaction;
+            command.CommandText = "UPDATE AuctionLots SET Status='Passed', LotStatus='Passed', PassOutMode=0, UpdatedUtc=$updated WHERE AuctionId=$auctionId AND LotNumber=$lot AND Status NOT IN ('Sold','Passed');";
+            command.Parameters.AddWithValue("$auctionId", auctionId);
+            command.Parameters.AddWithValue("$updated", DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture));
+            command.Parameters.AddWithValue("$lot", lotNumber);
+            if (command.ExecuteNonQuery() != 1)
+                throw new InvalidOperationException($"Lot #{lotNumber} was not found or is already closed.");
+            WriteAudit(connection, transaction, "LotPassed", $"Lot #{lotNumber}");
+            transaction.Commit();
+        }
+    }
+
     public Sale? GetLastSale()
     {
         lock (_sync)

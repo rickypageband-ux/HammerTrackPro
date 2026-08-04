@@ -66,3 +66,11 @@ Status: Cashier and the approved closed-auction consignor payout extension are i
 - Require an explicit completed workstation-role selection before startup; the presence of a default, migrated, or incomplete configuration file must not silently select Auction Host. Package this correction as upgrade version 0.7.2.
 - Render the Network Information and Backup Database header actions with explicit white text and a high-contrast border. Package this correction as upgrade version 0.7.3.
 - Remaining release requirement: sign the executable and MSI with a trusted publisher certificate before broad production distribution.
+
+## Live Auction quick-add extension
+
+- Create a current-auction lot during live operations from an active Consignor Number and description, assigning the next auction-scoped lot number.
+- Preserve the separate full lot-entry workflow.
+- Make the new lot immediately selectable for bidder and hammer-price entry.
+- Provide a distinct Pass Item / Next action that marks an unsold item `Passed`, audits it, and advances; retain existing multi-buyer Pass-Out Mode unchanged.
+- Reject missing/inactive consignors, closed auctions, blank descriptions, and passing lots that already have buyer entries.

@@ -22,6 +22,7 @@ public interface IDataStore
     void CopyConsignorAssociations(long sourceAuctionId, long destinationAuctionId);
     Sale RecordSale(int lotNumber, int bidderNumber, decimal hammerPrice, bool keepLotOpen = false);
     void CloseLot(int lotNumber);
+    void PassLot(int lotNumber);
     Sale? GetLastSale();
     void UndoLastSale(long saleId);
     int GetSaleCountForLot(int lotNumber);

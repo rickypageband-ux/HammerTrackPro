@@ -525,7 +525,7 @@ public sealed class MainForm : Form
 
     private void OpenLiveAuction()
     {
-        using var liveAuction = new LiveAuctionForm(_service);
+        using var liveAuction = new LiveAuctionForm(_service,new LiveAuctionViewModel(_service,_consignorService));
         liveAuction.ShowDialog(this);
         RefreshAll();
     }
