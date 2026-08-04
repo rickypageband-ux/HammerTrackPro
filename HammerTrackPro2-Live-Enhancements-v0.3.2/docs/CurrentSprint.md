@@ -80,3 +80,8 @@ Status: Cashier and the approved closed-auction consignor payout extension are i
 - Direct Buyer Number and Consignor Number lookup remains available.
 - Register new buyers and consignors from local or LAN Cashier and immediately select the invoice or settlement.
 - Host-side validation preserves current-auction registration and rejects duplicate numbers with actionable messages.
+
+## Unpaid buyer review
+
+- Cashier provides an on-demand current-auction list of Buyer Number, name, invoice total, paid amount, and balance due, with an explicit all-paid state.
+- Every press reloads host-owned invoice data; LAN Cashier uses the paired API.

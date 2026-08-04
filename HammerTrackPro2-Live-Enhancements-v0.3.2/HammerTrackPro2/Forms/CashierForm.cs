@@ -34,7 +34,7 @@ public sealed class CashierForm : Form
         _viewModel=viewModel; _cashierService=cashierService; _configuration=configuration; Text="HammerTrack Cashier"; Width=1000; Height=760;
         var lookup=new FlowLayoutPanel { Dock=DockStyle.Fill,AutoSize=true };
         lookup.Controls.Add(new Label { Text="Auction Bidder Number",AutoSize=true }); lookup.Controls.Add(_bidderNumber);
-        lookup.Controls.Add(Button("Lookup",Lookup)); lookup.Controls.Add(Button("Register Buyer",RegisterBuyer)); lookup.Controls.Add(Button("Preview / Print Invoice",PrintInvoice));
+        lookup.Controls.Add(Button("Lookup",Lookup)); lookup.Controls.Add(Button("Register Buyer",RegisterBuyer)); lookup.Controls.Add(Button("Who Has Not Paid?",ShowUnpaid)); lookup.Controls.Add(Button("Preview / Print Invoice",PrintInvoice));
         if(configuration is not null) lookup.Controls.Add(Button("Network Setup",OpenNetworkSetup));
         lookup.Controls.Add(_connection);
         var paymentEntry=new FlowLayoutPanel { Dock=DockStyle.Fill,AutoSize=true };
@@ -68,6 +68,7 @@ public sealed class CashierForm : Form
     private void LookupConsignor() { _viewModel.LookupConsignor(Decimal.ToInt32(_consignorNumber.Value)); RefreshSettlement(); }
     private void RegisterBuyer(){using var f=new CashierRegistrationForm(false);if(f.ShowDialog(this)!=DialogResult.OK||f.Buyer is null)return;_viewModel.RegisterBuyer(f.Buyer);_bidderNumber.Value=f.Buyer.BidderNumber;RefreshInvoice();}
     private void RegisterConsignor(){using var f=new CashierRegistrationForm(true);if(f.ShowDialog(this)!=DialogResult.OK||f.Consignor is null)return;_viewModel.RegisterConsignor(f.Consignor);_consignorNumber.Value=f.Consignor.ConsignorNumber;RefreshSettlement();}
+    private void ShowUnpaid(){var rows=_cashierService.GetUnpaidInvoices();using var f=new Form{Text="Current Auction - Unpaid Buyers",StartPosition=FormStartPosition.CenterParent,Width=800,Height=500};var grid=new DataGridView{Dock=DockStyle.Fill,ReadOnly=true,AutoGenerateColumns=true,DataSource=rows.ToList(),AutoSizeColumnsMode=DataGridViewAutoSizeColumnsMode.Fill};f.Controls.Add(grid);if(rows.Count==0)f.Controls.Add(new Label{Text="Everyone in the current auction is paid in full.",Dock=DockStyle.Top,Height=44,TextAlign=ContentAlignment.MiddleCenter,BackColor=Color.Honeydew,ForeColor=Color.DarkGreen});f.ShowDialog(this);}
     private void RecordConsignorPayout()
     {
         var settlement=_viewModel.Settlement??throw new InvalidOperationException("Look up a consignor before recording a payout.");

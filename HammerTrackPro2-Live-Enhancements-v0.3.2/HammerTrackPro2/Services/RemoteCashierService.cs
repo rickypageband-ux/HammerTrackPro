@@ -26,6 +26,7 @@ public sealed class RemoteCashierService : ICashierService,IDisposable
     public Invoice RegisterBuyer(AuctionBidder bidder)=>Post<AuctionBidder,Invoice>("/api/registrations/buyers",bidder);
     public ConsignorSettlement LoadConsignorSettlement(int consignorNumber)=>Get<ConsignorSettlement>($"/api/settlements/{consignorNumber}");
     public ConsignorSettlement RegisterConsignor(Consignor consignor)=>Post<Consignor,ConsignorSettlement>("/api/registrations/consignors",consignor);
+    public IReadOnlyList<UnpaidInvoiceSummary> GetUnpaidInvoices()=>Get<List<UnpaidInvoiceSummary>>("/api/invoices/unpaid");
     public ConsignorSettlement RecordConsignorPayout(int consignorNumber,ConsignorPayoutRequest payout)
     {
         try { using var response=_client.PostAsJsonAsync($"/api/settlements/{consignorNumber}/payouts",payout,JsonOptions).GetAwaiter().GetResult(); return Read<ConsignorSettlement>(response); }

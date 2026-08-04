@@ -6,6 +6,7 @@ namespace HammerTrackPro2.Tests;
 
 public sealed class CashierServiceTests
 {
+    [Fact] public void UnpaidReview_UsesFreshCurrentAuctionBalances(){using var db=TemporaryDatabase.Create();var (store,cashier)=CreateAccount(db.Path,SalesTaxBasis.None);Assert.Single(cashier.GetUnpaidInvoices());cashier.RecordPayments(25,[new PaymentRequest{Method=PaymentMethod.Cash,Amount=110}]);Assert.Empty(cashier.GetUnpaidInvoices());}
     [Fact]
     public void CashierRegistration_CreatesAndSelectsCurrentAuctionRecords()
     {using var db=TemporaryDatabase.Create();var store=new SqliteDataStore(db.Path);var cashier=new CashierService(store);Assert.Equal(41,cashier.RegisterBuyer(new AuctionBidder{BidderNumber=41,FirstName="New",LastName="Buyer"}).BidderNumber);Assert.Equal(42,cashier.RegisterConsignor(new Consignor{ConsignorNumber=42,BusinessName="Farm"}).ConsignorNumber);Assert.Throws<InvalidOperationException>(()=>cashier.RegisterBuyer(new AuctionBidder{BidderNumber=41,FirstName="Dup"}));Assert.Throws<InvalidOperationException>(()=>cashier.RegisterConsignor(new Consignor{ConsignorNumber=42,BusinessName="Dup"}));}
