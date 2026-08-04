@@ -23,7 +23,9 @@ public sealed class RemoteCashierService : ICashierService,IDisposable
     }
     public Auction GetCurrentAuction()=>Get<Auction>("/api/current-auction");
     public Invoice LoadInvoice(int bidderNumber)=>Get<Invoice>($"/api/invoices/{bidderNumber}");
+    public Invoice RegisterBuyer(AuctionBidder bidder)=>Post<AuctionBidder,Invoice>("/api/registrations/buyers",bidder);
     public ConsignorSettlement LoadConsignorSettlement(int consignorNumber)=>Get<ConsignorSettlement>($"/api/settlements/{consignorNumber}");
+    public ConsignorSettlement RegisterConsignor(Consignor consignor)=>Post<Consignor,ConsignorSettlement>("/api/registrations/consignors",consignor);
     public ConsignorSettlement RecordConsignorPayout(int consignorNumber,ConsignorPayoutRequest payout)
     {
         try { using var response=_client.PostAsJsonAsync($"/api/settlements/{consignorNumber}/payouts",payout,JsonOptions).GetAwaiter().GetResult(); return Read<ConsignorSettlement>(response); }
@@ -44,6 +46,7 @@ public sealed class RemoteCashierService : ICashierService,IDisposable
         try { using var response=_client.GetAsync(path).GetAwaiter().GetResult(); return Read<T>(response); }
         catch(HttpRequestException exception) { throw Unavailable(exception); } catch(TaskCanceledException exception) { throw Unavailable(exception); }
     }
+    private TResponse Post<TRequest,TResponse>(string path,TRequest request){try{using var response=_client.PostAsJsonAsync(path,request,JsonOptions).GetAwaiter().GetResult();return Read<TResponse>(response);}catch(HttpRequestException exception){throw Unavailable(exception);}catch(TaskCanceledException exception){throw Unavailable(exception);}}
     private static T Read<T>(HttpResponseMessage response)
     {
         if(response.IsSuccessStatusCode) return response.Content.ReadFromJsonAsync<T>(JsonOptions).GetAwaiter().GetResult() ?? throw new InvalidOperationException("The host returned an empty response.");

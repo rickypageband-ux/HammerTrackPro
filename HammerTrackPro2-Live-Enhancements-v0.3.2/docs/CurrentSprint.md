@@ -74,3 +74,9 @@ Status: Cashier and the approved closed-auction consignor payout extension are i
 - Make the new lot immediately selectable for bidder and hammer-price entry.
 - Provide a distinct Pass Item / Next action that marks an unsold item `Passed`, audits it, and advances; retain existing multi-buyer Pass-Out Mode unchanged.
 - Reject missing/inactive consignors, closed auctions, blank descriptions, and passing lots that already have buyer entries.
+
+## Cashier registration extension
+
+- Direct Buyer Number and Consignor Number lookup remains available.
+- Register new buyers and consignors from local or LAN Cashier and immediately select the invoice or settlement.
+- Host-side validation preserves current-auction registration and rejects duplicate numbers with actionable messages.

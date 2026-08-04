@@ -38,8 +38,10 @@ public sealed class CashierNetworkHost : IAsyncDisposable
         application.MapGet("/api/health",()=>Results.Ok(new { status="ok",machine=Environment.MachineName }));
         application.MapGet("/api/current-auction",(ICashierService service)=>Execute(()=>service.GetCurrentAuction()));
         application.MapGet("/api/invoices/{bidderNumber:int}",(int bidderNumber,ICashierService service)=>Execute(()=>service.LoadInvoice(bidderNumber)));
+        application.MapPost("/api/registrations/buyers",(AuctionBidder bidder,ICashierService service)=>Execute(()=>service.RegisterBuyer(bidder)));
         application.MapPost("/api/invoices/{bidderNumber:int}/payments",(int bidderNumber,List<PaymentRequest> payments,ICashierService service)=>Execute(()=>service.RecordPayments(bidderNumber,payments)));
         application.MapGet("/api/settlements/{consignorNumber:int}",(int consignorNumber,ICashierService service)=>Execute(()=>service.LoadConsignorSettlement(consignorNumber)));
+        application.MapPost("/api/registrations/consignors",(Consignor consignor,ICashierService service)=>Execute(()=>service.RegisterConsignor(consignor)));
         application.MapPost("/api/settlements/{consignorNumber:int}/payouts",(int consignorNumber,ConsignorPayoutRequest payout,ICashierService service)=>Execute(()=>service.RecordConsignorPayout(consignorNumber,payout)));
         await application.StartAsync(cancellationToken); return new CashierNetworkHost(application);
     }

@@ -45,6 +45,9 @@ public sealed class NetworkCashierTests
         var paid=remote.RecordConsignorPayout(consignor.ConsignorNumber,new ConsignorPayoutRequest { Method=ConsignorPayoutMethod.Ach,Amount=100,Reference="ACH-NET-1" });
         Assert.Equal("Paid",paid.Status); Assert.Equal(0,paid.BalanceDue);
     }
+    [Fact]
+    public async Task CashierClient_RegistersThroughHost()
+    {using var db=TemporaryDatabase.Create();var store=CreateAccount(db.Path);var c=Configuration("REG");await using var host=await CashierNetworkHost.StartAsync(new CashierService(store),c,useHttps:false);using var remote=new RemoteCashierService(c,true);Assert.Equal(51,remote.RegisterBuyer(new AuctionBidder{BidderNumber=51,FirstName="Remote"}).BidderNumber);Assert.Equal(52,remote.RegisterConsignor(new Consignor{ConsignorNumber=52,BusinessName="Remote Farm"}).ConsignorNumber);}
 
     [Fact]
     public void HostConfiguration_RejectsANetworkDatabasePath()

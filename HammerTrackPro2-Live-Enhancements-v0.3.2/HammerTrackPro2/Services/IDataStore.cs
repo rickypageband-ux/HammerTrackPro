@@ -2,7 +2,7 @@ using HammerTrackPro2.Models;
 
 namespace HammerTrackPro2.Services;
 
-public interface IDataStore
+public interface IDataStore : IConsignorRepository
 {
     AppData Load();
     IReadOnlyList<Buyer> GetBuyers();

@@ -1,0 +1,10 @@
+using HammerTrackPro2.Models;
+namespace HammerTrackPro2.Forms;
+public sealed class CashierRegistrationForm : Form
+{
+    readonly bool _isConsignor; readonly NumericUpDown _number=new(){Minimum=1,Maximum=999999}; readonly TextBox _business=new(),_first=new(),_last=new(),_phone=new(),_email=new();
+    public AuctionBidder? Buyer{get;private set;} public Consignor? Consignor{get;private set;}
+    public CashierRegistrationForm(bool isConsignor){_isConsignor=isConsignor;Text=isConsignor?"Register Consignor":"Register Buyer";StartPosition=FormStartPosition.CenterParent;Width=520;Height=390;var t=new TableLayoutPanel{Dock=DockStyle.Fill,ColumnCount=2,Padding=new Padding(18)};t.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,150));t.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));Add(t,isConsignor?"Consignor Number":"Buyer Number",_number);if(isConsignor)Add(t,"Business Name",_business);Add(t,"First Name",_first);Add(t,"Last Name",_last);Add(t,"Phone",_phone);Add(t,"Email",_email);var b=new Button{Text="Register and Select",AutoSize=true};b.Click+=(_,_)=>Save();t.Controls.Add(b,1,t.RowCount);Controls.Add(t);}
+    static void Add(TableLayoutPanel t,string label,Control c){var r=t.RowCount++;t.RowStyles.Add(new RowStyle(SizeType.AutoSize));c.Dock=DockStyle.Fill;t.Controls.Add(new Label{Text=label,AutoSize=true,Anchor=AnchorStyles.Left},0,r);t.Controls.Add(c,1,r);}
+    void Save(){if(string.IsNullOrWhiteSpace(_business.Text)&&string.IsNullOrWhiteSpace(_first.Text)&&string.IsNullOrWhiteSpace(_last.Text)){MessageBox.Show("Enter a business name or person name.");return;}var n=Decimal.ToInt32(_number.Value);if(_isConsignor)Consignor=new Consignor{ConsignorNumber=n,BusinessName=_business.Text.Trim(),FirstName=_first.Text.Trim(),LastName=_last.Text.Trim(),Phone=_phone.Text.Trim(),Email=_email.Text.Trim(),Active=true};else Buyer=new AuctionBidder{BidderNumber=n,FirstName=_first.Text.Trim(),LastName=_last.Text.Trim(),Phone=_phone.Text.Trim(),Email=_email.Text.Trim()};DialogResult=DialogResult.OK;Close();}
+}

@@ -34,7 +34,7 @@ public sealed class CashierForm : Form
         _viewModel=viewModel; _cashierService=cashierService; _configuration=configuration; Text="HammerTrack Cashier"; Width=1000; Height=760;
         var lookup=new FlowLayoutPanel { Dock=DockStyle.Fill,AutoSize=true };
         lookup.Controls.Add(new Label { Text="Auction Bidder Number",AutoSize=true }); lookup.Controls.Add(_bidderNumber);
-        lookup.Controls.Add(Button("Lookup",Lookup)); lookup.Controls.Add(Button("Preview / Print Invoice",PrintInvoice));
+        lookup.Controls.Add(Button("Lookup",Lookup)); lookup.Controls.Add(Button("Register Buyer",RegisterBuyer)); lookup.Controls.Add(Button("Preview / Print Invoice",PrintInvoice));
         if(configuration is not null) lookup.Controls.Add(Button("Network Setup",OpenNetworkSetup));
         lookup.Controls.Add(_connection);
         var paymentEntry=new FlowLayoutPanel { Dock=DockStyle.Fill,AutoSize=true };
@@ -47,7 +47,7 @@ public sealed class CashierForm : Form
         tabs.TabPages.Add(Page("Purchases",_purchases)); tabs.TabPages.Add(Page("Payment History",_payments)); tabs.TabPages.Add(Page("Pending Split Payments",_pending));
         tabs.TabPages.Add(Page("Consignor Lots",_settlementLots)); tabs.TabPages.Add(Page("Consignor Payouts",_payouts));
         var sellerEntry=new FlowLayoutPanel { Dock=DockStyle.Fill,AutoSize=true };
-        sellerEntry.Controls.Add(new Label { Text="Consignor Number",AutoSize=true }); sellerEntry.Controls.Add(_consignorNumber); sellerEntry.Controls.Add(Button("Lookup Consignor",LookupConsignor)); sellerEntry.Controls.Add(Button("Preview / Print Settlement",PrintSettlement));
+        sellerEntry.Controls.Add(new Label { Text="Consignor Number",AutoSize=true }); sellerEntry.Controls.Add(_consignorNumber); sellerEntry.Controls.Add(Button("Lookup Consignor",LookupConsignor)); sellerEntry.Controls.Add(Button("Register Consignor",RegisterConsignor)); sellerEntry.Controls.Add(Button("Preview / Print Settlement",PrintSettlement));
         sellerEntry.Controls.Add(new Label { Text="Payout Method",AutoSize=true }); sellerEntry.Controls.Add(_payoutMethod); sellerEntry.Controls.Add(new Label { Text="Amount",AutoSize=true }); sellerEntry.Controls.Add(_payoutAmount);
         sellerEntry.Controls.Add(new Label { Text="Check/ACH Reference",AutoSize=true }); sellerEntry.Controls.Add(_payoutReference); sellerEntry.Controls.Add(Button("Record Consignor Payout",RecordConsignorPayout));
         var layout=new TableLayoutPanel { Dock=DockStyle.Fill,RowCount=7,ColumnCount=1 };
@@ -66,6 +66,8 @@ public sealed class CashierForm : Form
     private void RemovePayment() { if (_pending.CurrentRow?.DataBoundItem is PaymentRequest payment) _viewModel.RemovePayment(payment); RefreshInvoice(); }
     private void RecordPayments() { _viewModel.RecordPayments(); RefreshInvoice(); }
     private void LookupConsignor() { _viewModel.LookupConsignor(Decimal.ToInt32(_consignorNumber.Value)); RefreshSettlement(); }
+    private void RegisterBuyer(){using var f=new CashierRegistrationForm(false);if(f.ShowDialog(this)!=DialogResult.OK||f.Buyer is null)return;_viewModel.RegisterBuyer(f.Buyer);_bidderNumber.Value=f.Buyer.BidderNumber;RefreshInvoice();}
+    private void RegisterConsignor(){using var f=new CashierRegistrationForm(true);if(f.ShowDialog(this)!=DialogResult.OK||f.Consignor is null)return;_viewModel.RegisterConsignor(f.Consignor);_consignorNumber.Value=f.Consignor.ConsignorNumber;RefreshSettlement();}
     private void RecordConsignorPayout()
     {
         var settlement=_viewModel.Settlement??throw new InvalidOperationException("Look up a consignor before recording a payout.");
