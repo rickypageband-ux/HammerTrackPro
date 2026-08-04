@@ -8,7 +8,7 @@ public sealed class AuctionSetupForm : Form
     private readonly AuctionSetupViewModel _viewModel;
     private readonly ComboBox _auctions = new() { DropDownStyle = ComboBoxStyle.DropDownList, DisplayMember = nameof(Auction.DisplayText), Dock = DockStyle.Fill };
     private readonly PropertyGrid _editor = new() { Dock = DockStyle.Fill, HelpVisible = true, ToolbarVisible = false, PropertySort = PropertySort.Categorized };
-    private readonly CheckBox _copyConsignors = new() { Text = "Copy Consignors", AutoSize = true };
+    private readonly CheckBox _copyConsignors = new() { Text = "Copy Sellers", AutoSize = true };
 
     public AuctionSetupForm(AuctionSetupViewModel viewModel)
     {

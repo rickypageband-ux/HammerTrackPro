@@ -7,7 +7,7 @@ public sealed class Consignor
     public long ConsignorId { get; set; }
     [ReadOnly(true), Category("Identity"), DisplayName("Linked Buyer ID")]
     public long? LinkedBuyerId { get; set; }
-    [Category("Identity"), DisplayName("Consignor Number")]
+    [Category("Identity"), DisplayName("Seller Number")]
     public int ConsignorNumber { get; set; }
     [Category("Identity"), DisplayName("Business Name")]
     public string BusinessName { get; set; } = string.Empty;

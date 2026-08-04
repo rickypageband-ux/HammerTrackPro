@@ -267,7 +267,7 @@ public sealed class MainForm : Form
         buttons.Controls.Add(MakeDashboardButton("Backup Database", (_, _) => BackupDatabase()), 0, 1);
         buttons.Controls.Add(MakeDashboardButton("Refresh Dashboard", (_, _) => RefreshAll()), 1, 1);
         buttons.Controls.Add(MakeDashboardButton("Open Live Auction", (_, _) => OpenLiveAuction()), 0, 2);
-        buttons.Controls.Add(MakeDashboardButton("Manage Consignors", (_, _) => OpenConsignors()), 1, 2);
+        buttons.Controls.Add(MakeDashboardButton("Manage Sellers", (_, _) => OpenConsignors()), 1, 2);
         buttons.Controls.Add(MakeDashboardButton("Auction Setup", (_, _) => OpenAuctionSetup()), 0, 3);
         buttons.Controls.Add(MakeDashboardButton("Cashier", (_, _) => OpenCashier()), 1, 3);
         group.Controls.Add(buttons);
@@ -380,7 +380,7 @@ public sealed class MainForm : Form
         _lotConsignor.DropDownStyle = ComboBoxStyle.DropDownList;
         _lotConsignor.DisplayMember = nameof(Consignor.LotDisplayName); _lotConsignor.ValueMember = nameof(Consignor.ConsignorId);
         _lotConsignor.DropDownWidth = 360;
-        AddRow(form, "Consignor", _lotConsignor);
+        AddRow(form, "Seller", _lotConsignor);
         _startingBid.DecimalPlaces = 2;
         _startingBid.Maximum = 100000000;
         AddRow(form, "Starting Bid", _startingBid);
@@ -719,7 +719,7 @@ public sealed class MainForm : Form
         lot.StartingBid = _startingBid.Value;
         lot.Status = _status.SelectedItem?.ToString() ?? "Available";
         lot.LotStatus = lot.Status; lot.AuctionId = _auctionSetup.CurrentAuction.AuctionId;
-        lot.ConsignorId = _lotConsignor.SelectedValue is long id ? id : throw new InvalidOperationException("Select a consignor.");
+        lot.ConsignorId = _lotConsignor.SelectedValue is long id ? id : throw new InvalidOperationException("Select a seller.");
         lot.ReservePrice = _reservePrice.Value; lot.PassOutMode = _passOutMode.Checked;
 
         _service.SaveLot(lot, _editingLotNumber);

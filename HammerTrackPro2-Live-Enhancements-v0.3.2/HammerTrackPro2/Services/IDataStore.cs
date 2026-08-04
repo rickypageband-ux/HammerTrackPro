@@ -31,6 +31,7 @@ public interface IDataStore : IConsignorRepository
     void SaveSettings(IReadOnlyDictionary<string, string> settings);
     string Backup();
     string DataFilePath { get; }
+    void ValidateSellerBuyerNumber(int sellerNumber, long? linkedBuyerId);
     void EnsureConsignorBuyerLink(int consignorNumber);
     AuctionSettlementReport LoadAuctionSettlementReport();
     StaffPayment RecordStaffPayment(StaffPayment payment);

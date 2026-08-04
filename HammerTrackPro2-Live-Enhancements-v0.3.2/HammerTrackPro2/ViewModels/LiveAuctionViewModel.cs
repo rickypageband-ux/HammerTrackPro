@@ -19,7 +19,7 @@ public sealed class LiveAuctionViewModel
         description=description?.Trim()??string.Empty;
         if(description.Length==0)throw new InvalidOperationException("Enter a lot description.");
         var consignor=_consignorService.GetByNumber(consignorNumber);
-        if(!consignor.Active)throw new InvalidOperationException($"Consignor #{consignorNumber} is inactive. Reactivate the consignor before adding a new lot.");
+        if(!consignor.Active)throw new InvalidOperationException($"Seller #{consignorNumber} is inactive. Reactivate the seller before adding a new lot.");
         var auction=_auctionService.GetCurrentAuction();
         var lots=_auctionService.Load().Lots;
         var nextLotNumber=lots.Count==0?1:checked(lots.Max(item=>item.LotNumber)+1);

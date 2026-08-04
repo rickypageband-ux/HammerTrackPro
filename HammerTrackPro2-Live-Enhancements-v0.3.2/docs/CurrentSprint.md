@@ -16,7 +16,7 @@ Status: Cashier and the approved closed-auction consignor payout extension are i
 - Update Invoice status to `Unpaid`, `Partially Paid`, or `Paid`; synchronize the retained legacy `Sales.Paid` flag only when the complete invoice is paid.
 - Print an itemized invoice through the Windows print dialog, including auction/buyer identity, purchases, premium, tax, payments, balance, status, and invoice footer.
 - Closed auctions allow invoice viewing/reprinting but reject new payments.
-- Closed auctions enable current-auction consignor settlements. Open auctions reject consignor payouts.
+- Current-auction seller settlements allow append-only payouts before or after auction close, limited to the currently available balance. The UI warns before an early payout because later sales or buyer purchases can change the final balance.
 - Calculate consignor commission using `CommissionOverridePercent` when positive, then consignor `DefaultCommissionPercent`, then the current Auction default.
 - Record append-only check, cash, and ACH/manual electronic payouts with partial payout support, balance enforcement, audit entries, and printable settlement statements.
 - `HoldCheck` blocks check payouts; check and ACH payouts require a reference.
@@ -90,6 +90,9 @@ Status: Cashier and the approved closed-auction consignor payout extension are i
 
 - Consignor save creates or links the same-number current-auction Buyer registration and records a durable `LinkedBuyerId`; conflicting ownership is rejected.
 - Settlement detail and printing show gross sales, commission/fees, linked buyer unpaid-purchase deduction, adjusted net, payouts, and remaining balance.
+- Operator-facing screens and printed settlement documents use Seller terminology while internal Consignor schema/type names remain unchanged for compatibility.
+- A new Seller Number is preflighted against current-auction Buyer Numbers before the seller row is saved. A conflict stops the save with a clear request to choose another number; otherwise the matching Buyer registration is created and linked automatically.
+- The printed deduction label is shortened to `Buyer balance deducted` so it cannot overlap the amount column.
 
 ## Credit-card processing fee
 

@@ -75,6 +75,8 @@ The host database defaults to `%ProgramData%\HammerTrackPro\hammertrack.db`. Wor
 
 There is no CI configuration, user/role authentication model, or auction reopening. A WiX MSI and offline signed machine-license system are included; production code signing remains required before broad distribution. Cashier supports current-auction bidder lookup, itemized invoices, partial/split cash/check/card payments, cash change, status updates, and Windows invoice printing. After an auction is closed, Cashier can look up a current-auction consignor, calculate commission using override → consignor default → auction default, record check/cash/ACH payouts, and print a settlement statement. Closing an auction is audited and locks buyer payments while enabling consignor payouts. Standard xUnit tests are in `HammerTrackPro2.Tests`; after restore, run `dotnet test .\HammerTrackPro2.sln`.
 
-Lot entry lists consignors by consignor number and name, refreshes after Consignor Management closes, and retains inactive consignors for historical/controlled assignment with a visible inactive label.
+The operator interface uses **Seller** wording while retaining the existing `Consignor` domain and database names for backward compatibility. Creating a seller also creates and links the same current-auction Buyer Number; if that Buyer Number is already assigned to someone else, saving is stopped so the operator can choose another Seller Number.
 
-Live Auction also provides a focused quick-add row for an active Consignor Number and lot description. It assigns the next current-auction lot number and makes the new lot immediately available for sale without replacing the full lot-entry workflow.
+Lot entry lists sellers by seller number and name, refreshes after Seller Management closes, and retains inactive sellers for historical/controlled assignment with a visible inactive label.
+
+Live Auction also provides a focused quick-add row for an active Seller Number and lot description. It assigns the next current-auction lot number and makes the new lot immediately available for sale without replacing the full lot-entry workflow.

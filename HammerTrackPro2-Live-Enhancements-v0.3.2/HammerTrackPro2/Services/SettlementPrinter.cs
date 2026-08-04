@@ -5,6 +5,7 @@ namespace HammerTrackPro2.Services;
 
 public sealed class SettlementPrinter
 {
+    internal const string BuyerDeductionLabel = "Buyer balance deducted";
     public PrintDocument CreateDocument(ConsignorSettlement settlement,Auction auction)
     {
         ArgumentNullException.ThrowIfNull(settlement); ArgumentNullException.ThrowIfNull(auction);
@@ -22,8 +23,8 @@ public sealed class SettlementPrinter
     {
         using var title=new Font("Segoe UI",18,FontStyle.Bold); using var heading=new Font("Segoe UI",10,FontStyle.Bold); using var body=new Font("Segoe UI",9); using var pen=new Pen(Color.Black);
         var y=bounds.Top; graphics.DrawString(auction.AuctionName,title,Brushes.Black,bounds.Left,y); y+=34;
-        graphics.DrawString($"CONSIGNOR SETTLEMENT {settlement.FormattedSettlementNumber}",heading,Brushes.Black,bounds.Left,y); y+=24;
-        graphics.DrawString($"Consignor: #{settlement.ConsignorNumber}  {settlement.ConsignorName}",body,Brushes.Black,bounds.Left,y); y+=18;
+        graphics.DrawString($"SELLER SETTLEMENT {settlement.FormattedSettlementNumber}",heading,Brushes.Black,bounds.Left,y); y+=24;
+        graphics.DrawString($"Seller: #{settlement.ConsignorNumber}  {settlement.ConsignorName}",body,Brushes.Black,bounds.Left,y); y+=18;
         graphics.DrawString(settlement.ConsignorAddress,body,Brushes.Black,bounds.Left,y); y+=24; graphics.DrawLine(pen,bounds.Left,y,bounds.Right,y); y+=8;
         graphics.DrawString("Lot",heading,Brushes.Black,bounds.Left,y); graphics.DrawString("Description",heading,Brushes.Black,bounds.Left+60,y); graphics.DrawString("Hammer",heading,Brushes.Black,bounds.Right-90,y); y+=20;
         var availableRows=Math.Max(1,(bounds.Bottom-y-190)/18); var endLine=Math.Min(settlement.Lots.Count,startLine+availableRows);
@@ -35,7 +36,7 @@ public sealed class SettlementPrinter
         if(endLine<settlement.Lots.Count) { graphics.DrawString($"Continued — {settlement.Lots.Count-endLine} lot(s) remain",body,Brushes.Black,bounds.Left,y+12); return endLine; }
         y+=6; graphics.DrawLine(pen,bounds.Left,y,bounds.Right,y); y+=10;
         Total(graphics,body,bounds,ref y,"Hammer subtotal",settlement.HammerSubtotal); Total(graphics,body,bounds,ref y,$"Commission ({settlement.CommissionPercent:0.##}%)",settlement.CommissionAmount);
-        Total(graphics,body,bounds,ref y,"Buyer purchase balance deduction",settlement.BuyerPurchaseBalanceDeduction);
+        Total(graphics,body,bounds,ref y,BuyerDeductionLabel,settlement.BuyerPurchaseBalanceDeduction);
         Total(graphics,heading,bounds,ref y,"Net proceeds",settlement.NetAmount); Total(graphics,body,bounds,ref y,"Payouts",settlement.AmountPaid); Total(graphics,heading,bounds,ref y,"Balance due",settlement.BalanceDue);
         y+=12; graphics.DrawString($"Status: {settlement.Status}",heading,Brushes.Black,bounds.Left,y);
         return endLine;

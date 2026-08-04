@@ -226,7 +226,7 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
                     """;
                 find.Parameters.AddWithValue("$auction",auctionId); find.Parameters.AddWithValue("$number",consignorNumber);
                 var value=find.ExecuteScalar();
-                if(value is null) throw new InvalidOperationException($"Consignor #{consignorNumber} is not associated with the current auction.");
+                if(value is null) throw new InvalidOperationException($"Seller #{consignorNumber} is not associated with the current auction.");
                 consignorId=Convert.ToInt64(value,CultureInfo.InvariantCulture);
             }
             var now=DateTime.UtcNow.ToString("O",CultureInfo.InvariantCulture);
@@ -634,7 +634,7 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
                 renumber.Parameters.AddWithValue("$number", consignor.ConsignorNumber);
                 renumber.Parameters.AddWithValue("$updated", DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture));
                 renumber.Parameters.AddWithValue("$original", originalConsignorNumber.Value);
-                if (renumber.ExecuteNonQuery() != 1) throw new InvalidOperationException("The consignor to update was not found.");
+                if (renumber.ExecuteNonQuery() != 1) throw new InvalidOperationException("The seller to update was not found.");
             }
 
             using var command = connection.CreateCommand();
@@ -678,7 +678,7 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
             command.Transaction = transaction;
             command.CommandText = "DELETE FROM Consignors WHERE ConsignorNumber = $number;";
             command.Parameters.AddWithValue("$number", consignorNumber);
-            if (command.ExecuteNonQuery() != 1) throw new InvalidOperationException($"Consignor #{consignorNumber} was not found.");
+            if (command.ExecuteNonQuery() != 1) throw new InvalidOperationException($"Seller #{consignorNumber} was not found.");
             WriteAudit(connection, transaction, "ConsignorDeleted", $"Consignor #{consignorNumber}");
             transaction.Commit();
         }
@@ -704,16 +704,33 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
         }
     }
 
+    public void ValidateSellerBuyerNumber(int sellerNumber, long? linkedBuyerId)
+    {
+        lock (_sync)
+        {
+            using var connection = OpenConnection();
+            using var command = connection.CreateCommand();
+            command.CommandText = "SELECT BuyerId FROM AuctionBidders WHERE AuctionId=$auctionId AND BidderNumber=$number;";
+            command.Parameters.AddWithValue("$auctionId", GetCurrentAuctionId(connection));
+            command.Parameters.AddWithValue("$number", sellerNumber);
+            var existing = command.ExecuteScalar();
+            if (existing is null) return;
+            var buyerId = Convert.ToInt64(existing, CultureInfo.InvariantCulture);
+            if (linkedBuyerId == buyerId) return;
+            throw new InvalidOperationException($"Buyer Number #{sellerNumber} is already registered to another buyer in this auction. Choose a different Seller Number.");
+        }
+    }
+
     public void EnsureConsignorBuyerLink(int consignorNumber)
     {
         lock(_sync)
         {
             using var connection=OpenConnection();using var transaction=connection.BeginTransaction();var auctionId=GetCurrentAuctionId(connection);
             long consignorId;long? linked;string first,last,address,city,state,zip,phone,email;
-            using(var c=connection.CreateCommand()){c.Transaction=transaction;c.CommandText="SELECT ConsignorId,LinkedBuyerId,FirstName,LastName,Address,City,State,Zip,Phone,Email FROM Consignors WHERE ConsignorNumber=$n;";c.Parameters.AddWithValue("$n",consignorNumber);using var r=c.ExecuteReader();if(!r.Read())throw new InvalidOperationException($"Consignor #{consignorNumber} was not found.");consignorId=r.GetInt64(0);linked=r.IsDBNull(1)?null:r.GetInt64(1);first=r.GetString(2);last=r.GetString(3);address=r.GetString(4);city=r.GetString(5);state=r.GetString(6);zip=r.GetString(7);phone=r.GetString(8);email=r.GetString(9);}
+            using(var c=connection.CreateCommand()){c.Transaction=transaction;c.CommandText="SELECT ConsignorId,LinkedBuyerId,FirstName,LastName,Address,City,State,Zip,Phone,Email FROM Consignors WHERE ConsignorNumber=$n;";c.Parameters.AddWithValue("$n",consignorNumber);using var r=c.ExecuteReader();if(!r.Read())throw new InvalidOperationException($"Seller #{consignorNumber} was not found.");consignorId=r.GetInt64(0);linked=r.IsDBNull(1)?null:r.GetInt64(1);first=r.GetString(2);last=r.GetString(3);address=r.GetString(4);city=r.GetString(5);state=r.GetString(6);zip=r.GetString(7);phone=r.GetString(8);email=r.GetString(9);}
             long buyerId;
             using(var find=connection.CreateCommand()){find.Transaction=transaction;find.CommandText="SELECT BuyerId FROM AuctionBidders WHERE AuctionId=$a AND BidderNumber=$n;";find.Parameters.AddWithValue("$a",auctionId);find.Parameters.AddWithValue("$n",consignorNumber);var value=find.ExecuteScalar();buyerId=value is null?0:Convert.ToInt64(value,CultureInfo.InvariantCulture);}
-            if(linked.HasValue&&buyerId>0&&linked.Value!=buyerId)throw new InvalidOperationException($"Buyer Number #{consignorNumber} belongs to a different buyer. Resolve that registration before linking Consignor #{consignorNumber}.");
+            if(linked.HasValue&&buyerId>0&&linked.Value!=buyerId)throw new InvalidOperationException($"Buyer Number #{consignorNumber} belongs to a different buyer. Choose a different Seller Number.");
             var now=DateTime.UtcNow.ToString("O",CultureInfo.InvariantCulture);
             if(buyerId==0)
             {

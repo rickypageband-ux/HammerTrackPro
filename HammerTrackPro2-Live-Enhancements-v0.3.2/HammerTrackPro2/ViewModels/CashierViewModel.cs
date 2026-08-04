@@ -27,7 +27,7 @@ public sealed class CashierViewModel
     public void RegisterConsignor(Consignor consignor)=>Settlement=_service.RegisterConsignor(consignor);
     public void RecordConsignorPayout(ConsignorPayoutMethod method,decimal amount,string reference)
     {
-        if(Settlement is null) throw new InvalidOperationException("Look up a consignor before recording a payout.");
+        if(Settlement is null) throw new InvalidOperationException("Look up a seller before recording a payout.");
         Settlement=_service.RecordConsignorPayout(Settlement.ConsignorNumber,new ConsignorPayoutRequest { Method=method,Amount=amount,Reference=reference?.Trim()??string.Empty });
     }
 }

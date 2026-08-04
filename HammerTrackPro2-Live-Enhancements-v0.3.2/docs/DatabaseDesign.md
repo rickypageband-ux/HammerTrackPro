@@ -18,7 +18,7 @@ Commercial terms must always come from the current persisted Auction. Runtime co
 
 `Consignors` is the global master identity, keyed by `ConsignorId` with unique `ConsignorNumber`. It retains all Sprint 1 business/contact, settlement/tax, commission, notes, active, and timestamp fields, including legacy compatibility columns.
 
-`LinkedBuyerId` is an additive nullable foreign key to the durable global Buyer. Saving a consignor ensures a current-auction AuctionBidder registration with the same number; conflicting registrations are rejected for operator resolution. The linked buyer's current-auction unpaid invoice balance is deducted from settlement net proceeds.
+`LinkedBuyerId` is an additive nullable foreign key to the durable global Buyer. The UI calls this identity a Seller while retaining the Consignor schema for compatibility. Saving a seller preflights the current-auction Buyer Number before saving, then ensures an AuctionBidder registration with the same number; conflicting registrations are rejected without creating the seller row. The linked buyer's current-auction unpaid invoice balance is deducted from settlement net proceeds.
 
 `AuctionConsignors(AuctionId, ConsignorId, CreatedDate)` is a junction table with a composite primary key and foreign keys to Auctions and Consignors. Copying consignors between auctions inserts association rows only; it never duplicates master records. `ConsignorId` has a reverse-lookup index.
 

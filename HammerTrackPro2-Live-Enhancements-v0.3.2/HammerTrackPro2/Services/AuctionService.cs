@@ -151,7 +151,7 @@ public sealed class AuctionService : IAuctionService
         if (string.IsNullOrWhiteSpace(lot.Description)) throw new InvalidOperationException("A lot description is required.");
         if (lot.StartingBid < 0) throw new InvalidOperationException("Starting bid cannot be negative.");
         if (lot.AuctionId <= 0) throw new InvalidOperationException("Select an auction.");
-        if (lot.ConsignorId <= 0) throw new InvalidOperationException("Select a consignor.");
+        if (lot.ConsignorId <= 0) throw new InvalidOperationException("Select a seller.");
         if (lot.ReservePrice < 0) throw new InvalidOperationException("Reserve price cannot be negative.");
     }
 }

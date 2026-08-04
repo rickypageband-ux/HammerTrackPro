@@ -45,11 +45,11 @@ public sealed class CashierForm : Form
         paymentEntry.Controls.Add(Button("Record Payments",RecordPayments));
         var tabs=new TabControl { Dock=DockStyle.Fill };
         tabs.TabPages.Add(Page("Purchases",_purchases)); tabs.TabPages.Add(Page("Payment History",_payments)); tabs.TabPages.Add(Page("Pending Split Payments",_pending));
-        tabs.TabPages.Add(Page("Consignor Lots",_settlementLots)); tabs.TabPages.Add(Page("Consignor Payouts",_payouts));
+        tabs.TabPages.Add(Page("Seller Lots",_settlementLots)); tabs.TabPages.Add(Page("Seller Payouts",_payouts));
         var sellerEntry=new FlowLayoutPanel { Dock=DockStyle.Fill,AutoSize=true };
-        sellerEntry.Controls.Add(new Label { Text="Consignor Number",AutoSize=true }); sellerEntry.Controls.Add(_consignorNumber); sellerEntry.Controls.Add(Button("Lookup Consignor",LookupConsignor)); sellerEntry.Controls.Add(Button("Register Consignor",RegisterConsignor)); sellerEntry.Controls.Add(Button("Preview / Print Settlement",PrintSettlement));
+        sellerEntry.Controls.Add(new Label { Text="Seller Number",AutoSize=true }); sellerEntry.Controls.Add(_consignorNumber); sellerEntry.Controls.Add(Button("Lookup Seller",LookupConsignor)); sellerEntry.Controls.Add(Button("Register Seller",RegisterConsignor)); sellerEntry.Controls.Add(Button("Preview / Print Settlement",PrintSettlement));
         sellerEntry.Controls.Add(new Label { Text="Payout Method",AutoSize=true }); sellerEntry.Controls.Add(_payoutMethod); sellerEntry.Controls.Add(new Label { Text="Amount",AutoSize=true }); sellerEntry.Controls.Add(_payoutAmount);
-        sellerEntry.Controls.Add(new Label { Text="Check/ACH Reference",AutoSize=true }); sellerEntry.Controls.Add(_payoutReference); sellerEntry.Controls.Add(Button("Record Consignor Payout",RecordConsignorPayout));
+        sellerEntry.Controls.Add(new Label { Text="Check/ACH Reference",AutoSize=true }); sellerEntry.Controls.Add(_payoutReference); sellerEntry.Controls.Add(Button("Record Seller Payout",RecordConsignorPayout));
         var layout=new TableLayoutPanel { Dock=DockStyle.Fill,RowCount=7,ColumnCount=1 };
         layout.RowStyles.Add(new RowStyle(SizeType.AutoSize)); layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         layout.RowStyles.Add(new RowStyle(SizeType.AutoSize)); layout.RowStyles.Add(new RowStyle(SizeType.AutoSize)); layout.RowStyles.Add(new RowStyle(SizeType.Percent,100)); layout.RowStyles.Add(new RowStyle(SizeType.AutoSize)); layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
@@ -71,8 +71,10 @@ public sealed class CashierForm : Form
     private void ShowUnpaid(){var rows=_cashierService.GetUnpaidInvoices();using var f=new Form{Text="Current Auction - Unpaid Buyers",StartPosition=FormStartPosition.CenterParent,Width=800,Height=500};var grid=new DataGridView{Dock=DockStyle.Fill,ReadOnly=true,AutoGenerateColumns=true,DataSource=rows.ToList(),AutoSizeColumnsMode=DataGridViewAutoSizeColumnsMode.Fill};f.Controls.Add(grid);if(rows.Count==0)f.Controls.Add(new Label{Text="Everyone in the current auction is paid in full.",Dock=DockStyle.Top,Height=44,TextAlign=ContentAlignment.MiddleCenter,BackColor=Color.Honeydew,ForeColor=Color.DarkGreen});f.ShowDialog(this);}
     private void RecordConsignorPayout()
     {
-        var settlement=_viewModel.Settlement??throw new InvalidOperationException("Look up a consignor before recording a payout.");
-        if(MessageBox.Show($"Record a {_payoutMethod.SelectedItem} payout of {_payoutAmount.Value:C2} to {settlement.ConsignorName}?","Confirm Consignor Payout",MessageBoxButtons.YesNo,MessageBoxIcon.Warning)!=DialogResult.Yes)return;
+        var settlement=_viewModel.Settlement??throw new InvalidOperationException("Look up a seller before recording a payout.");
+        if(!string.Equals(_cashierService.GetCurrentAuction().Status,"Closed",StringComparison.OrdinalIgnoreCase)
+           && MessageBox.Show("This auction is still open. The seller's balance may change as more lots sell or buyer purchases are added. Record this early payout now?","Early Seller Payout",MessageBoxButtons.YesNo,MessageBoxIcon.Warning)!=DialogResult.Yes)return;
+        if(MessageBox.Show($"Record a {_payoutMethod.SelectedItem} payout of {_payoutAmount.Value:C2} to {settlement.ConsignorName}?","Confirm Seller Payout",MessageBoxButtons.YesNo,MessageBoxIcon.Warning)!=DialogResult.Yes)return;
         _viewModel.RecordConsignorPayout((ConsignorPayoutMethod)_payoutMethod.SelectedItem!,_payoutAmount.Value,_payoutReference.Text); _payoutAmount.Value=0; _payoutReference.Clear(); RefreshSettlement();
     }
     private void PrintInvoice()
@@ -83,7 +85,7 @@ public sealed class CashierForm : Form
     }
     private void PrintSettlement()
     {
-        var settlement=_viewModel.Settlement??throw new InvalidOperationException("Look up a consignor before printing a settlement.");
+        var settlement=_viewModel.Settlement??throw new InvalidOperationException("Look up a seller before printing a settlement.");
         using var document=new SettlementPrinter().CreateDocument(settlement,_cashierService.GetCurrentAuction());
         ShowPrintPreview(document);
     }

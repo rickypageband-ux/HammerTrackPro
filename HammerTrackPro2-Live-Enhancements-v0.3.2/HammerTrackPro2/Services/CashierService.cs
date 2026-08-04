@@ -9,7 +9,7 @@ public sealed class CashierService : ICashierService
     public Auction GetCurrentAuction() => _dataStore.GetCurrentAuction();
     public Task<bool> CheckConnectionAsync(CancellationToken cancellationToken=default) => Task.FromResult(true);
     public Invoice RegisterBuyer(AuctionBidder bidder){ArgumentNullException.ThrowIfNull(bidder);var auction=_dataStore.GetCurrentAuction();if(string.Equals(auction.Status,"Closed",StringComparison.OrdinalIgnoreCase))throw new InvalidOperationException("This auction is closed. New buyers cannot be registered.");if(_dataStore.Load().Bidders.Any(x=>x.BidderNumber==bidder.BidderNumber))throw new InvalidOperationException($"Buyer Number #{bidder.BidderNumber} is already registered in the current auction. Use Lookup instead.");bidder.AuctionId=auction.AuctionId;new AuctionService(_dataStore).SaveBidder(bidder,null);return LoadInvoice(bidder.BidderNumber);}
-    public ConsignorSettlement RegisterConsignor(Consignor consignor){ArgumentNullException.ThrowIfNull(consignor);if(string.Equals(_dataStore.GetCurrentAuction().Status,"Closed",StringComparison.OrdinalIgnoreCase))throw new InvalidOperationException("This auction is closed. New consignors cannot be registered.");if(_dataStore.GetConsignors().Any(x=>x.ConsignorNumber==consignor.ConsignorNumber))throw new InvalidOperationException($"Consignor Number #{consignor.ConsignorNumber} already exists. Use Lookup or Consignor Management instead.");consignor.Active=true;new ConsignorService(_dataStore).SaveConsignor(consignor,null);return LoadConsignorSettlement(consignor.ConsignorNumber);}
+    public ConsignorSettlement RegisterConsignor(Consignor consignor){ArgumentNullException.ThrowIfNull(consignor);if(string.Equals(_dataStore.GetCurrentAuction().Status,"Closed",StringComparison.OrdinalIgnoreCase))throw new InvalidOperationException("This auction is closed. New sellers cannot be registered.");if(_dataStore.GetConsignors().Any(x=>x.ConsignorNumber==consignor.ConsignorNumber))throw new InvalidOperationException($"Seller Number #{consignor.ConsignorNumber} already exists. Use Lookup or Seller Management instead.");consignor.Active=true;new ConsignorService(_dataStore).SaveConsignor(consignor,null);return LoadConsignorSettlement(consignor.ConsignorNumber);}
     public IReadOnlyList<UnpaidInvoiceSummary> GetUnpaidInvoices()=>_dataStore.Load().Bidders.Select(x=>LoadInvoice(x.BidderNumber)).Where(x=>x.BalanceDue>0).OrderBy(x=>x.BidderNumber).Select(x=>new UnpaidInvoiceSummary{BuyerNumber=x.BidderNumber,BuyerName=x.BuyerName,InvoiceTotal=x.TotalAmount,AmountPaid=x.AmountPaid,BalanceDue=x.BalanceDue}).ToList();
     public AuctionSettlementReport GetAuctionSettlementReport()=>_dataStore.LoadAuctionSettlementReport();
     public StaffPayment RecordStaffPayment(StaffPayment payment)
@@ -20,7 +20,7 @@ public sealed class CashierService : ICashierService
 
     public ConsignorSettlement LoadConsignorSettlement(int consignorNumber)
     {
-        if(consignorNumber<=0) throw new InvalidOperationException("Enter a valid consignor number.");
+        if(consignorNumber<=0) throw new InvalidOperationException("Enter a valid seller number.");
         var settlement=_dataStore.LoadConsignorSettlement(consignorNumber);
         Recalculate(settlement);
         return settlement;
@@ -29,15 +29,12 @@ public sealed class CashierService : ICashierService
     public ConsignorSettlement RecordConsignorPayout(int consignorNumber,ConsignorPayoutRequest payout)
     {
         ArgumentNullException.ThrowIfNull(payout);
-        var auction=_dataStore.GetCurrentAuction();
-        if(!string.Equals(auction.Status,"Closed",StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("Consignors can be paid only after the current auction is closed.");
         var settlement=LoadConsignorSettlement(consignorNumber);
-        if(settlement.BalanceDue<=0) throw new InvalidOperationException("This consignor settlement is already paid.");
+        if(settlement.BalanceDue<=0) throw new InvalidOperationException("This seller settlement has no balance available to pay.");
         if(payout.Amount<=0) throw new InvalidOperationException("The payout amount must be greater than zero.");
-        if(payout.Amount>settlement.BalanceDue) throw new InvalidOperationException("A consignor payout cannot exceed the settlement balance.");
+        if(payout.Amount>settlement.BalanceDue) throw new InvalidOperationException("A seller payout cannot exceed the currently available settlement balance.");
         if(payout.Method==ConsignorPayoutMethod.Check&&settlement.HoldCheck)
-            throw new InvalidOperationException("This consignor is marked Hold Check. Clear Hold Check before issuing a check.");
+            throw new InvalidOperationException("This seller is marked Hold Check. Clear Hold Check before issuing a check.");
         if(payout.Method is ConsignorPayoutMethod.Check or ConsignorPayoutMethod.Ach && string.IsNullOrWhiteSpace(payout.Reference))
             throw new InvalidOperationException($"Enter a reference for the {payout.Method} payout.");
         var updated=_dataStore.RecordConsignorPayout(settlement,new ConsignorPayout

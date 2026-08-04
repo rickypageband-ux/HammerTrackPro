@@ -6,6 +6,7 @@ namespace HammerTrackPro2.Tests;
 
 public sealed class CashierServiceTests
 {
+    [Fact] public void SellerSettlementPrint_UsesCompactBuyerDeductionLabel()=>Assert.Equal("Buyer balance deducted",SettlementPrinter.BuyerDeductionLabel);
     [Fact] public void InvoiceWarrantyDisclaimer_PreservesApprovedText(){Assert.Contains("Condition of Sale – Disclaimer of Warranties",InvoicePrinter.WarrantyDisclaimer);Assert.Contains("\"AS IS\" and \"WHERE IS,\"",InvoicePrinter.WarrantyDisclaimer);Assert.Contains("hold the auction company harmless",InvoicePrinter.WarrantyDisclaimer);Assert.Equal(3,InvoicePrinter.WarrantyDisclaimer.Split("\n\n").Length);}
     [Fact] public void AuctionSettlement_IncludesTaxAndAppendOnlyStaffCorrections(){using var db=TemporaryDatabase.Create();var (store,cashier)=CreateAccount(db.Path,SalesTaxBasis.HammerOnly);var p=cashier.RecordStaffPayment(new StaffPayment{Category="Clerk",Payee="Pat",Amount=50,Method="Cash"});cashier.VoidStaffPayment(p.StaffPaymentId,"Wrong amount",new StaffPayment{Category="Clerk",Payee="Pat",Amount=40,Method="Cash"});var r=cashier.GetAuctionSettlementReport();Assert.Equal(5,r.SalesTaxCollected);Assert.Equal(40,r.StaffPayments);Assert.Equal(3,r.StaffLedger.Count);Assert.Contains(r.StaffLedger,x=>x.VoidsStaffPaymentId==p.StaffPaymentId&&x.Amount==-50);}
     [Fact] public void CardFee_AppliesOnlyToCardPortion(){using var db=TemporaryDatabase.Create();var (_,cashier)=CreateAccount(db.Path,SalesTaxBasis.None);var invoice=cashier.RecordPayments(25,[new PaymentRequest{Method=PaymentMethod.Card,Amount=50},new PaymentRequest{Method=PaymentMethod.Cash,Amount=20}]);Assert.Equal(1.5m,invoice.CreditCardFeeAmount);Assert.Equal(111.5m,invoice.TotalAmount);Assert.Equal(40m,invoice.BalanceDue);Assert.Equal(0,invoice.Payments.Single(x=>x.Method==PaymentMethod.Cash).ProcessingFee);}
@@ -67,18 +68,32 @@ public sealed class CashierServiceTests
     }
 
     [Fact]
-    public void ConsignorSettlement_UsesCommissionPrecedence_AndRequiresClosedAuction()
+    public void SellerSettlement_UsesCommissionPrecedence_AndAllowsAuditedEarlyPayout()
     {
         using var database=TemporaryDatabase.Create(); var (store,cashier)=CreateAccount(database.Path,SalesTaxBasis.None);
         var consignor=store.GetConsignors().First(); consignor.DefaultCommissionPercent=12; consignor.CommissionOverridePercent=8; store.SaveConsignor(consignor,consignor.ConsignorNumber);
         var preview=cashier.LoadConsignorSettlement(consignor.ConsignorNumber);
         Assert.Equal(100m,preview.HammerSubtotal); Assert.Equal(8m,preview.CommissionAmount); Assert.Equal(92m,preview.NetAmount);
-        Assert.Throws<InvalidOperationException>(()=>cashier.RecordConsignorPayout(consignor.ConsignorNumber,new ConsignorPayoutRequest { Method=ConsignorPayoutMethod.Cash,Amount=20 }));
-        store.CloseAuction(store.GetCurrentAuction().AuctionId);
         var paid=cashier.RecordConsignorPayout(consignor.ConsignorNumber,new ConsignorPayoutRequest { Method=ConsignorPayoutMethod.Cash,Amount=20 });
         Assert.Equal("Partially Paid",paid.Status); Assert.Equal(72m,paid.BalanceDue);
         Assert.Equal("1",Scalar(database.Path,"SELECT COUNT(*) FROM ConsignorPayouts;"));
         Assert.Equal("1",Scalar(database.Path,"SELECT COUNT(*) FROM AuditLog WHERE Action='ConsignorPayoutRecorded';"));
+    }
+
+    [Fact]
+    public void NewSeller_CreatesMatchingBuyerNumber_AndRejectsExistingBuyerConflictWithoutSavingSeller()
+    {
+        using var database=TemporaryDatabase.Create(); var store=new SqliteDataStore(database.Path); var auction=store.GetCurrentAuction();
+        var sellers=new ConsignorService(store);
+        sellers.SaveConsignor(new Consignor { ConsignorNumber=81,BusinessName="Linked Farm",Active=true },null);
+        var seller=store.GetConsignors().Single(x=>x.ConsignorNumber==81);
+        Assert.NotNull(seller.LinkedBuyerId);
+        Assert.Contains(store.Load().Bidders,x=>x.BidderNumber==81&&x.BuyerId==seller.LinkedBuyerId);
+
+        store.SaveBidder(new AuctionBidder { AuctionId=auction.AuctionId,BidderNumber=82,FirstName="Existing",LastName="Buyer" },null);
+        var error=Assert.Throws<InvalidOperationException>(()=>sellers.SaveConsignor(new Consignor { ConsignorNumber=82,BusinessName="Conflict Farm",Active=true },null));
+        Assert.Contains("already registered to another buyer",error.Message);
+        Assert.DoesNotContain(store.GetConsignors(),x=>x.ConsignorNumber==82);
     }
 
     [Fact]
