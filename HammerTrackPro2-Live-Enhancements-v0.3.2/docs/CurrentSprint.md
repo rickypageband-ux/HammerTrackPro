@@ -101,3 +101,7 @@ Status: Cashier and the approved closed-auction consignor payout extension are i
 - Record clerk, auctioneer, floor-help, and kitchen-help payments in an append-only current-auction ledger.
 - Corrections require a reason and append linked void/replacement entries; originals remain intact and audited.
 - Current-data report and print preview reconcile hammer, premiums, card fees, sales tax, invoice paid/unpaid, consignor commissions/offsets/payouts, staff payments, and net cash movement without counting internal offsets as cash.
+
+## Invoice condition of sale
+
+- Every local or LAN Cashier invoice preview/print includes the approved Condition of Sale – Disclaimer of Warranties with its exact heading and two-paragraph wording.

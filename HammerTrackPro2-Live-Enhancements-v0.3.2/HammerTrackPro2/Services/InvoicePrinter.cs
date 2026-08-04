@@ -5,6 +5,13 @@ namespace HammerTrackPro2.Services;
 
 public sealed class InvoicePrinter
 {
+    internal const string WarrantyDisclaimer="""
+Condition of Sale – Disclaimer of Warranties
+
+All items are offered for sale "AS IS" and "WHERE IS," with no representations or warranties, express or implied, regarding their authenticity, condition, merchantability, fitness for a particular purpose, or value. Buyers are responsible for inspecting items prior to bidding and assume all risks associated with their purchase.
+
+Any guarantees or warranties provided are solely between the buyer and the seller. The auction company acts only as a facilitator of the sale and shall not be responsible or liable for any representations, warranties, guarantees, disputes, returns, exchanges, refunds, or claims arising from the transaction. By participating in the auction, buyers agree to hold the auction company harmless from any such claims or liabilities.
+""";
     public PrintDocument CreateDocument(Invoice invoice, Auction auction)
     {
         ArgumentNullException.ThrowIfNull(invoice); ArgumentNullException.ThrowIfNull(auction);
@@ -32,7 +39,7 @@ public sealed class InvoicePrinter
         graphics.DrawLine(linePen,bounds.Left,y,bounds.Right,y); y+=8;
         graphics.DrawString("Lot",headingFont,Brushes.Black,bounds.Left,y); graphics.DrawString("Description",headingFont,Brushes.Black,bounds.Left+60,y);
         graphics.DrawString("Hammer",headingFont,Brushes.Black,bounds.Right-90,y); y+=20;
-        var availableRows=Math.Max(1,(bounds.Bottom-y-230)/18);
+        var availableRows=Math.Max(1,(bounds.Bottom-y-450)/18);
         var endLine=Math.Min(invoice.Purchases.Count,startLine+availableRows);
         for(var index=startLine;index<endLine;index++)
         {
@@ -54,7 +61,11 @@ public sealed class InvoicePrinter
         DrawTotal(graphics,headingFont,bounds,ref y,"Invoice total",invoice.TotalAmount);
         DrawTotal(graphics,bodyFont,bounds,ref y,"Payments",invoice.AmountPaid);
         DrawTotal(graphics,headingFont,bounds,ref y,"Balance due",invoice.BalanceDue);
-        y+=12; graphics.DrawString(auction.InvoiceFooter ?? string.Empty,bodyFont,Brushes.Black,new RectangleF(bounds.Left,y,bounds.Width,60));
+        y+=12; graphics.DrawString(auction.InvoiceFooter ?? string.Empty,bodyFont,Brushes.Black,new RectangleF(bounds.Left,y,bounds.Width,45));y+=50;
+        using var disclaimerHeading=new Font("Segoe UI",9,FontStyle.Bold);
+        var paragraphs=WarrantyDisclaimer.Split("\n\n");graphics.DrawString(paragraphs[0],disclaimerHeading,Brushes.Black,bounds.Left,y);y+=22;
+        graphics.DrawString(paragraphs[1],bodyFont,Brushes.Black,new RectangleF(bounds.Left,y,bounds.Width,95));y+=100;
+        graphics.DrawString(paragraphs[2],bodyFont,Brushes.Black,new RectangleF(bounds.Left,y,bounds.Width,115));
         return endLine;
     }
 
