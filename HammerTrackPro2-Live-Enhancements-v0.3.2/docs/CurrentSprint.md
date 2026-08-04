@@ -84,6 +84,7 @@ Status: Cashier and the approved closed-auction consignor payout extension are i
 - Register new buyers and consignors from local or LAN Cashier and immediately select the invoice or settlement.
 - Host-side validation preserves current-auction registration and rejects duplicate numbers with actionable messages.
 - The Add Buyer window displays a number-sorted list of every bidder registered in the current auction so the cashier can choose an available or preferred number. LAN Cashier loads this list through the host API.
+- The Add Buyer split panel is initialized at its intended size before applying minimum widths and divider position, preventing startup failure on Cashier workstations.
 
 ## Unpaid buyer review
 

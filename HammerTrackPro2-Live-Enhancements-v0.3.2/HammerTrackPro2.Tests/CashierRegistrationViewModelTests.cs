@@ -1,10 +1,19 @@
 using HammerTrackPro2.Models;
+using HammerTrackPro2.Forms;
 using HammerTrackPro2.ViewModels;
 
 namespace HammerTrackPro2.Tests;
 
 public sealed class CashierRegistrationViewModelTests
 {
+    [Fact]
+    public void BuyerRegistrationForm_ConstructsWithRegisteredBidderPanel()
+    {
+        using var form=new CashierRegistrationForm(new CashierRegistrationViewModel(false,[new(){BuyerNumber=7,Name="Alex Buyer"}]));
+        Assert.Equal("Register Buyer",form.Text);
+        Assert.True(form.Width>=760);
+    }
+
     [Fact]
     public void BuyerRegistration_ShowsUsedNumbersAndRejectsDuplicateSelection()
     {

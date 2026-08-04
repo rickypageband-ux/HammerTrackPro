@@ -25,7 +25,7 @@ public sealed class CashierRegistrationForm : Form
         if(viewModel.IsSeller) Controls.Add(editor);
         else
         {
-            var split=new SplitContainer{Dock=DockStyle.Fill,SplitterDistance=420,Panel1MinSize=360,Panel2MinSize=300,Padding=new Padding(8)};
+            var split=new SplitContainer{Size=new Size(860,500),Dock=DockStyle.Fill,Panel1MinSize=360,Panel2MinSize=300,SplitterDistance=420,Padding=new Padding(8)};
             split.Panel1.Controls.Add(editor);
             var grid=new DataGridView
             {
