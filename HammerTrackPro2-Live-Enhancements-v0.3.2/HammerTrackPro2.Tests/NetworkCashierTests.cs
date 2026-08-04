@@ -10,7 +10,7 @@ namespace HammerTrackPro2.Tests;
 
 public sealed class NetworkCashierTests
 {
-    [Fact] public async Task CashierClient_LoadsUnpaidReviewThroughHost(){using var db=TemporaryDatabase.Create();var c=Configuration("UNPAID");await using var host=await CashierNetworkHost.StartAsync(new CashierService(CreateAccount(db.Path)),c,useHttps:false);using var remote=new RemoteCashierService(c,true);Assert.Single(remote.GetUnpaidInvoices());}
+    [Fact] public async Task CashierClient_LoadsUnpaidReviewThroughHost(){using var db=TemporaryDatabase.Create();var c=Configuration("UNPAID");await using var host=await CashierNetworkHost.StartAsync(new CashierService(CreateAccount(db.Path)),c,useHttps:false);using var remote=new RemoteCashierService(c,true);Assert.Single(remote.GetUnpaidInvoices());Assert.Equal(25,Assert.Single(remote.GetRegisteredBidders()).BuyerNumber);}
     [Fact]
     public async Task CashierClient_LoadsInvoiceAndRecordsPaymentThroughHost()
     {

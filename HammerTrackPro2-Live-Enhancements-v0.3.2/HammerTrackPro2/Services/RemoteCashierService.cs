@@ -24,6 +24,7 @@ public sealed class RemoteCashierService : ICashierService,IDisposable
     public Auction GetCurrentAuction()=>Get<Auction>("/api/current-auction");
     public Invoice LoadInvoice(int bidderNumber)=>Get<Invoice>($"/api/invoices/{bidderNumber}");
     public Invoice RegisterBuyer(AuctionBidder bidder)=>Post<AuctionBidder,Invoice>("/api/registrations/buyers",bidder);
+    public IReadOnlyList<RegisteredBidderSummary> GetRegisteredBidders()=>Get<List<RegisteredBidderSummary>>("/api/registrations/buyers");
     public ConsignorSettlement LoadConsignorSettlement(int consignorNumber)=>Get<ConsignorSettlement>($"/api/settlements/{consignorNumber}");
     public ConsignorSettlement RegisterConsignor(Consignor consignor)=>Post<Consignor,ConsignorSettlement>("/api/registrations/consignors",consignor);
     public IReadOnlyList<UnpaidInvoiceSummary> GetUnpaidInvoices()=>Get<List<UnpaidInvoiceSummary>>("/api/invoices/unpaid");

@@ -8,6 +8,7 @@ public interface ICashierService
     Invoice LoadInvoice(int bidderNumber);
     Invoice RecordPayments(int bidderNumber, IReadOnlyList<PaymentRequest> payments);
     Invoice RegisterBuyer(AuctionBidder bidder);
+    IReadOnlyList<RegisteredBidderSummary> GetRegisteredBidders();
     ConsignorSettlement LoadConsignorSettlement(int consignorNumber);
     ConsignorSettlement RecordConsignorPayout(int consignorNumber, ConsignorPayoutRequest payout);
     ConsignorSettlement RegisterConsignor(Consignor consignor);
