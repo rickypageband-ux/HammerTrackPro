@@ -59,7 +59,7 @@ public sealed class CashierService : ICashierService
 
         var invoice = LoadInvoice(bidderNumber);
         if (invoice.BalanceDue <= 0) throw new InvalidOperationException("This invoice is already paid.");
-        var remaining = invoice.BalanceDue;
+        var remaining = invoice.BalanceDue;var cardRate=_dataStore.GetCurrentAuction().CreditCardFeePercent;
         var records = new List<Payment>();
         foreach (var request in payments)
         {
@@ -67,16 +67,16 @@ public sealed class CashierService : ICashierService
             if (remaining <= 0) throw new InvalidOperationException("The entered payments exceed the invoice balance.");
             if (request.Method != PaymentMethod.Cash && request.Amount > remaining)
                 throw new InvalidOperationException($"{request.Method} payments cannot exceed the remaining balance.");
-            var applied = Math.Min(request.Amount, remaining);
+            var fee=request.Method==PaymentMethod.Card?Money(request.Amount*cardRate/100m):0m;var applied=Math.Min(request.Amount,remaining)+fee;
             records.Add(new Payment
             {
-                Method=request.Method,TenderedAmount=request.Amount,AppliedAmount=applied,
+                Method=request.Method,TenderedAmount=request.Amount+fee,AppliedAmount=applied,ProcessingFee=fee,
                 ChangeDue=request.Method == PaymentMethod.Cash ? request.Amount-applied : 0,
                 Reference=request.Reference?.Trim() ?? string.Empty
             });
-            remaining -= applied;
+            remaining -= request.Amount;invoice.CreditCardFeeAmount+=fee;
         }
-        invoice.AmountPaid += records.Sum(item => item.AppliedAmount);
+        invoice.TotalAmount+=records.Sum(item=>item.ProcessingFee);invoice.AmountPaid += records.Sum(item => item.AppliedAmount);
         invoice.BalanceDue = Math.Max(0, invoice.TotalAmount-invoice.AmountPaid);
         invoice.Status = invoice.BalanceDue == 0 ? "Paid" : invoice.AmountPaid > 0 ? "Partially Paid" : "Unpaid";
         var updated=_dataStore.RecordInvoicePayments(invoice,records);
@@ -96,7 +96,8 @@ public sealed class CashierService : ICashierService
             _ => throw new InvalidOperationException("The auction sales-tax basis is invalid.")
         };
         invoice.SalesTaxAmount = Money(taxable * invoice.SalesTaxPercent / 100m);
-        invoice.TotalAmount = invoice.HammerSubtotal + invoice.BuyerPremiumAmount + invoice.SalesTaxAmount;
+        invoice.CreditCardFeeAmount=Money(invoice.Payments.Sum(item=>item.ProcessingFee));
+        invoice.TotalAmount = invoice.HammerSubtotal + invoice.BuyerPremiumAmount + invoice.SalesTaxAmount+invoice.CreditCardFeeAmount;
         invoice.AmountPaid = Money(invoice.Payments.Sum(item => item.AppliedAmount));
         invoice.BalanceDue = Math.Max(0, invoice.TotalAmount-invoice.AmountPaid);
         invoice.Status = invoice.BalanceDue == 0 ? "Paid" : invoice.AmountPaid > 0 ? "Partially Paid" : "Unpaid";

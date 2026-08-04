@@ -122,7 +122,7 @@ public sealed class CashierForm : Form
         var invoice=_viewModel.Invoice;
         if (invoice is null) return;
         _heading.Text=$"Invoice {invoice.FormattedInvoiceNumber} — {invoice.BuyerName} — {invoice.Status}";
-        _totals.Text=$"Hammer {invoice.HammerSubtotal:C2}   Premium {invoice.BuyerPremiumAmount:C2}   Tax {invoice.SalesTaxAmount:C2}   Total {invoice.TotalAmount:C2}   Paid {invoice.AmountPaid:C2}   Balance {invoice.BalanceDue:C2}";
+        _totals.Text=$"Hammer {invoice.HammerSubtotal:C2}   Premium {invoice.BuyerPremiumAmount:C2}   Tax {invoice.SalesTaxAmount:C2}   Card fee {invoice.CreditCardFeeAmount:C2}   Total {invoice.TotalAmount:C2}   Paid {invoice.AmountPaid:C2}   Balance {invoice.BalanceDue:C2}";
         _purchases.DataSource=invoice.Purchases.ToList(); _payments.DataSource=invoice.Payments.ToList(); _pending.DataSource=_viewModel.PendingPayments.ToList();
     }
     private void RefreshSettlement()

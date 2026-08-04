@@ -118,7 +118,7 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
                     SELECT i.InvoiceId,i.AuctionId,i.AuctionBidderId,a.AuctionNumber,ab.BidderNumber,
                            trim(b.FirstName || ' ' || b.LastName),trim(b.Address || ' ' || b.City || ' ' || b.State || ' ' || b.Zip),
                            i.BuyerPremiumPercent,i.SalesTaxPercent,i.SalesTaxBasis,i.HammerSubtotal,i.BuyerPremiumAmount,
-                           i.SalesTaxAmount,i.TotalAmount,i.Status,i.CreatedUtc,i.UpdatedUtc
+                           i.SalesTaxAmount,i.TotalAmount,i.Status,i.CreatedUtc,i.UpdatedUtc,i.CreditCardFeeAmount
                     FROM Invoices i JOIN Auctions a ON a.AuctionId=i.AuctionId
                     JOIN AuctionBidders ab ON ab.AuctionBidderId=i.AuctionBidderId JOIN Buyers b ON b.BuyerId=ab.BuyerId
                     WHERE i.AuctionBidderId=$registration LIMIT 1;
@@ -134,7 +134,7 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
                     BuyerPremiumAmount=decimal.Parse(reader.GetString(11),CultureInfo.InvariantCulture),SalesTaxAmount=decimal.Parse(reader.GetString(12),CultureInfo.InvariantCulture),
                     TotalAmount=decimal.Parse(reader.GetString(13),CultureInfo.InvariantCulture),Status=reader.GetString(14),
                     CreatedUtc=DateTime.Parse(reader.GetString(15),CultureInfo.InvariantCulture,DateTimeStyles.RoundtripKind),
-                    UpdatedUtc=DateTime.Parse(reader.GetString(16),CultureInfo.InvariantCulture,DateTimeStyles.RoundtripKind)
+                    UpdatedUtc=DateTime.Parse(reader.GetString(16),CultureInfo.InvariantCulture,DateTimeStyles.RoundtripKind),CreditCardFeeAmount=decimal.Parse(reader.GetString(17),CultureInfo.InvariantCulture)
                 };
             }
             using (var purchases = connection.CreateCommand())
@@ -148,14 +148,14 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
             }
             using (var payments = connection.CreateCommand())
             {
-                payments.CommandText = "SELECT PaymentId,InvoiceId,Method,TenderedAmount,AppliedAmount,ChangeDue,Reference,CreatedUtc FROM Payments WHERE InvoiceId=$invoice ORDER BY PaymentId;";
+                payments.CommandText = "SELECT PaymentId,InvoiceId,Method,TenderedAmount,AppliedAmount,ChangeDue,Reference,CreatedUtc,ProcessingFee FROM Payments WHERE InvoiceId=$invoice ORDER BY PaymentId;";
                 payments.Parameters.AddWithValue("$invoice", result.InvoiceId); using var reader = payments.ExecuteReader();
                 while (reader.Read()) result.Payments.Add(new Payment
                 {
                     PaymentId=reader.GetInt64(0),InvoiceId=reader.GetInt64(1),Method=Enum.Parse<PaymentMethod>(reader.GetString(2)),
                     TenderedAmount=decimal.Parse(reader.GetString(3),CultureInfo.InvariantCulture),AppliedAmount=decimal.Parse(reader.GetString(4),CultureInfo.InvariantCulture),
                     ChangeDue=decimal.Parse(reader.GetString(5),CultureInfo.InvariantCulture),Reference=reader.GetString(6),
-                    CreatedUtc=DateTime.Parse(reader.GetString(7),CultureInfo.InvariantCulture,DateTimeStyles.RoundtripKind)
+                    CreatedUtc=DateTime.Parse(reader.GetString(7),CultureInfo.InvariantCulture,DateTimeStyles.RoundtripKind),ProcessingFee=decimal.Parse(reader.GetString(8),CultureInfo.InvariantCulture)
                 });
             }
             return result;
@@ -181,22 +181,23 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
             {
                 using var command = connection.CreateCommand(); command.Transaction = transaction;
                 command.CommandText = """
-                    INSERT INTO Payments(InvoiceId,Method,TenderedAmount,AppliedAmount,ChangeDue,Reference,CreatedUtc)
-                    VALUES($invoice,$method,$tendered,$applied,$change,$reference,$created);
+                    INSERT INTO Payments(InvoiceId,Method,TenderedAmount,AppliedAmount,ChangeDue,Reference,CreatedUtc,ProcessingFee)
+                    VALUES($invoice,$method,$tendered,$applied,$change,$reference,$created,$fee);
                     """;
                 command.Parameters.AddWithValue("$invoice", invoice.InvoiceId); command.Parameters.AddWithValue("$method", payment.Method.ToString());
                 command.Parameters.AddWithValue("$tendered", payment.TenderedAmount.ToString(CultureInfo.InvariantCulture)); command.Parameters.AddWithValue("$applied", payment.AppliedAmount.ToString(CultureInfo.InvariantCulture));
                 command.Parameters.AddWithValue("$change", payment.ChangeDue.ToString(CultureInfo.InvariantCulture)); command.Parameters.AddWithValue("$reference", payment.Reference);
-                command.Parameters.AddWithValue("$created", now); command.ExecuteNonQuery();
+                command.Parameters.AddWithValue("$created", now);command.Parameters.AddWithValue("$fee",payment.ProcessingFee.ToString(CultureInfo.InvariantCulture)); command.ExecuteNonQuery();
             }
             using (var update = connection.CreateCommand())
             {
                 update.Transaction=transaction; update.CommandText="""
-                    UPDATE Invoices SET HammerSubtotal=$hammer,BuyerPremiumAmount=$premium,SalesTaxAmount=$tax,
+                    UPDATE Invoices SET HammerSubtotal=$hammer,BuyerPremiumAmount=$premium,SalesTaxAmount=$tax,CreditCardFeeAmount=$fee,
                         TotalAmount=$total,Status=$status,UpdatedUtc=$updated WHERE InvoiceId=$id;
                     """;
                 update.Parameters.AddWithValue("$hammer",invoice.HammerSubtotal.ToString(CultureInfo.InvariantCulture)); update.Parameters.AddWithValue("$premium",invoice.BuyerPremiumAmount.ToString(CultureInfo.InvariantCulture));
                 update.Parameters.AddWithValue("$tax",invoice.SalesTaxAmount.ToString(CultureInfo.InvariantCulture)); update.Parameters.AddWithValue("$total",invoice.TotalAmount.ToString(CultureInfo.InvariantCulture));
+                update.Parameters.AddWithValue("$fee",invoice.CreditCardFeeAmount.ToString(CultureInfo.InvariantCulture));
                 update.Parameters.AddWithValue("$status",invoice.Status); update.Parameters.AddWithValue("$updated",now); update.Parameters.AddWithValue("$id",invoice.InvoiceId); update.ExecuteNonQuery();
             }
             using (var sales = connection.CreateCommand())
@@ -513,16 +514,16 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
             command.CommandText = auction.AuctionId == 0
                 ? """
                     INSERT INTO Auctions(AuctionNumber, AuctionName, AuctionDate, AuctionTime, Location, Auctioneer, Clerk, Cashier,
-                        BuyerPremiumPercent,DefaultConsignorCommissionPercent,SalesTaxPercent,SalesTaxBasis,InvoiceFooter,ReceiptFooter,
+                        BuyerPremiumPercent,CreditCardFeePercent,DefaultConsignorCommissionPercent,SalesTaxPercent,SalesTaxBasis,InvoiceFooter,ReceiptFooter,
                         Status, CreatedDate, CreatedUtc, UpdatedUtc)
                     VALUES($number, $name, $date, $time, $location, $auctioneer, $clerk, $cashier,
-                        $premium,$commission,$tax,$taxBasis,$invoiceFooter,$receiptFooter,$status,$created,$created,$updated);
+                        $premium,$cardFee,$commission,$tax,$taxBasis,$invoiceFooter,$receiptFooter,$status,$created,$created,$updated);
                     SELECT last_insert_rowid();
                     """
                 : """
                     UPDATE Auctions SET AuctionNumber=$number, AuctionName=$name, AuctionDate=$date, AuctionTime=$time,
                         Location=$location, Auctioneer=$auctioneer, Clerk=$clerk, Cashier=$cashier,
-                        BuyerPremiumPercent=$premium,DefaultConsignorCommissionPercent=$commission,SalesTaxPercent=$tax,SalesTaxBasis=$taxBasis,
+                        BuyerPremiumPercent=$premium,CreditCardFeePercent=$cardFee,DefaultConsignorCommissionPercent=$commission,SalesTaxPercent=$tax,SalesTaxBasis=$taxBasis,
                         InvoiceFooter=$invoiceFooter, ReceiptFooter=$receiptFooter, Status=$status, UpdatedUtc=$updated
                     WHERE AuctionId=$id;
                     SELECT $id;
@@ -1468,6 +1469,7 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
             version=10;
         }
         if(version<11){using var transaction=connection.BeginTransaction();using var migration=connection.CreateCommand();migration.Transaction=transaction;migration.CommandText="ALTER TABLE Consignors ADD COLUMN LinkedBuyerId INTEGER NULL REFERENCES Buyers(BuyerId) ON DELETE RESTRICT; CREATE INDEX IX_Consignors_LinkedBuyerId ON Consignors(LinkedBuyerId); INSERT INTO Settings(Key,Value) VALUES('DatabaseSchemaVersion','11') ON CONFLICT(Key) DO UPDATE SET Value='11';";migration.ExecuteNonQuery();transaction.Commit();}
+        if(version<12){using var transaction=connection.BeginTransaction();using var migration=connection.CreateCommand();migration.Transaction=transaction;migration.CommandText="ALTER TABLE Auctions ADD COLUMN CreditCardFeePercent TEXT NOT NULL DEFAULT '3'; ALTER TABLE Invoices ADD COLUMN CreditCardFeeAmount TEXT NOT NULL DEFAULT '0'; ALTER TABLE Payments ADD COLUMN ProcessingFee TEXT NOT NULL DEFAULT '0'; INSERT INTO Settings(Key,Value) VALUES('DatabaseSchemaVersion','12') ON CONFLICT(Key) DO UPDATE SET Value='12';";migration.ExecuteNonQuery();transaction.Commit();}
     }
 
     private static void UpgradeSalesTableForPassOut(SqliteConnection connection)
@@ -1780,7 +1782,7 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
 
     private const string AuctionSelectSql = """
         SELECT AuctionId,AuctionNumber,AuctionName,AuctionDate,AuctionTime,Location,Auctioneer,Clerk,Cashier,
-               BuyerPremiumPercent,DefaultConsignorCommissionPercent,SalesTaxPercent,SalesTaxBasis,InvoiceFooter,ReceiptFooter,
+               BuyerPremiumPercent,CreditCardFeePercent,DefaultConsignorCommissionPercent,SalesTaxPercent,SalesTaxBasis,InvoiceFooter,ReceiptFooter,
                Status,CreatedDate
         FROM Auctions
         """;
@@ -1812,10 +1814,7 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
         AuctionTime = TimeSpan.Parse(reader.GetString(4), CultureInfo.InvariantCulture), Location = reader.GetString(5),
         Auctioneer = reader.GetString(6), Clerk = reader.GetString(7), Cashier = reader.GetString(8),
         BuyerPremiumPercent = decimal.Parse(reader.GetString(9), CultureInfo.InvariantCulture),
-        DefaultConsignorCommissionPercent = decimal.Parse(reader.GetString(10), CultureInfo.InvariantCulture),
-        SalesTaxPercent=decimal.Parse(reader.GetString(11),CultureInfo.InvariantCulture), SalesTaxBasis=Enum.Parse<SalesTaxBasis>(reader.GetString(12)),
-        InvoiceFooter=reader.GetString(13),ReceiptFooter=reader.GetString(14),Status=reader.GetString(15),
-        CreatedDate=DateTime.Parse(reader.GetString(16),CultureInfo.InvariantCulture,DateTimeStyles.RoundtripKind)
+        CreditCardFeePercent=decimal.Parse(reader.GetString(10),CultureInfo.InvariantCulture),DefaultConsignorCommissionPercent = decimal.Parse(reader.GetString(11), CultureInfo.InvariantCulture),SalesTaxPercent=decimal.Parse(reader.GetString(12),CultureInfo.InvariantCulture), SalesTaxBasis=Enum.Parse<SalesTaxBasis>(reader.GetString(13)),InvoiceFooter=reader.GetString(14),ReceiptFooter=reader.GetString(15),Status=reader.GetString(16),CreatedDate=DateTime.Parse(reader.GetString(17),CultureInfo.InvariantCulture,DateTimeStyles.RoundtripKind)
     };
 
     private static void AddAuctionParameters(SqliteCommand command, Auction auction, string now)
@@ -1825,6 +1824,7 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
         command.Parameters.AddWithValue("$time", auction.AuctionTime.ToString("c", CultureInfo.InvariantCulture)); command.Parameters.AddWithValue("$location", auction.Location ?? string.Empty);
         command.Parameters.AddWithValue("$auctioneer", auction.Auctioneer ?? string.Empty); command.Parameters.AddWithValue("$clerk", auction.Clerk ?? string.Empty);
         command.Parameters.AddWithValue("$cashier", auction.Cashier ?? string.Empty); command.Parameters.AddWithValue("$premium", auction.BuyerPremiumPercent.ToString(CultureInfo.InvariantCulture));
+        command.Parameters.AddWithValue("$cardFee",auction.CreditCardFeePercent.ToString(CultureInfo.InvariantCulture));
         command.Parameters.AddWithValue("$commission", auction.DefaultConsignorCommissionPercent.ToString(CultureInfo.InvariantCulture)); command.Parameters.AddWithValue("$tax", auction.SalesTaxPercent.ToString(CultureInfo.InvariantCulture));
         command.Parameters.AddWithValue("$taxBasis", auction.SalesTaxBasis.ToString());
         command.Parameters.AddWithValue("$invoiceFooter", auction.InvoiceFooter ?? string.Empty); command.Parameters.AddWithValue("$receiptFooter", auction.ReceiptFooter ?? string.Empty);

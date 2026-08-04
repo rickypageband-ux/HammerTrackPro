@@ -15,6 +15,7 @@ public sealed class Invoice
     public decimal HammerSubtotal { get; set; }
     public decimal BuyerPremiumAmount { get; set; }
     public decimal SalesTaxAmount { get; set; }
+    public decimal CreditCardFeeAmount { get; set; }
     public decimal TotalAmount { get; set; }
     public decimal AmountPaid { get; set; }
     public decimal BalanceDue { get; set; }
@@ -42,6 +43,7 @@ public sealed class Payment
     public decimal TenderedAmount { get; set; }
     public decimal AppliedAmount { get; set; }
     public decimal ChangeDue { get; set; }
+    public decimal ProcessingFee { get; set; }
     public string Reference { get; set; } = string.Empty;
     public DateTime CreatedUtc { get; set; }
 }

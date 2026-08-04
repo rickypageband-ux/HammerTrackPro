@@ -90,3 +90,8 @@ Status: Cashier and the approved closed-auction consignor payout extension are i
 
 - Consignor save creates or links the same-number current-auction Buyer registration and records a durable `LinkedBuyerId`; conflicting ownership is rejected.
 - Settlement detail and printing show gross sales, commission/fees, linked buyer unpaid-purchase deduction, adjusted net, payouts, and remaining balance.
+
+## Credit-card processing fee
+
+- Current Auction configures `CreditCardFeePercent` (default 3%). Card payments add and pay the fee on only their card portion; cash/check portions have zero fee.
+- Invoice UI, persistence, and printout show processing fees separately.

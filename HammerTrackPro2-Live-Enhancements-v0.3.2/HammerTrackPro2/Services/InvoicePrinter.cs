@@ -50,6 +50,7 @@ public sealed class InvoicePrinter
         DrawTotal(graphics,bodyFont,bounds,ref y,"Hammer subtotal",invoice.HammerSubtotal);
         DrawTotal(graphics,bodyFont,bounds,ref y,$"Buyer's premium ({invoice.BuyerPremiumPercent:0.##}%)",invoice.BuyerPremiumAmount);
         DrawTotal(graphics,bodyFont,bounds,ref y,$"Sales tax ({invoice.SalesTaxPercent:0.##}%)",invoice.SalesTaxAmount);
+        DrawTotal(graphics,bodyFont,bounds,ref y,"Credit-card processing fees",invoice.CreditCardFeeAmount);
         DrawTotal(graphics,headingFont,bounds,ref y,"Invoice total",invoice.TotalAmount);
         DrawTotal(graphics,bodyFont,bounds,ref y,"Payments",invoice.AmountPaid);
         DrawTotal(graphics,headingFont,bounds,ref y,"Balance due",invoice.BalanceDue);

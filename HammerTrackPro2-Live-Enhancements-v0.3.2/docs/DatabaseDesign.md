@@ -60,6 +60,8 @@ Migration 10 additively creates `ConsignorSettlements` and `ConsignorPayouts`, t
 
 Migration 11 adds nullable `Consignors.LinkedBuyerId`, its Buyer foreign key and lookup index. Existing rows remain unchanged until saved/linked; no Buyer or Consignor rows are overwritten.
 
+Migration 12 adds current-auction `CreditCardFeePercent` (legacy/new default 3%), invoice fee totals, and per-payment processing fees. Fees apply only to card-paid portions and are retained separately for audit/reporting.
+
 ## Migrations 7 and 8
 
 The ordered transaction:

@@ -24,6 +24,8 @@ public sealed class Auction
     public string Cashier { get; set; } = string.Empty;
     [Category("Commercial Terms"), DisplayName("Buyer's Premium %")]
     public decimal BuyerPremiumPercent { get; set; }
+    [Category("Commercial Terms"), DisplayName("Credit Card Fee %")]
+    public decimal CreditCardFeePercent { get; set; } = 3m;
     [Category("Commercial Terms"), DisplayName("Seller Commission %")]
     public decimal DefaultConsignorCommissionPercent { get; set; }
     [Category("Commercial Terms"), DisplayName("Sales Tax %")]
