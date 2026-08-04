@@ -1,0 +1,7 @@
+using System.Drawing.Printing;using HammerTrackPro2.Models;
+namespace HammerTrackPro2.Services;
+public sealed class AuctionSettlementPrinter
+{
+ public PrintDocument CreateDocument(AuctionSettlementReport r){var d=new PrintDocument{DocumentName=$"Auction Settlement {r.AuctionNumber}"};d.PrintPage+=(_,e)=>Draw(e.Graphics!,e.MarginBounds,r);return d;}
+ internal static void Draw(Graphics g,Rectangle b,AuctionSettlementReport r){using var title=new Font("Segoe UI",18,FontStyle.Bold);using var h=new Font("Segoe UI",10,FontStyle.Bold);using var body=new Font("Segoe UI",10);var y=b.Top;g.DrawString($"{r.AuctionName} - END-OF-NIGHT SETTLEMENT",title,Brushes.Black,b.Left,y);y+=42;void Line(string n,decimal v){g.DrawString(n,body,Brushes.Black,b.Left,y);g.DrawString(v.ToString("C2"),h,Brushes.Black,b.Right-120,y);y+=22;}Line("Total hammer sales",r.HammerSales);Line("Buyer premiums",r.BuyerPremiums);Line("Credit-card processing fees",r.CreditCardFees);Line("Sales tax collected",r.SalesTaxCollected);Line("Buyer invoice total",r.InvoiceTotal);Line("Buyer amount paid",r.InvoiceAmountPaid);Line("Buyer balance unpaid",r.InvoiceBalanceUnpaid);y+=8;Line("Consignor gross sales",r.ConsignorGrossSales);Line("Consignor commissions",r.ConsignorCommissions);Line("Buyer purchase offsets",r.PurchaseBalanceOffsets);Line("Consignor payouts",r.ConsignorPayouts);Line("Staff/operating payments",r.StaffPayments);y+=10;Line("NET CASH MOVEMENT (paid in - payouts - staff)",r.NetCashMovement);}
+}

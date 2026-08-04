@@ -32,4 +32,7 @@ public interface IDataStore : IConsignorRepository
     string Backup();
     string DataFilePath { get; }
     void EnsureConsignorBuyerLink(int consignorNumber);
+    AuctionSettlementReport LoadAuctionSettlementReport();
+    StaffPayment RecordStaffPayment(StaffPayment payment);
+    StaffPayment VoidStaffPayment(long staffPaymentId,string reason,StaffPayment? replacement);
 }

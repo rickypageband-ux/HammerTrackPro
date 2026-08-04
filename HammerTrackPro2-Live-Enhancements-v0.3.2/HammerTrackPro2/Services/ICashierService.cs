@@ -12,5 +12,8 @@ public interface ICashierService
     ConsignorSettlement RecordConsignorPayout(int consignorNumber, ConsignorPayoutRequest payout);
     ConsignorSettlement RegisterConsignor(Consignor consignor);
     IReadOnlyList<UnpaidInvoiceSummary> GetUnpaidInvoices();
+    AuctionSettlementReport GetAuctionSettlementReport();
+    StaffPayment RecordStaffPayment(StaffPayment payment);
+    StaffPayment VoidStaffPayment(long staffPaymentId,string reason,StaffPayment? replacement);
     Task<bool> CheckConnectionAsync(CancellationToken cancellationToken = default);
 }

@@ -62,6 +62,8 @@ Migration 11 adds nullable `Consignors.LinkedBuyerId`, its Buyer foreign key and
 
 Migration 12 adds current-auction `CreditCardFeePercent` (legacy/new default 3%), invoice fee totals, and per-payment processing fees. Fees apply only to card-paid portions and are retained separately for audit/reporting.
 
+Migration 13 adds the auction-scoped append-only `StaffPayments` ledger with self-references for void and replacement entries plus auction/time and void indexes. Original entries are never edited or deleted.
+
 ## Migrations 7 and 8
 
 The ordered transaction:

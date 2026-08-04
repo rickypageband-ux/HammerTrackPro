@@ -34,7 +34,7 @@ public sealed class CashierForm : Form
         _viewModel=viewModel; _cashierService=cashierService; _configuration=configuration; Text="HammerTrack Cashier"; Width=1000; Height=760;
         var lookup=new FlowLayoutPanel { Dock=DockStyle.Fill,AutoSize=true };
         lookup.Controls.Add(new Label { Text="Auction Bidder Number",AutoSize=true }); lookup.Controls.Add(_bidderNumber);
-        lookup.Controls.Add(Button("Lookup",Lookup)); lookup.Controls.Add(Button("Register Buyer",RegisterBuyer)); lookup.Controls.Add(Button("Who Has Not Paid?",ShowUnpaid)); lookup.Controls.Add(Button("Preview / Print Invoice",PrintInvoice));
+        lookup.Controls.Add(Button("Lookup",Lookup)); lookup.Controls.Add(Button("Register Buyer",RegisterBuyer)); lookup.Controls.Add(Button("Who Has Not Paid?",ShowUnpaid)); lookup.Controls.Add(Button("End-of-Night Settlement",()=>{using var f=new AuctionSettlementForm(_cashierService);f.ShowDialog(this);})); lookup.Controls.Add(Button("Preview / Print Invoice",PrintInvoice));
         if(configuration is not null) lookup.Controls.Add(Button("Network Setup",OpenNetworkSetup));
         lookup.Controls.Add(_connection);
         var paymentEntry=new FlowLayoutPanel { Dock=DockStyle.Fill,AutoSize=true };

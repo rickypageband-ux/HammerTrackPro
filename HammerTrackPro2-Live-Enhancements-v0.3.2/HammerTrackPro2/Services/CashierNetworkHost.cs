@@ -44,6 +44,9 @@ public sealed class CashierNetworkHost : IAsyncDisposable
         application.MapGet("/api/settlements/{consignorNumber:int}",(int consignorNumber,ICashierService service)=>Execute(()=>service.LoadConsignorSettlement(consignorNumber)));
         application.MapPost("/api/registrations/consignors",(Consignor consignor,ICashierService service)=>Execute(()=>service.RegisterConsignor(consignor)));
         application.MapPost("/api/settlements/{consignorNumber:int}/payouts",(int consignorNumber,ConsignorPayoutRequest payout,ICashierService service)=>Execute(()=>service.RecordConsignorPayout(consignorNumber,payout)));
+        application.MapGet("/api/auction-settlement",(ICashierService service)=>Execute(()=>service.GetAuctionSettlementReport()));
+        application.MapPost("/api/staff-payments",(StaffPayment payment,ICashierService service)=>Execute(()=>service.RecordStaffPayment(payment)));
+        application.MapPost("/api/staff-payments/{id:long}/void",(long id,StaffPaymentVoidRequest request,ICashierService service)=>Execute(()=>service.VoidStaffPayment(id,request.Reason,request.Replacement)));
         await application.StartAsync(cancellationToken); return new CashierNetworkHost(application);
     }
 
@@ -54,3 +57,4 @@ public sealed class CashierNetworkHost : IAsyncDisposable
     }
     public async ValueTask DisposeAsync() { await _application.StopAsync(); await _application.DisposeAsync(); }
 }
+public sealed class StaffPaymentVoidRequest{public string Reason{get;set;}=string.Empty;public StaffPayment? Replacement{get;set;}}

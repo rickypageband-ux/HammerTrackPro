@@ -95,3 +95,9 @@ Status: Cashier and the approved closed-auction consignor payout extension are i
 
 - Current Auction configures `CreditCardFeePercent` (default 3%). Card payments add and pay the fee on only their card portion; cash/check portions have zero fee.
 - Invoice UI, persistence, and printout show processing fees separately.
+
+## End-of-night settlement
+
+- Record clerk, auctioneer, floor-help, and kitchen-help payments in an append-only current-auction ledger.
+- Corrections require a reason and append linked void/replacement entries; originals remain intact and audited.
+- Current-data report and print preview reconcile hammer, premiums, card fees, sales tax, invoice paid/unpaid, consignor commissions/offsets/payouts, staff payments, and net cash movement without counting internal offsets as cash.
