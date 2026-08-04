@@ -47,6 +47,7 @@ public sealed class LiveAuctionForm : Form
         KeyPreview = true;
         KeyDown += HandleFormKeyDown;
         Controls.Add(BuildLayout());
+        AcceptButton = _completeSale;
         LoadLastSale();
         LoadNextAvailableLot();
     }
@@ -114,7 +115,7 @@ public sealed class LiveAuctionForm : Form
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-        panel.Controls.Add(new Label { Text="Quick Add Consignor Number",AutoSize=true,Anchor=AnchorStyles.Left,Font=new Font("Segoe UI",11F,FontStyle.Bold) },0,0);
+        panel.Controls.Add(new Label { Text="Quick Add Seller Number",AutoSize=true,Anchor=AnchorStyles.Left,Font=new Font("Segoe UI",11F,FontStyle.Bold) },0,0);
         _quickConsignorNumber.Minimum=0; _quickConsignorNumber.Maximum=999999; _quickConsignorNumber.Dock=DockStyle.Fill;
         panel.Controls.Add(_quickConsignorNumber,1,0);
         panel.Controls.Add(new Label { Text="Lot Description / Name",AutoSize=true,Anchor=AnchorStyles.Left,Margin=new Padding(16,3,3,3),Font=new Font("Segoe UI",11F,FontStyle.Bold) },2,0);
@@ -314,9 +315,8 @@ public sealed class LiveAuctionForm : Form
         {
             var lot=_viewModel.QuickAddLot(Decimal.ToInt32(_quickConsignorNumber.Value),_quickDescription.Text);
             _lotNumber.Value=lot.LotNumber;
-            _quickDescription.Clear();
             UpdateLotDisplay(true);
-            ShowStatus($"Lot #{lot.LotNumber} created for Consignor #{Decimal.ToInt32(_quickConsignorNumber.Value)} and ready to sell.",true);
+            ShowStatus($"Lot #{lot.LotNumber} created for Seller #{Decimal.ToInt32(_quickConsignorNumber.Value)} and ready to sell.",true);
             _bidderNumber.Focus();
             _bidderNumber.Select(0,_bidderNumber.Text.Length);
         }
@@ -372,6 +372,7 @@ public sealed class LiveAuctionForm : Form
         {
             ShowStatus(ex.Message, false);
             System.Media.SystemSounds.Hand.Play();
+            MessageBox.Show(this,ex.Message,"Sale Not Recorded",MessageBoxButtons.OK,MessageBoxIcon.Warning);
         }
     }
 
@@ -431,6 +432,7 @@ public sealed class LiveAuctionForm : Form
 
     private void AdvanceToNextLot()
     {
+        _quickDescription.Clear();
         var queued = Decimal.ToInt32(_queuedLot.Value);
         if (queued > 0)
         {

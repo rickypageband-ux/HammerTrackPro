@@ -72,6 +72,7 @@ Status: Cashier and the approved closed-auction consignor payout extension are i
 - Create a current-auction lot during live operations from an active Consignor Number and description, assigning the next auction-scoped lot number.
 - Preserve the separate full lot-entry workflow.
 - Make the new lot immediately selectable for bidder and hammer-price entry.
+- Keep the quick-add description visible while that lot is active; clear it only when the operator advances or passes to the next item.
 - Provide a distinct Pass Item / Next action that marks an unsold item `Passed`, audits it, and advances; retain existing multi-buyer Pass-Out Mode unchanged.
 - Reject missing/inactive consignors, closed auctions, blank descriptions, and passing lots that already have buyer entries.
 
