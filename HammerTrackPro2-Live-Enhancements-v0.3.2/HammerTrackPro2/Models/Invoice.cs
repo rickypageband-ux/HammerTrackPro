@@ -52,6 +52,8 @@ public sealed class PaymentRequest
 {
     public PaymentMethod Method { get; set; }
     public decimal Amount { get; set; }
+    public decimal ProcessingFee { get; set; }
+    public decimal TotalTender => Amount + ProcessingFee;
     public string Reference { get; set; } = string.Empty;
 }
 

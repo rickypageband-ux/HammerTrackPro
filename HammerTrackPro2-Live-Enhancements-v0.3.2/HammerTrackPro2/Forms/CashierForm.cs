@@ -21,6 +21,7 @@ public sealed class CashierForm : Form
     private readonly ComboBox _method=new() { DropDownStyle=ComboBoxStyle.DropDownList,DataSource=Enum.GetValues<PaymentMethod>() };
     private readonly NumericUpDown _amount=new() { DecimalPlaces=2,Maximum=100000000 };
     private readonly TextBox _reference=new();
+    private readonly Label _paymentPreview=new(){AutoSize=true,ForeColor=Color.DarkGreen,Font=new Font("Segoe UI",9F,FontStyle.Bold)};
     private readonly NumericUpDown _consignorNumber=new() { Minimum=1,Maximum=999999 };
     private readonly Label _settlementHeading=new() { AutoSize=true };
     private readonly DataGridView _settlementLots=new() { Dock=DockStyle.Fill,ReadOnly=true,AutoGenerateColumns=true,AllowUserToAddRows=false };
@@ -41,6 +42,7 @@ public sealed class CashierForm : Form
         paymentEntry.Controls.Add(new Label { Text="Method",AutoSize=true }); paymentEntry.Controls.Add(_method);
         paymentEntry.Controls.Add(new Label { Text="Amount",AutoSize=true }); paymentEntry.Controls.Add(_amount);
         paymentEntry.Controls.Add(new Label { Text="Check/Card Reference",AutoSize=true }); paymentEntry.Controls.Add(_reference);
+        paymentEntry.Controls.Add(_paymentPreview);
         paymentEntry.Controls.Add(Button("Add Payment",AddPayment)); paymentEntry.Controls.Add(Button("Remove Selected",RemovePayment));
         paymentEntry.Controls.Add(Button("Record Payments",RecordPayments));
         var tabs=new TabControl { Dock=DockStyle.Fill };
@@ -55,6 +57,8 @@ public sealed class CashierForm : Form
         layout.RowStyles.Add(new RowStyle(SizeType.AutoSize)); layout.RowStyles.Add(new RowStyle(SizeType.AutoSize)); layout.RowStyles.Add(new RowStyle(SizeType.Percent,100)); layout.RowStyles.Add(new RowStyle(SizeType.AutoSize)); layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         layout.Controls.Add(lookup,0,0); layout.Controls.Add(_heading,0,1); layout.Controls.Add(_totals,0,2); layout.Controls.Add(_settlementHeading,0,3); layout.Controls.Add(tabs,0,4); layout.Controls.Add(paymentEntry,0,5); layout.Controls.Add(sellerEntry,0,6);
         Controls.Add(layout);
+        _method.SelectedIndexChanged+=(_,_)=>RefreshPaymentPreview();_amount.ValueChanged+=(_,_)=>RefreshPaymentPreview();
+        RefreshPaymentPreview();
         Shown+=async(_,_)=>await CheckConnection(); _connectionTimer.Tick+=async(_,_)=>await CheckConnection(); _connectionTimer.Start();
         FormClosed+=(_,_)=>{_connectionTimer.Stop();_connectionTimer.Dispose();};
     }
@@ -124,9 +128,12 @@ public sealed class CashierForm : Form
         var invoice=_viewModel.Invoice;
         if (invoice is null) return;
         _heading.Text=$"Invoice {invoice.FormattedInvoiceNumber} — {invoice.BuyerName} — {invoice.Status}";
-        _totals.Text=$"Hammer {invoice.HammerSubtotal:C2}   Premium {invoice.BuyerPremiumAmount:C2}   Tax {invoice.SalesTaxAmount:C2}   Card fee {invoice.CreditCardFeeAmount:C2}   Total {invoice.TotalAmount:C2}   Paid {invoice.AmountPaid:C2}   Balance {invoice.BalanceDue:C2}";
+        var pendingFee=_viewModel.PendingCardFee;
+        _totals.Text=$"Hammer {invoice.HammerSubtotal:C2}   Premium {invoice.BuyerPremiumAmount:C2}   Tax {invoice.SalesTaxAmount:C2}   Card fee {invoice.CreditCardFeeAmount:C2}{(pendingFee>0?$" + {pendingFee:C2} pending":"")}   Total {invoice.TotalAmount+pendingFee:C2}   Paid {invoice.AmountPaid:C2}   Balance {invoice.BalanceDue:C2}";
         _purchases.DataSource=invoice.Purchases.ToList(); _payments.DataSource=invoice.Payments.ToList(); _pending.DataSource=_viewModel.PendingPayments.ToList();
+        RefreshPaymentPreview();
     }
+    private void RefreshPaymentPreview(){if(_method.SelectedItem is not PaymentMethod method)return;var fee=_viewModel.CalculateCardFee(method,_amount.Value);_paymentPreview.Text=method==PaymentMethod.Card?$"Card fee {fee:C2}; tender {_amount.Value+fee:C2}":$"{method}: no card fee";_paymentPreview.ForeColor=method==PaymentMethod.Card?Color.DarkRed:Color.DarkGreen;}
     private void RefreshSettlement()
     {
         var settlement=_viewModel.Settlement; if(settlement is null)return;
