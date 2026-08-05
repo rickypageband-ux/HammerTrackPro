@@ -132,6 +132,8 @@ Status: Cashier and the approved closed-auction consignor payout extension are i
 - Current-data report and print preview reconcile hammer, premiums, card fees, sales tax, invoice paid/unpaid, consignor commissions/offsets/payouts, staff payments, and net cash movement without counting internal offsets as cash.
 - Present the workflow in a branded, full-screen-capable dashboard with clear financial summary cards, organized payment entry, a readable ledger, explicit selection/void guidance, refresh feedback, and uniform actions.
 - Package the End-of-Night usability redesign as upgrade version 0.7.20.
+- Keep all End-of-Night financial values readable at short/full-screen resolutions by using two taller summary rows and a vertically scrollable fixed-height workspace instead of compressing sections.
+- Package the End-of-Night short-screen layout correction as upgrade version 0.7.21.
 
 ## Invoice condition of sale
 
