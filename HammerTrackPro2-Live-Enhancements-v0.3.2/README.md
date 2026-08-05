@@ -78,6 +78,7 @@ There is no CI configuration, user/role authentication model, or auction reopeni
 Selecting Card in Cashier fills the current invoice balance and immediately previews the current-auction processing fee, defaulted to 2.65% plus $0.15.
 The cashier enters and records the invoice balance before the card fee; HammerTrack then adds the current auction's configured percentage and fixed fee, charges and applies the combined amount, and prints the fee-inclusive paid invoice total.
 Looking up a bidder automatically fills the payment amount with the invoice balance owed for Cash, Check, or Card. Pending split payments reduce the automatically suggested remainder.
+Cashier includes a Bidder Cards workspace that lists current-auction registrations and previews a full-letter-page card with the selected bidder number in large block type and the saved auction-company name at the bottom.
 
 Cashier uses a branded, full-screen-capable workspace with larger uniform controls and direct Buyer and Seller registration. Registering a Seller with an existing same-number current-auction Buyer links the Seller to that durable Buyer identity instead of creating a duplicate or rejecting the registration.
 

@@ -146,3 +146,10 @@ Status: Cashier and the approved closed-auction consignor payout extension are i
 - Reserve a DPI-safe 340-pixel print-header title region so the complete End-of-Night report heading is never clipped, and suppress an empty Location label.
 - Package the End-of-Night print-title correction as upgrade version 0.7.24.
 - Every local or LAN Cashier invoice preview/print includes the approved Condition of Sale – Disclaimer of Warranties with its exact heading and two-paragraph wording.
+
+## Bidder cards
+
+- Cashier provides a dedicated Bidder Cards workspace using the current auction's registered bidder list on either the local host or paired LAN cashier.
+- The operator selects one bidder and opens a full-letter-page print preview containing that bidder number in very large block numerals, a bold divider, and the persisted auction-company name at the bottom; Auction Name is the fallback when Company Name is blank.
+- Bidder-card selection rejects numbers that are not registered in the current auction and never prints registrations from another auction.
+- Package bidder-card printing as upgrade version 0.7.25.

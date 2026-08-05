@@ -42,7 +42,7 @@ public sealed class CashierForm : Form
         var header=BuildHeader();
         var lookup=ActionFlow();
         lookup.Controls.Add(new Label { Text="Auction Bidder Number",AutoSize=true }); lookup.Controls.Add(_bidderNumber);
-        lookup.Controls.Add(Button("Lookup Buyer",Lookup)); lookup.Controls.Add(Button("Add Buyer",RegisterBuyer)); lookup.Controls.Add(Button("Add Seller",RegisterConsignor)); lookup.Controls.Add(Button("Unpaid Buyers",ShowUnpaid)); lookup.Controls.Add(Button("End-of-Night",()=>{using var f=new AuctionSettlementForm(_cashierService);f.ShowDialog(this);})); lookup.Controls.Add(Button("Print Invoice",PrintInvoice));
+        lookup.Controls.Add(Button("Lookup Buyer",Lookup)); lookup.Controls.Add(Button("Add Buyer",RegisterBuyer)); lookup.Controls.Add(Button("Add Seller",RegisterConsignor)); lookup.Controls.Add(Button("Bidder Cards",ShowBidderCards)); lookup.Controls.Add(Button("Unpaid Buyers",ShowUnpaid)); lookup.Controls.Add(Button("End-of-Night",()=>{using var f=new AuctionSettlementForm(_cashierService);f.ShowDialog(this);})); lookup.Controls.Add(Button("Print Invoice",PrintInvoice));
         if(configuration is not null) lookup.Controls.Add(Button("Network Setup",OpenNetworkSetup));
         var paymentEntry=ActionFlow();
         paymentEntry.Controls.Add(new Label { Text="Method",AutoSize=true }); paymentEntry.Controls.Add(_method);
@@ -88,6 +88,7 @@ public sealed class CashierForm : Form
     private void LookupConsignor() { _viewModel.LookupConsignor(Decimal.ToInt32(_consignorNumber.Value)); RefreshSettlement(); }
     private void RegisterBuyer(){using var f=new CashierRegistrationForm(new CashierRegistrationViewModel(false,_cashierService.GetRegisteredBidders()));if(f.ShowDialog(this)!=DialogResult.OK||f.Buyer is null)return;_viewModel.RegisterBuyer(f.Buyer);_bidderNumber.Value=f.Buyer.BidderNumber;RefreshInvoice();}
     private void RegisterConsignor(){using var f=new CashierRegistrationForm(new CashierRegistrationViewModel(true,_cashierService.GetRegisteredBidders()));if(f.ShowDialog(this)!=DialogResult.OK||f.Consignor is null)return;_viewModel.RegisterConsignor(f.Consignor);_consignorNumber.Value=f.Consignor.ConsignorNumber;RefreshSettlement();}
+    private void ShowBidderCards(){using var f=new BidderCardForm(new BidderCardViewModel(_cashierService));f.ShowDialog(this);}
     private void ShowUnpaid(){var rows=_cashierService.GetUnpaidInvoices();using var f=new Form{Text="Current Auction - Unpaid Buyers",StartPosition=FormStartPosition.CenterParent,Width=800,Height=500};var grid=new DataGridView{Dock=DockStyle.Fill,ReadOnly=true,AutoGenerateColumns=true,DataSource=rows.ToList(),AutoSizeColumnsMode=DataGridViewAutoSizeColumnsMode.Fill};f.Controls.Add(grid);if(rows.Count==0)f.Controls.Add(new Label{Text="Everyone in the current auction is paid in full.",Dock=DockStyle.Top,Height=44,TextAlign=ContentAlignment.MiddleCenter,BackColor=Color.Honeydew,ForeColor=Color.DarkGreen});f.ShowDialog(this);}
     private void RecordConsignorPayout()
     {
