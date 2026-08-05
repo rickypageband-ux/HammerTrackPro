@@ -90,3 +90,5 @@ The operator interface uses **Seller** wording while retaining the existing `Con
 Lot entry lists sellers by seller number and name, refreshes after Seller Management closes, and retains inactive sellers for historical/controlled assignment with a visible inactive label.
 
 Live Auction also provides a focused quick-add row for an active Seller Number and lot description. It assigns the next current-auction lot number and makes the new lot immediately available for sale without replacing the full lot-entry workflow.
+
+End-of-Night uses the same branded full-screen workspace, with clear financial summary cards, organized staff-payment entry, a readable audit ledger, safer void guidance, refresh status, and print preview.
