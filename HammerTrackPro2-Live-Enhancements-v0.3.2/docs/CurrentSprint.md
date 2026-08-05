@@ -87,6 +87,7 @@ Status: Cashier and the approved closed-auction consignor payout extension are i
 - The Add Buyer split panel is initialized at its intended size before applying minimum widths and divider position, preventing startup failure on Cashier workstations.
 - Cashier provides prominent Add Buyer and Add Seller actions in its branded workspace. Seller registration lists existing current-auction Buyer Numbers and can reuse the same number by linking the Seller to that existing Buyer identity.
 - Cashier supports a visible Full Screen button plus F11/Escape operation, larger uniform action buttons, branded header colors, clearer grouping, and consistent data-grid styling.
+- Package the branded Cashier workspace and same-number existing Buyer/Seller linking correction as upgrade version 0.7.14.
 
 ## Unpaid buyer review
 
