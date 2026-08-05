@@ -14,12 +14,17 @@ public sealed class LiveAuctionViewModelTests
     {
         using var database=TemporaryDatabase.Create();var store=new SqliteDataStore(database.Path);var service=new AuctionService(store);
         using var form=new LiveAuctionForm(service,new LiveAuctionViewModel(service,new ConsignorService(store)));
-        var buttons=form.Controls.Cast<Control>().SelectMany(Descendants).OfType<Button>().Where(x=>x.Text.Contains("Enter")||x.Text.Contains("F4")||x.Text.Contains("F8")||x.Text.Contains("F11")||x.Text.Contains("F12")).ToList();
+        var controls=form.Controls.Cast<Control>().SelectMany(Descendants).ToList();
+        var buttons=controls.OfType<Button>().Where(x=>x.Text.Contains("Enter")||x.Text.Contains("F4")||x.Text.Contains("F8")||x.Text.Contains("F11")||x.Text.Contains("F12")).ToList();
         Assert.Equal(5,buttons.Count);
         Assert.All(buttons,x=>{Assert.False(x.AutoSize);Assert.Equal(DockStyle.Fill,x.Dock);});
         var actionLayout=Assert.IsType<TableLayoutPanel>(buttons[0].Parent);
         Assert.Equal(5,actionLayout.ColumnCount);
+        Assert.Equal(58,actionLayout.Height);
+        Assert.Equal(58,actionLayout.MaximumSize.Height);
         Assert.All(buttons,x=>Assert.Same(actionLayout,x.Parent));
+        var create=Assert.Single(controls.OfType<Button>(),x=>x.Text=="CREATE LOT");
+        Assert.True(create.MinimumSize.Width>=150);
     }
 
     [Fact]

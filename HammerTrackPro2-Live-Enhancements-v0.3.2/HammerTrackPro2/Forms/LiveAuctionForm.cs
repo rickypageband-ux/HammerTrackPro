@@ -123,7 +123,7 @@ public sealed class LiveAuctionForm : Form
         _quickDescription.Dock=DockStyle.Fill;
         _quickDescription.KeyDown+=(_,e)=>{if(e.KeyCode==Keys.Enter){QuickAddLot();e.SuppressKeyPress=true;}};
         panel.Controls.Add(_quickDescription,3,0);
-        var add=new Button(); ConfigureButton(add,"CREATE LOT",(_,_)=>QuickAddLot(),true); panel.Controls.Add(add,4,0);
+        var add=new Button(); ConfigureButton(add,"CREATE LOT",(_,_)=>QuickAddLot(),true);add.MinimumSize=new Size(150,48);add.Width=150;panel.Controls.Add(add,4,0);
         return panel;
     }
 
@@ -214,7 +214,7 @@ public sealed class LiveAuctionForm : Form
         form.Controls.Add(new Label(), 0, 3);
         form.Controls.Add(_passOutMode, 1, 3);
 
-        var buttons = new TableLayoutPanel { Dock=DockStyle.Fill,ColumnCount=5,RowCount=1,Margin=new Padding(0,4,0,0) };
+        var buttons = new TableLayoutPanel { Dock=DockStyle.Top,Height=58,MaximumSize=new Size(0,58),ColumnCount=5,RowCount=1,Margin=new Padding(0,4,0,0) };
         for(var column=0;column<5;column++)buttons.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,20));
         ConfigureButton(_completeSale, "RECORD BUYER  (Enter)", (_, _) => CompleteSale(), true);
         ConfigureButton(_closeLot, "Close Lot  (F12)", (_, _) => CloseCurrentLot());
@@ -270,6 +270,7 @@ public sealed class LiveAuctionForm : Form
         button.AutoSize = false;
         button.Dock=DockStyle.Fill;
         button.Height=50;
+        button.MinimumSize=new Size(120,48);
         button.Margin=new Padding(4);
         button.Font = new Font("Segoe UI", primary ? 11F : 9.5F, FontStyle.Bold);
         if (primary)
