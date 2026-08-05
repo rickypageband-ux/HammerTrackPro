@@ -25,6 +25,21 @@ public sealed class CashierViewModel
     }
     public decimal SuggestedPaymentAmount(PaymentMethod method)=>method==PaymentMethod.Card?Invoice?.BalanceDue??0m:0m;
     public decimal PendingCardFee=>PendingPayments.Sum(item=>item.ProcessingFee);
+    public Invoice CreateInvoicePreview(PaymentMethod method,decimal amount)
+    {
+        var invoice=Invoice??throw new InvalidOperationException("Look up a bidder before printing.");
+        var previewFee=PendingCardFee+CalculateCardFee(method,amount);
+        return new Invoice
+        {
+            InvoiceId=invoice.InvoiceId,AuctionId=invoice.AuctionId,AuctionBidderId=invoice.AuctionBidderId,
+            AuctionNumber=invoice.AuctionNumber,BidderNumber=invoice.BidderNumber,BuyerName=invoice.BuyerName,BuyerAddress=invoice.BuyerAddress,
+            BuyerPremiumPercent=invoice.BuyerPremiumPercent,SalesTaxPercent=invoice.SalesTaxPercent,SalesTaxBasis=invoice.SalesTaxBasis,
+            HammerSubtotal=invoice.HammerSubtotal,BuyerPremiumAmount=invoice.BuyerPremiumAmount,SalesTaxAmount=invoice.SalesTaxAmount,
+            CreditCardFeeAmount=invoice.CreditCardFeeAmount+previewFee,TotalAmount=invoice.TotalAmount+previewFee,
+            AmountPaid=invoice.AmountPaid,BalanceDue=invoice.BalanceDue+previewFee,Status=invoice.Status,
+            CreatedUtc=invoice.CreatedUtc,UpdatedUtc=invoice.UpdatedUtc,Purchases=invoice.Purchases.ToList(),Payments=invoice.Payments.ToList()
+        };
+    }
     public void RemovePayment(PaymentRequest payment) => PendingPayments.Remove(payment);
     public void RecordPayments()
     {

@@ -83,7 +83,8 @@ public sealed class CashierForm : Form
     }
     private void PrintInvoice()
     {
-        var invoice=_viewModel.Invoice ?? throw new InvalidOperationException("Look up a bidder before printing.");
+        if(_method.SelectedItem is not PaymentMethod method)throw new InvalidOperationException("Select a payment method.");
+        var invoice=_viewModel.CreateInvoicePreview(method,_amount.Value);
         using var document=new InvoicePrinter().CreateDocument(invoice,_cashierService.GetCurrentAuction());
         ShowPrintPreview(document);
     }
@@ -128,12 +129,16 @@ public sealed class CashierForm : Form
         var invoice=_viewModel.Invoice;
         if (invoice is null) return;
         _heading.Text=$"Invoice {invoice.FormattedInvoiceNumber} — {invoice.BuyerName} — {invoice.Status}";
-        var pendingFee=_viewModel.PendingCardFee;
-        _totals.Text=$"Hammer {invoice.HammerSubtotal:C2}   Premium {invoice.BuyerPremiumAmount:C2}   Tax {invoice.SalesTaxAmount:C2}   Card fee {invoice.CreditCardFeeAmount:C2}{(pendingFee>0?$" + {pendingFee:C2} pending":"")}   Total {invoice.TotalAmount+pendingFee:C2}   Paid {invoice.AmountPaid:C2}   Balance {invoice.BalanceDue:C2}";
         _purchases.DataSource=invoice.Purchases.ToList(); _payments.DataSource=invoice.Payments.ToList(); _pending.DataSource=_viewModel.PendingPayments.ToList();
         RefreshPaymentPreview();
     }
-    private void RefreshPaymentPreview(){if(_method.SelectedItem is not PaymentMethod method)return;var fee=_viewModel.CalculateCardFee(method,_amount.Value);_paymentPreview.Text=method==PaymentMethod.Card?$"Card fee (2.65% + $0.15) {fee:C2}; tender {_amount.Value+fee:C2}":$"{method}: no card fee";_paymentPreview.ForeColor=method==PaymentMethod.Card?Color.DarkRed:Color.DarkGreen;}
+    private void RefreshPaymentPreview(){if(_method.SelectedItem is not PaymentMethod method)return;var fee=_viewModel.CalculateCardFee(method,_amount.Value);_paymentPreview.Text=method==PaymentMethod.Card?$"Card fee (2.65% + $0.15) {fee:C2}; tender {_amount.Value+fee:C2}":$"{method}: no card fee";_paymentPreview.ForeColor=method==PaymentMethod.Card?Color.DarkRed:Color.DarkGreen;RefreshInvoiceTotals(method,fee);}
+    private void RefreshInvoiceTotals(PaymentMethod method,decimal activeFee)
+    {
+        var invoice=_viewModel.Invoice;if(invoice is null)return;
+        var previewFee=_viewModel.PendingCardFee+(method==PaymentMethod.Card?activeFee:0m);
+        _totals.Text=$"Hammer {invoice.HammerSubtotal:C2}   Premium {invoice.BuyerPremiumAmount:C2}   Tax {invoice.SalesTaxAmount:C2}   Card fee {invoice.CreditCardFeeAmount+previewFee:C2}{(previewFee>0?$" ({previewFee:C2} pending)":"")}   Total {invoice.TotalAmount+previewFee:C2}   Paid {invoice.AmountPaid:C2}   Balance {invoice.BalanceDue+previewFee:C2}";
+    }
     private void PaymentMethodChanged()
     {
         if(_method.SelectedItem is PaymentMethod.Card)

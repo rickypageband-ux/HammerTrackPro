@@ -106,6 +106,7 @@ Status: Cashier and the approved closed-auction consignor payout extension are i
 - Invoice UI, persistence, and printout show processing fees separately.
 - The payment-method dropdown is the only fee selector: selecting Card fills the current invoice balance and immediately previews the 2.65% + $0.15 current-auction fee, while Cash and Check explicitly show no card fee. Pending split-payment rows show fee and total tender before recording.
 - Package the corrected card-fee calculation and Card-selection balance autofill as upgrade version 0.7.12.
+- On-screen totals and invoice print preview include the currently selected Card fee before recording; persistence remains deferred until Record Payments succeeds.
 
 ## End-of-night settlement
 
