@@ -153,3 +153,5 @@ Status: Cashier and the approved closed-auction consignor payout extension are i
 - The operator selects one bidder and opens a full-letter-page print preview containing that bidder number in very large block numerals, a bold divider, and the persisted auction-company name at the bottom; Auction Name is the fallback when Company Name is blank.
 - Bidder-card selection rejects numbers that are not registered in the current auction and never prints registrations from another auction.
 - Package bidder-card printing as upgrade version 0.7.25.
+- Force bidder-card documents to landscape at both document setup and printer page-query time, and reserve a ten-percent fitting buffer so all selected bidder-number digits remain visible in preview and print.
+- Package the landscape bidder-card correction as upgrade version 0.7.26.
