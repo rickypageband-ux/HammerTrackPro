@@ -177,3 +177,13 @@ Status: Cashier and the approved closed-auction consignor payout extension are i
 - Improve real-camera recognition with 1920x1080 capture, a visible positioning guide, enlarged contrast-equalized and adaptive-threshold decode attempts, relaxed valid-AAMVA header handling, and live actionable recognition status.
 - Verify decoding against a low-contrast PDF417 license barcode placed inside a camera-sized frame.
 - Package the camera recognition correction as upgrade version 0.7.29.
+
+## Handheld driver's-license scanner
+
+- Cashier Add Buyer and the main Bidders screen provide Use Handheld Scanner alongside Scan with Camera.
+- Accept PDF417-capable scanners operating as a USB HID/keyboard through a USB cable, 2.4 GHz receiver, or Bluetooth; no vendor driver, serial-port assignment, or database/network change is required in keyboard mode.
+- Capture the scanner keystroke stream in a dedicated private window and detect completion after 550 milliseconds without input, rather than treating internal AAMVA line breaks as the end of the scan.
+- Never display, log, persist, or transmit the raw barcode. Parse locally and return only the existing bidder fields for operator review before the normal save operation.
+- Show actionable PDF417/HID guidance after an unrelated or incomplete scan, clear the rejected buffer, and allow immediate rescan.
+- Automated tests cover character-stream collection, AAMVA parsing, successful completion, rejection/reset, and visibility of both camera and handheld actions.
+- Package handheld driver's-license scanner support as upgrade version 0.7.30.

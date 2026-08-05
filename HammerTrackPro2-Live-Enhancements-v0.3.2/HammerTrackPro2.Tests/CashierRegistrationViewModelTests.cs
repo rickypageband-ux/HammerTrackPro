@@ -58,7 +58,8 @@ public sealed class CashierRegistrationViewModelTests
         using var form=new CashierRegistrationForm(new CashierRegistrationViewModel(false));
         var labels=form.Controls.Cast<Control>().SelectMany(Descendants).OfType<Label>().Select(x=>x.Text).ToList();
         Assert.Contains("Address (optional)",labels);Assert.Contains("Phone Number (optional)",labels);Assert.Contains("Email (optional)",labels);Assert.Contains("Driver's License Number (optional)",labels);
-        Assert.Contains(form.Controls.Cast<Control>().SelectMany(Descendants).OfType<Button>(),button=>button.Text=="Scan Driver's License");
+        var buttons=form.Controls.Cast<Control>().SelectMany(Descendants).OfType<Button>().Select(button=>button.Text).ToList();
+        Assert.Contains("Scan with Camera",buttons);Assert.Contains("Use Handheld Scanner",buttons);
     }
 
     private static IEnumerable<Control> Descendants(Control control)
