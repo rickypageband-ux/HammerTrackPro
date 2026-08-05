@@ -143,4 +143,6 @@ Status: Cashier and the approved closed-auction consignor payout extension are i
 - Invoice/receipt printing uses the embedded HammerTrack Pro logo, auction-company and bidder contact information, itemized purchases and payment history, structured totals, paid/unpaid status, configured footer, warranty language, and print timestamp.
 - End-of-Night printing uses matching branding, auction-company information, grouped buyer revenue and seller/operating expense sections, highlighted net cash movement, staff-payment ledger, and review signature lines.
 - Package the professional printed-document redesign as upgrade version 0.7.22.
+- Reserve a DPI-safe 340-pixel print-header title region so the complete End-of-Night report heading is never clipped, and suppress an empty Location label.
+- Package the End-of-Night print-title correction as upgrade version 0.7.24.
 - Every local or LAN Cashier invoice preview/print includes the approved Condition of Sale – Disclaimer of Warranties with its exact heading and two-paragraph wording.
