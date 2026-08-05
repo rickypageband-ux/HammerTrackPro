@@ -8,7 +8,8 @@ public sealed class AuctionSettlementForm:Form
 {
     internal const int MetricColumnCount=6;
     internal const int MetricRowCount=2;
-    internal const int ScrollableContentHeight=880;
+    internal const int SectionHeaderHeight=74;
+    internal const int ScrollableContentHeight=920;
     private static readonly Color Navy=Color.FromArgb(24,50,74);
     private static readonly Color Blue=Color.FromArgb(24,96,150);
     private static readonly Color Gold=Color.FromArgb(224,168,54);
@@ -40,14 +41,14 @@ public sealed class AuctionSettlementForm:Form
         var ledgerPanel=new Panel{Dock=DockStyle.Fill,BackColor=Color.White,Padding=new Padding(12,0,12,10)};ledgerPanel.Controls.Add(_grid);
         var statusBar=new Panel{Dock=DockStyle.Fill,BackColor=Color.White,Padding=new Padding(14,3,14,3)};_status.Font=new Font("Segoe UI",9.5F,FontStyle.Bold);_status.ForeColor=Navy;statusBar.Controls.Add(_status);
         var layout=new TableLayoutPanel{Dock=DockStyle.Top,Height=ScrollableContentHeight,RowCount=8,ColumnCount=1,Padding=new Padding(12,0,12,12),BackColor=Canvas};
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute,78));layout.RowStyles.Add(new RowStyle(SizeType.Absolute,62));layout.RowStyles.Add(new RowStyle(SizeType.Absolute,196));layout.RowStyles.Add(new RowStyle(SizeType.Absolute,62));layout.RowStyles.Add(new RowStyle(SizeType.Absolute,118));layout.RowStyles.Add(new RowStyle(SizeType.Absolute,62));layout.RowStyles.Add(new RowStyle(SizeType.Absolute,262));layout.RowStyles.Add(new RowStyle(SizeType.Absolute,40));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute,78));layout.RowStyles.Add(new RowStyle(SizeType.Absolute,SectionHeaderHeight));layout.RowStyles.Add(new RowStyle(SizeType.Absolute,196));layout.RowStyles.Add(new RowStyle(SizeType.Absolute,SectionHeaderHeight));layout.RowStyles.Add(new RowStyle(SizeType.Absolute,118));layout.RowStyles.Add(new RowStyle(SizeType.Absolute,SectionHeaderHeight));layout.RowStyles.Add(new RowStyle(SizeType.Absolute,262));layout.RowStyles.Add(new RowStyle(SizeType.Absolute,40));
         layout.Controls.Add(header,0,0);layout.Controls.Add(summaryTitle,0,1);layout.Controls.Add(summary,0,2);layout.Controls.Add(entryTitle,0,3);layout.Controls.Add(entry,0,4);layout.Controls.Add(ledgerTitle,0,5);layout.Controls.Add(ledgerPanel,0,6);layout.Controls.Add(statusBar,0,7);
         var scrollHost=new Panel{Dock=DockStyle.Fill,AutoScroll=true,BackColor=Canvas};scrollHost.Controls.Add(layout);Controls.Add(scrollHost);
         _fullScreenButton.Click+=(_,_)=>ToggleFullScreen();KeyDown+=(_,e)=>HandleShortcut(e);_viewModel.Refresh();RefreshReport();
     }
 
     private Control BuildHeader(){var panel=new Panel{Dock=DockStyle.Fill,BackColor=Navy,Padding=new Padding(20,10,16,10)};var brand=new Label{Text="HAMMERTRACK PRO",Dock=DockStyle.Left,Width=300,TextAlign=ContentAlignment.MiddleLeft,Font=new Font("Segoe UI",20F,FontStyle.Bold),ForeColor=Color.White};var subtitle=new Label{Text="END-OF-NIGHT",Dock=DockStyle.Left,Width=190,TextAlign=ContentAlignment.MiddleLeft,Font=new Font("Segoe UI",11F,FontStyle.Bold),ForeColor=Gold};StyleButton(_fullScreenButton,true);_fullScreenButton.Dock=DockStyle.Right;_auctionHeading.Font=new Font("Segoe UI",11F,FontStyle.Bold);_auctionHeading.ForeColor=Color.White;_auctionHeading.Padding=new Padding(20,0,20,0);panel.Controls.Add(_fullScreenButton);panel.Controls.Add(_auctionHeading);panel.Controls.Add(subtitle);panel.Controls.Add(brand);return panel;}
-    private static Control SectionHeader(string title,string subtitle){var panel=new Panel{Dock=DockStyle.Fill,BackColor=Color.White,Padding=new Padding(14,8,14,4),Margin=new Padding(0,8,0,0)};panel.Controls.Add(new Label{Text=subtitle,Dock=DockStyle.Bottom,Height=22,Font=new Font("Segoe UI",8.5F),ForeColor=Color.FromArgb(90,100,110)});panel.Controls.Add(new Label{Text=title,Dock=DockStyle.Top,Height=25,Font=new Font("Segoe UI",12F,FontStyle.Bold),ForeColor=Navy});return panel;}
+    private static Control SectionHeader(string title,string subtitle){var panel=new Panel{Dock=DockStyle.Fill,BackColor=Color.White,Padding=new Padding(14,7,14,5),Margin=new Padding(0,8,0,0)};panel.Controls.Add(new Label{Text=subtitle,Dock=DockStyle.Bottom,Height=24,TextAlign=ContentAlignment.MiddleLeft,Font=new Font("Segoe UI",9F),ForeColor=Color.FromArgb(90,100,110)});panel.Controls.Add(new Label{Text=title,Dock=DockStyle.Top,Height=32,TextAlign=ContentAlignment.MiddleLeft,Font=new Font("Segoe UI",12F,FontStyle.Bold),ForeColor=Navy});return panel;}
     private Control BuildSummary()
     {
         var panel=new TableLayoutPanel{Dock=DockStyle.Fill,ColumnCount=MetricColumnCount,RowCount=MetricRowCount,BackColor=Canvas,Padding=new Padding(0,4,0,4)};for(var i=0;i<MetricColumnCount;i++)panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100F/MetricColumnCount));for(var i=0;i<MetricRowCount;i++)panel.RowStyles.Add(new RowStyle(SizeType.Percent,100F/MetricRowCount));

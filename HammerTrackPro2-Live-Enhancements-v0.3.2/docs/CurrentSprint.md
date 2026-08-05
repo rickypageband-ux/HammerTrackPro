@@ -134,6 +134,8 @@ Status: Cashier and the approved closed-auction consignor payout extension are i
 - Package the End-of-Night usability redesign as upgrade version 0.7.20.
 - Keep all End-of-Night financial values readable at short/full-screen resolutions by using two taller summary rows and a vertically scrollable fixed-height workspace instead of compressing sections.
 - Package the End-of-Night short-screen layout correction as upgrade version 0.7.21.
+- Give each End-of-Night section title and subtitle independent DPI-safe vertical space so headings remain fully readable under Windows display scaling.
+- Package the End-of-Night scaled-heading correction as upgrade version 0.7.23.
 
 ## Invoice condition of sale
 
