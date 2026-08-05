@@ -49,6 +49,11 @@ public sealed class CashierRegistrationForm : Form
         table.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,150));table.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));
         Add(table,_viewModel.IsSeller?"Seller Number":"Buyer Number",_number);
         if(_viewModel.IsSeller)Add(table,"Business Name",_business);
+        else
+        {
+            var scan=new Button{Text="Scan Driver's License",Height=42,AutoSize=true,Padding=new Padding(10,4,10,4),BackColor=Color.FromArgb(224,168,54),ForeColor=Color.FromArgb(24,50,74),FlatStyle=FlatStyle.Flat,Font=new Font("Segoe UI",10F,FontStyle.Bold)};
+            scan.Click+=(_,_)=>ScanDriverLicense();table.Controls.Add(scan,1,table.RowCount++);
+        }
         Add(table,"First Name (optional)",_first);Add(table,"Last Name (optional)",_last);
         if(!_viewModel.IsSeller){Add(table,"Address (optional)",_address);Add(table,"City (optional)",_city);Add(table,"State (optional)",_state);Add(table,"ZIP (optional)",_zip);Add(table,"Phone Number (optional)",_phone);Add(table,"Email (optional)",_email);Add(table,"Driver's License Number (optional)",_driversLicense);}
         else{Add(table,"Phone",_phone);Add(table,"Email",_email);}
@@ -70,5 +75,13 @@ public sealed class CashierRegistrationForm : Form
             DialogResult=DialogResult.OK;Close();
         }
         catch(InvalidOperationException exception){MessageBox.Show(this,exception.Message,"Registration",MessageBoxButtons.OK,MessageBoxIcon.Warning);}
+    }
+
+    private void ScanDriverLicense()
+    {
+        using var scanner=new DriverLicenseScannerForm();
+        if(scanner.ShowDialog(this)!=DialogResult.OK||scanner.Result is null)return;
+        var result=scanner.Result;_first.Text=result.FirstName;_last.Text=result.LastName;_address.Text=result.Address;_city.Text=result.City;_state.Text=result.State;_zip.Text=result.Zip;_driversLicense.Text=result.DriversLicense;
+        MessageBox.Show(this,"Driver's license information was filled in. Review it before registering the bidder.","Scan Complete",MessageBoxButtons.OK,MessageBoxIcon.Information);
     }
 }

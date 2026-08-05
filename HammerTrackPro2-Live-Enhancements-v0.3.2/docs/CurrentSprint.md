@@ -162,3 +162,15 @@ Status: Cashier and the approved closed-auction consignor payout extension are i
 - Only the current-auction bidder number is required; every personal/contact field may be left blank.
 - The existing Buyers schema already persists these fields, so this user-interface correction requires no database migration and remains compatible with existing databases.
 - Package optional cashier bidder details as upgrade version 0.7.27.
+
+## Driver's-license camera scanning
+
+- Explicit owner approval brings forward a focused portion of the later barcode-scanning backlog: PDF417 driver's-license scanning during bidder registration only.
+- Cashier Add Buyer and the main Bidders screen provide Scan Driver's License, open the first available Windows camera, support switching among up to five camera indexes, and retain manual entry as the fallback.
+- Camera frames are decoded locally as PDF417. The AAMVA parser maps first/last name, street, city, state, ZIP, and driver's-license number into the existing optional bidder fields for review before save.
+- Camera frames and the raw barcode payload are never persisted, logged, transmitted to the host, or added to audit text; only the operator-reviewed existing bidder fields are saved through the normal local or paired-cashier workflow.
+- The camera window gives actionable no-camera/read errors and releases the camera and preview image when closed.
+- Automated tests cover AAMVA parsing, rejection of unrelated PDF417 data, generated PDF417 decoding, empty-frame behavior, and the registration button. Physical camera focus, permission, and real-license variation require acceptance testing on the cashier workstation.
+- OpenCvSharp provides Windows camera/frame capture; ZXing.Net's Windows compatibility binding restricts decoding to PDF417. Both dependencies use Apache-2.0 licensing and are packaged locally in the self-contained installer.
+- No database migration is required because the scanner fills the existing Buyer fields introduced in migration 8.
+- Package driver's-license camera scanning as upgrade version 0.7.28.

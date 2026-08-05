@@ -24,6 +24,7 @@ Favor correctness and operator safety over cleverness. Live-auction actions are 
 - Avoid broad exception swallowing. Catch only where adding context, recovery, or an appropriate user-facing boundary.
 - Keep methods focused. Extract domain logic from event handlers when it becomes independently testable.
 - Do not add a dependency when the platform or existing packages solve the need adequately; document the reason for any new package.
+- Driver's-license camera scanning uses OpenCvSharp for DirectShow camera frames and ZXing.Net's Windows compatibility binding for local PDF417 decoding. Do not broaden barcode formats, persist frames/raw payloads, or replace these packages without documenting the operational and privacy reason.
 
 ## Persistence and money
 

@@ -28,7 +28,7 @@ This is the approved release sequence. Do not pull work forward from a later rel
 
 ## Version 0.9
 
-- [ ] Barcode scanning
+- [ ] General barcode scanning (a separately approved PDF417 driver's-license registration slice shipped early in 0.7.28)
 - [ ] Receipt printers
 - [ ] Touchscreen mode
 

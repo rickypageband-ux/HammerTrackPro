@@ -80,6 +80,7 @@ The cashier enters and records the invoice balance before the card fee; HammerTr
 Looking up a bidder automatically fills the payment amount with the invoice balance owed for Cash, Check, or Card. Pending split payments reduce the automatically suggested remainder.
 Cashier includes a Bidder Cards workspace that lists current-auction registrations and previews a full-letter-page card with the selected bidder number in large block type and the saved auction-company name at the bottom.
 Add Buyer offers optional first and last name, full address, phone number, email, and driver's license number fields. Only the current-auction bidder number is required.
+Cashier Add Buyer and the main Bidders screen include a Scan Driver's License button. HammerTrack opens a local camera preview, decodes the PDF417 barcode, fills supported AAMVA name/address/license fields for operator review, and does not save the camera image or raw barcode. Manual entry remains available when no compatible camera or readable barcode is available.
 
 Cashier uses a branded, full-screen-capable workspace with larger uniform controls and direct Buyer and Seller registration. Registering a Seller with an existing same-number current-auction Buyer links the Seller to that durable Buyer identity instead of creating a duplicate or rejecting the registration.
 
