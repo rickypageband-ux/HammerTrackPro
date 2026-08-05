@@ -53,6 +53,7 @@ Status: Cashier and the approved closed-auction consignor payout extension are i
 - Starting a new bidder clears the bidder grid's visual selection so it cannot imply that a registration is selected for deletion; Delete now gives an actionable prompt when no current-auction bidder is selected.
 - Cashier invoice and consignor settlement print actions open a full print preview first; operators can print from the preview toolbar.
 - Seller Management matches the branded Cashier workspace with large uniform Add/Save/Delete actions, full-screen/F11 support, a focused directory that keeps Tax ID out of the list view, seller counts, improved search guidance, and explicit add/edit/save status feedback.
+- Package the Seller Management usability and branding update as upgrade version 0.7.15.
 
 ## Distribution and licensing extension
 
