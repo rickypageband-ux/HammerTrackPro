@@ -39,6 +39,27 @@ public sealed class CashierRegistrationViewModelTests
         Assert.Contains(form.Controls.Cast<Control>().SelectMany(Descendants),x=>x is DataGridView);
     }
 
+    [Fact]
+    public void BuyerRegistration_AllowsOptionalDetailsAndCarriesEveryEnteredField()
+    {
+        var viewModel=new CashierRegistrationViewModel(false);
+        viewModel.Create(31,"","","","555-0131","buyer@example.com","31 Main Street","York","PA","17401","PA-123456");
+        var buyer=Assert.IsType<AuctionBidder>(viewModel.Buyer);
+        Assert.Equal(31,buyer.BidderNumber);Assert.Equal("31 Main Street",buyer.Address);Assert.Equal("York",buyer.City);Assert.Equal("PA",buyer.State);Assert.Equal("17401",buyer.Zip);Assert.Equal("555-0131",buyer.Phone);Assert.Equal("buyer@example.com",buyer.Email);Assert.Equal("PA-123456",buyer.DriversLicense);
+
+        viewModel.Create(32,"","","","","");
+        Assert.Equal(32,viewModel.Buyer!.BidderNumber);
+        Assert.Equal(string.Empty,viewModel.Buyer.FullName);
+    }
+
+    [Fact]
+    public void BuyerRegistrationForm_ExposesAllOptionalIdentityAndContactFields()
+    {
+        using var form=new CashierRegistrationForm(new CashierRegistrationViewModel(false));
+        var labels=form.Controls.Cast<Control>().SelectMany(Descendants).OfType<Label>().Select(x=>x.Text).ToList();
+        Assert.Contains("Address (optional)",labels);Assert.Contains("Phone Number (optional)",labels);Assert.Contains("Email (optional)",labels);Assert.Contains("Driver's License Number (optional)",labels);
+    }
+
     private static IEnumerable<Control> Descendants(Control control)
     {
         yield return control;

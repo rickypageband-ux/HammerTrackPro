@@ -141,8 +141,6 @@ public sealed class AuctionService : IAuctionService
         ArgumentNullException.ThrowIfNull(bidder);
         if (bidder.BidderNumber <= 0) throw new InvalidOperationException("Bidder number must be greater than zero.");
         if (bidder.AuctionId <= 0) throw new InvalidOperationException("Select an auction before registering a bidder.");
-        if (string.IsNullOrWhiteSpace(bidder.FirstName) && string.IsNullOrWhiteSpace(bidder.LastName))
-            throw new InvalidOperationException("A bidder name is required.");
     }
 
     private static void ValidateLot(AuctionLot lot)

@@ -34,6 +34,8 @@ Indexes cover `LotNumber`, `AuctionId`, `ConsignorId`, `(AuctionId, LotNumber)`,
 
 `Buyers` is the global person/contact identity keyed by `BuyerId`; it has no bidder number. `AuctionBidders` is the registration junction containing `AuctionBidderId`, `AuctionId`, `BuyerId`, `BidderNumber`, registration notes, and timestamps. Both `(AuctionId, BidderNumber)` and `(AuctionId, BuyerId)` are unique. This allows bidder number 25 in many auctions while keeping one buyer history.
 
+Buyer first/last name, address, city, state, ZIP, phone, email, and driver's license number are optional global identity fields. Both the main Bidders screen and Cashier Add Buyer workflow can populate them; only the auction-specific Bidder Number is required. These columns have existed since migration 8, so exposing them in Cashier requires no new schema migration.
+
 `Sales` stores `AuctionId`, `AuctionLotId`, `AuctionBidderId`, retained `LotNumber`, retained `BidderNumber`, hammer price, sale UTC, and paid state. Foreign keys connect sales to the auction, auction lot, and exact auction registration; indexes cover all join paths.
 
 Multiple sale rows per auction lot preserve pass-out behavior. Sale lookup, latest-sale undo, dashboard totals, activity, and lot counts filter by the current Auction.

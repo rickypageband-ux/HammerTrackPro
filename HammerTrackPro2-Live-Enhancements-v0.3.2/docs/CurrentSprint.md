@@ -155,3 +155,10 @@ Status: Cashier and the approved closed-auction consignor payout extension are i
 - Package bidder-card printing as upgrade version 0.7.25.
 - Force bidder-card documents to landscape at both document setup and printer page-query time, and reserve a ten-percent fitting buffer so all selected bidder-number digits remain visible in preview and print.
 - Package the landscape bidder-card correction as upgrade version 0.7.26.
+
+## Optional bidder details
+
+- Add Buyer on the local host and paired LAN cashier exposes optional first and last name, address, city, state, ZIP, phone number, email, and driver's license number fields.
+- Only the current-auction bidder number is required; every personal/contact field may be left blank.
+- The existing Buyers schema already persists these fields, so this user-interface correction requires no database migration and remains compatible with existing databases.
+- Package optional cashier bidder details as upgrade version 0.7.27.

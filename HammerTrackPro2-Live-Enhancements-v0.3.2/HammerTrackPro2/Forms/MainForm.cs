@@ -595,11 +595,6 @@ public sealed class MainForm : Form
     private void SaveBidder()
     {
         var number = Decimal.ToInt32(_bidderNumber.Value);
-        if (string.IsNullOrWhiteSpace(_firstName.Text) && string.IsNullOrWhiteSpace(_lastName.Text))
-        {
-            MessageBox.Show("Enter the bidder's name.", "Validation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            return;
-        }
         if (_data.Bidders.Any(b => b.BidderNumber == number && b.BidderNumber != _editingBidderNumber))
         {
             MessageBox.Show("That bidder number is already in use.", "Validation", MessageBoxButtons.OK, MessageBoxIcon.Warning);

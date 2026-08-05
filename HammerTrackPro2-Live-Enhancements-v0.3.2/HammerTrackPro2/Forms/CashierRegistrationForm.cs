@@ -7,7 +7,7 @@ public sealed class CashierRegistrationForm : Form
 {
     private readonly CashierRegistrationViewModel _viewModel;
     private readonly NumericUpDown _number=new(){Minimum=1,Maximum=999999};
-    private readonly TextBox _business=new(),_first=new(),_last=new(),_phone=new(),_email=new();
+    private readonly TextBox _business=new(),_first=new(),_last=new(),_address=new(),_city=new(),_state=new(),_zip=new(),_phone=new(),_email=new(),_driversLicense=new();
 
     public AuctionBidder? Buyer=>_viewModel.Buyer;
     public Consignor? Consignor=>_viewModel.Seller;
@@ -18,7 +18,7 @@ public sealed class CashierRegistrationForm : Form
         Text=viewModel.IsSeller?"Register Seller":"Register Buyer";
         StartPosition=FormStartPosition.CenterParent;
         Width=920;
-        Height=590;
+        Height=720;
         MinimumSize=new Size(780,500);
         BackColor=Color.FromArgb(242,245,248);
 
@@ -45,11 +45,13 @@ public sealed class CashierRegistrationForm : Form
 
     private Control BuildEditor()
     {
-        var table=new TableLayoutPanel{Dock=DockStyle.Fill,ColumnCount=2,Padding=new Padding(18)};
+        var table=new TableLayoutPanel{Dock=DockStyle.Fill,ColumnCount=2,Padding=new Padding(18),AutoScroll=true};
         table.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,150));table.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));
         Add(table,_viewModel.IsSeller?"Seller Number":"Buyer Number",_number);
         if(_viewModel.IsSeller)Add(table,"Business Name",_business);
-        Add(table,"First Name",_first);Add(table,"Last Name",_last);Add(table,"Phone",_phone);Add(table,"Email",_email);
+        Add(table,"First Name (optional)",_first);Add(table,"Last Name (optional)",_last);
+        if(!_viewModel.IsSeller){Add(table,"Address (optional)",_address);Add(table,"City (optional)",_city);Add(table,"State (optional)",_state);Add(table,"ZIP (optional)",_zip);Add(table,"Phone Number (optional)",_phone);Add(table,"Email (optional)",_email);Add(table,"Driver's License Number (optional)",_driversLicense);}
+        else{Add(table,"Phone",_phone);Add(table,"Email",_email);}
         var button=new Button{Text="Register and Select",AutoSize=true,Padding=new Padding(10,5,10,5)};button.Click+=(_,_)=>Save();
         table.Controls.Add(button,1,table.RowCount);return table;
     }
@@ -64,7 +66,7 @@ public sealed class CashierRegistrationForm : Form
     {
         try
         {
-            _viewModel.Create(Decimal.ToInt32(_number.Value),_business.Text,_first.Text,_last.Text,_phone.Text,_email.Text);
+            _viewModel.Create(Decimal.ToInt32(_number.Value),_business.Text,_first.Text,_last.Text,_phone.Text,_email.Text,_address.Text,_city.Text,_state.Text,_zip.Text,_driversLicense.Text);
             DialogResult=DialogResult.OK;Close();
         }
         catch(InvalidOperationException exception){MessageBox.Show(this,exception.Message,"Registration",MessageBoxButtons.OK,MessageBoxIcon.Warning);}
