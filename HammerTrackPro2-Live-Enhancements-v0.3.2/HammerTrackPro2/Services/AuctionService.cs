@@ -58,6 +58,7 @@ public sealed class AuctionService : IAuctionService
         if (string.IsNullOrWhiteSpace(auction.AuctionNumber)) throw new InvalidOperationException("Auction number is required.");
         if (string.IsNullOrWhiteSpace(auction.AuctionName)) throw new InvalidOperationException("Auction name is required.");
         if (auction.BuyerPremiumPercent is < 0 or > 100 || auction.CreditCardFeePercent is < 0 or > 100 || auction.DefaultConsignorCommissionPercent is < 0 or > 100 || auction.SalesTaxPercent is < 0 or > 100) throw new InvalidOperationException("Auction percentages must be between 0 and 100.");
+        if(auction.CreditCardFeeFixedAmount<0)throw new InvalidOperationException("The credit-card fixed fee cannot be negative.");
         if (auction.AuctionId > 0 && string.Equals(_dataStore.GetAuctions().Single(item => item.AuctionId == auction.AuctionId).Status, "Closed", StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("Closed auctions cannot be edited.");
         return _dataStore.SaveAuction(auction);

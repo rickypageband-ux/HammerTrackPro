@@ -25,7 +25,9 @@ public sealed class Auction
     [Category("Commercial Terms"), DisplayName("Buyer's Premium %")]
     public decimal BuyerPremiumPercent { get; set; }
     [Category("Commercial Terms"), DisplayName("Credit Card Fee %")]
-    public decimal CreditCardFeePercent { get; set; } = 3m;
+    public decimal CreditCardFeePercent { get; set; } = 2.65m;
+    [Category("Commercial Terms"), DisplayName("Credit Card Fixed Fee")]
+    public decimal CreditCardFeeFixedAmount { get; set; } = 0.15m;
     [Category("Commercial Terms"), DisplayName("Seller Commission %")]
     public decimal DefaultConsignorCommissionPercent { get; set; }
     [Category("Commercial Terms"), DisplayName("Sales Tax %")]

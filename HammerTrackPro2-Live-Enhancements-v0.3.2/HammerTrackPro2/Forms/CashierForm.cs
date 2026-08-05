@@ -57,7 +57,7 @@ public sealed class CashierForm : Form
         layout.RowStyles.Add(new RowStyle(SizeType.AutoSize)); layout.RowStyles.Add(new RowStyle(SizeType.AutoSize)); layout.RowStyles.Add(new RowStyle(SizeType.Percent,100)); layout.RowStyles.Add(new RowStyle(SizeType.AutoSize)); layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         layout.Controls.Add(lookup,0,0); layout.Controls.Add(_heading,0,1); layout.Controls.Add(_totals,0,2); layout.Controls.Add(_settlementHeading,0,3); layout.Controls.Add(tabs,0,4); layout.Controls.Add(paymentEntry,0,5); layout.Controls.Add(sellerEntry,0,6);
         Controls.Add(layout);
-        _method.SelectedIndexChanged+=(_,_)=>RefreshPaymentPreview();_amount.ValueChanged+=(_,_)=>RefreshPaymentPreview();
+        _method.SelectedIndexChanged+=(_,_)=>PaymentMethodChanged();_amount.ValueChanged+=(_,_)=>RefreshPaymentPreview();
         RefreshPaymentPreview();
         Shown+=async(_,_)=>await CheckConnection(); _connectionTimer.Tick+=async(_,_)=>await CheckConnection(); _connectionTimer.Start();
         FormClosed+=(_,_)=>{_connectionTimer.Stop();_connectionTimer.Dispose();};
@@ -133,7 +133,16 @@ public sealed class CashierForm : Form
         _purchases.DataSource=invoice.Purchases.ToList(); _payments.DataSource=invoice.Payments.ToList(); _pending.DataSource=_viewModel.PendingPayments.ToList();
         RefreshPaymentPreview();
     }
-    private void RefreshPaymentPreview(){if(_method.SelectedItem is not PaymentMethod method)return;var fee=_viewModel.CalculateCardFee(method,_amount.Value);_paymentPreview.Text=method==PaymentMethod.Card?$"Card fee {fee:C2}; tender {_amount.Value+fee:C2}":$"{method}: no card fee";_paymentPreview.ForeColor=method==PaymentMethod.Card?Color.DarkRed:Color.DarkGreen;}
+    private void RefreshPaymentPreview(){if(_method.SelectedItem is not PaymentMethod method)return;var fee=_viewModel.CalculateCardFee(method,_amount.Value);_paymentPreview.Text=method==PaymentMethod.Card?$"Card fee (2.65% + $0.15) {fee:C2}; tender {_amount.Value+fee:C2}":$"{method}: no card fee";_paymentPreview.ForeColor=method==PaymentMethod.Card?Color.DarkRed:Color.DarkGreen;}
+    private void PaymentMethodChanged()
+    {
+        if(_method.SelectedItem is PaymentMethod.Card)
+        {
+            var suggested=_viewModel.SuggestedPaymentAmount(PaymentMethod.Card);
+            if(suggested>0&&suggested<=_amount.Maximum)_amount.Value=suggested;
+        }
+        RefreshPaymentPreview();
+    }
     private void RefreshSettlement()
     {
         var settlement=_viewModel.Settlement; if(settlement is null)return;

@@ -6,7 +6,7 @@ HammerTrack Pro uses SQLite through `SqliteDataStore` on the live-auction host o
 
 The supported two-PC topology is `Cashier -> paired HTTPS API -> live-auction host -> local SQLite`. The cashier pins the host certificate fingerprint, sends a high-entropy pairing key, and never receives a database path or SQL access. Cashier writes execute through the same transactional service/data-store path as local writes. A disconnected cashier retries health checks; the live-auction host continues locally.
 
-## Schema version 11
+## Schema version 14
 
 ### `Auctions`
 
@@ -60,9 +60,11 @@ Migration 10 additively creates `ConsignorSettlements` and `ConsignorPayouts`, t
 
 Migration 11 adds nullable `Consignors.LinkedBuyerId`, its Buyer foreign key and lookup index. Existing rows remain unchanged until saved/linked; no Buyer or Consignor rows are overwritten.
 
-Migration 12 adds current-auction `CreditCardFeePercent` (legacy/new default 3%), invoice fee totals, and per-payment processing fees. Fees apply only to card-paid portions and are retained separately for audit/reporting.
+Migration 12 adds current-auction `CreditCardFeePercent`, invoice fee totals, and per-payment processing fees. Fees apply only to card-paid portions and are retained separately for audit/reporting.
 
 Migration 13 adds the auction-scoped append-only `StaffPayments` ledger with self-references for void and replacement entries plus auction/time and void indexes. Original entries are never edited or deleted.
+
+Migration 14 additively adds `Auctions.CreditCardFeeFixedAmount`, changes persisted auction card percentages from the superseded 3% rate to 2.65%, and defaults the fixed component to $0.15. The existing percentage field and all invoice/payment history are preserved; only future card payments use the updated current-auction terms. Rollback is restore-from-backup.
 
 ## Migrations 7 and 8
 

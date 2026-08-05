@@ -63,7 +63,7 @@ public sealed class CashierService : ICashierService
 
         var invoice = LoadInvoice(bidderNumber);
         if (invoice.BalanceDue <= 0) throw new InvalidOperationException("This invoice is already paid.");
-        var remaining = invoice.BalanceDue;var cardRate=_dataStore.GetCurrentAuction().CreditCardFeePercent;
+        var remaining = invoice.BalanceDue;var auction=_dataStore.GetCurrentAuction();
         var records = new List<Payment>();
         foreach (var request in payments)
         {
@@ -71,7 +71,7 @@ public sealed class CashierService : ICashierService
             if (remaining <= 0) throw new InvalidOperationException("The entered payments exceed the invoice balance.");
             if (request.Method != PaymentMethod.Cash && request.Amount > remaining)
                 throw new InvalidOperationException($"{request.Method} payments cannot exceed the remaining balance.");
-            var fee=request.Method==PaymentMethod.Card?Money(request.Amount*cardRate/100m):0m;var applied=Math.Min(request.Amount,remaining)+fee;
+            var fee=request.Method==PaymentMethod.Card?Money(request.Amount*auction.CreditCardFeePercent/100m+auction.CreditCardFeeFixedAmount):0m;var applied=Math.Min(request.Amount,remaining)+fee;
             records.Add(new Payment
             {
                 Method=request.Method,TenderedAmount=request.Amount+fee,AppliedAmount=applied,ProcessingFee=fee,

@@ -514,16 +514,16 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
             command.CommandText = auction.AuctionId == 0
                 ? """
                     INSERT INTO Auctions(AuctionNumber, AuctionName, AuctionDate, AuctionTime, Location, Auctioneer, Clerk, Cashier,
-                        BuyerPremiumPercent,CreditCardFeePercent,DefaultConsignorCommissionPercent,SalesTaxPercent,SalesTaxBasis,InvoiceFooter,ReceiptFooter,
+                        BuyerPremiumPercent,CreditCardFeePercent,CreditCardFeeFixedAmount,DefaultConsignorCommissionPercent,SalesTaxPercent,SalesTaxBasis,InvoiceFooter,ReceiptFooter,
                         Status, CreatedDate, CreatedUtc, UpdatedUtc)
                     VALUES($number, $name, $date, $time, $location, $auctioneer, $clerk, $cashier,
-                        $premium,$cardFee,$commission,$tax,$taxBasis,$invoiceFooter,$receiptFooter,$status,$created,$created,$updated);
+                        $premium,$cardFee,$cardFixedFee,$commission,$tax,$taxBasis,$invoiceFooter,$receiptFooter,$status,$created,$created,$updated);
                     SELECT last_insert_rowid();
                     """
                 : """
                     UPDATE Auctions SET AuctionNumber=$number, AuctionName=$name, AuctionDate=$date, AuctionTime=$time,
                         Location=$location, Auctioneer=$auctioneer, Clerk=$clerk, Cashier=$cashier,
-                        BuyerPremiumPercent=$premium,CreditCardFeePercent=$cardFee,DefaultConsignorCommissionPercent=$commission,SalesTaxPercent=$tax,SalesTaxBasis=$taxBasis,
+                        BuyerPremiumPercent=$premium,CreditCardFeePercent=$cardFee,CreditCardFeeFixedAmount=$cardFixedFee,DefaultConsignorCommissionPercent=$commission,SalesTaxPercent=$tax,SalesTaxBasis=$taxBasis,
                         InvoiceFooter=$invoiceFooter, ReceiptFooter=$receiptFooter, Status=$status, UpdatedUtc=$updated
                     WHERE AuctionId=$id;
                     SELECT $id;
@@ -1514,8 +1514,9 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
             version=10;
         }
         if(version<11){using var transaction=connection.BeginTransaction();using var migration=connection.CreateCommand();migration.Transaction=transaction;migration.CommandText="ALTER TABLE Consignors ADD COLUMN LinkedBuyerId INTEGER NULL REFERENCES Buyers(BuyerId) ON DELETE RESTRICT; CREATE INDEX IX_Consignors_LinkedBuyerId ON Consignors(LinkedBuyerId); INSERT INTO Settings(Key,Value) VALUES('DatabaseSchemaVersion','11') ON CONFLICT(Key) DO UPDATE SET Value='11';";migration.ExecuteNonQuery();transaction.Commit();}
-        if(version<12){using var transaction=connection.BeginTransaction();using var migration=connection.CreateCommand();migration.Transaction=transaction;migration.CommandText="ALTER TABLE Auctions ADD COLUMN CreditCardFeePercent TEXT NOT NULL DEFAULT '3'; ALTER TABLE Invoices ADD COLUMN CreditCardFeeAmount TEXT NOT NULL DEFAULT '0'; ALTER TABLE Payments ADD COLUMN ProcessingFee TEXT NOT NULL DEFAULT '0'; INSERT INTO Settings(Key,Value) VALUES('DatabaseSchemaVersion','12') ON CONFLICT(Key) DO UPDATE SET Value='12';";migration.ExecuteNonQuery();transaction.Commit();}
+        if(version<12){using var transaction=connection.BeginTransaction();using var migration=connection.CreateCommand();migration.Transaction=transaction;migration.CommandText="ALTER TABLE Auctions ADD COLUMN CreditCardFeePercent TEXT NOT NULL DEFAULT '2.65'; ALTER TABLE Invoices ADD COLUMN CreditCardFeeAmount TEXT NOT NULL DEFAULT '0'; ALTER TABLE Payments ADD COLUMN ProcessingFee TEXT NOT NULL DEFAULT '0'; INSERT INTO Settings(Key,Value) VALUES('DatabaseSchemaVersion','12') ON CONFLICT(Key) DO UPDATE SET Value='12';";migration.ExecuteNonQuery();transaction.Commit();}
         if(version<13){using var transaction=connection.BeginTransaction();using var migration=connection.CreateCommand();migration.Transaction=transaction;migration.CommandText="CREATE TABLE StaffPayments(StaffPaymentId INTEGER PRIMARY KEY AUTOINCREMENT,AuctionId INTEGER NOT NULL,Category TEXT NOT NULL,Payee TEXT NOT NULL,Amount TEXT NOT NULL,Method TEXT NOT NULL,PaidUtc TEXT NOT NULL,Notes TEXT NOT NULL DEFAULT '',VoidsStaffPaymentId INTEGER NULL,ReplacementForStaffPaymentId INTEGER NULL,VoidReason TEXT NOT NULL DEFAULT '',FOREIGN KEY(AuctionId) REFERENCES Auctions(AuctionId) ON DELETE RESTRICT,FOREIGN KEY(VoidsStaffPaymentId) REFERENCES StaffPayments(StaffPaymentId) ON DELETE RESTRICT,FOREIGN KEY(ReplacementForStaffPaymentId) REFERENCES StaffPayments(StaffPaymentId) ON DELETE RESTRICT);CREATE INDEX IX_StaffPayments_AuctionPaidUtc ON StaffPayments(AuctionId,PaidUtc);CREATE INDEX IX_StaffPayments_Voids ON StaffPayments(VoidsStaffPaymentId);INSERT INTO Settings(Key,Value) VALUES('DatabaseSchemaVersion','13') ON CONFLICT(Key) DO UPDATE SET Value='13';";migration.ExecuteNonQuery();transaction.Commit();}
+        if(version<14){using var transaction=connection.BeginTransaction();using var migration=connection.CreateCommand();migration.Transaction=transaction;migration.CommandText="ALTER TABLE Auctions ADD COLUMN CreditCardFeeFixedAmount TEXT NOT NULL DEFAULT '0.15'; UPDATE Auctions SET CreditCardFeePercent='2.65'; INSERT INTO Settings(Key,Value) VALUES('DatabaseSchemaVersion','14') ON CONFLICT(Key) DO UPDATE SET Value='14';";migration.ExecuteNonQuery();transaction.Commit();}
     }
 
     private static void UpgradeSalesTableForPassOut(SqliteConnection connection)
@@ -1828,7 +1829,7 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
 
     private const string AuctionSelectSql = """
         SELECT AuctionId,AuctionNumber,AuctionName,AuctionDate,AuctionTime,Location,Auctioneer,Clerk,Cashier,
-               BuyerPremiumPercent,CreditCardFeePercent,DefaultConsignorCommissionPercent,SalesTaxPercent,SalesTaxBasis,InvoiceFooter,ReceiptFooter,
+               BuyerPremiumPercent,CreditCardFeePercent,CreditCardFeeFixedAmount,DefaultConsignorCommissionPercent,SalesTaxPercent,SalesTaxBasis,InvoiceFooter,ReceiptFooter,
                Status,CreatedDate
         FROM Auctions
         """;
@@ -1860,7 +1861,7 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
         AuctionTime = TimeSpan.Parse(reader.GetString(4), CultureInfo.InvariantCulture), Location = reader.GetString(5),
         Auctioneer = reader.GetString(6), Clerk = reader.GetString(7), Cashier = reader.GetString(8),
         BuyerPremiumPercent = decimal.Parse(reader.GetString(9), CultureInfo.InvariantCulture),
-        CreditCardFeePercent=decimal.Parse(reader.GetString(10),CultureInfo.InvariantCulture),DefaultConsignorCommissionPercent = decimal.Parse(reader.GetString(11), CultureInfo.InvariantCulture),SalesTaxPercent=decimal.Parse(reader.GetString(12),CultureInfo.InvariantCulture), SalesTaxBasis=Enum.Parse<SalesTaxBasis>(reader.GetString(13)),InvoiceFooter=reader.GetString(14),ReceiptFooter=reader.GetString(15),Status=reader.GetString(16),CreatedDate=DateTime.Parse(reader.GetString(17),CultureInfo.InvariantCulture,DateTimeStyles.RoundtripKind)
+        CreditCardFeePercent=decimal.Parse(reader.GetString(10),CultureInfo.InvariantCulture),CreditCardFeeFixedAmount=decimal.Parse(reader.GetString(11),CultureInfo.InvariantCulture),DefaultConsignorCommissionPercent = decimal.Parse(reader.GetString(12), CultureInfo.InvariantCulture),SalesTaxPercent=decimal.Parse(reader.GetString(13),CultureInfo.InvariantCulture), SalesTaxBasis=Enum.Parse<SalesTaxBasis>(reader.GetString(14)),InvoiceFooter=reader.GetString(15),ReceiptFooter=reader.GetString(16),Status=reader.GetString(17),CreatedDate=DateTime.Parse(reader.GetString(18),CultureInfo.InvariantCulture,DateTimeStyles.RoundtripKind)
     };
 
     private static void AddAuctionParameters(SqliteCommand command, Auction auction, string now)
@@ -1871,6 +1872,7 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
         command.Parameters.AddWithValue("$auctioneer", auction.Auctioneer ?? string.Empty); command.Parameters.AddWithValue("$clerk", auction.Clerk ?? string.Empty);
         command.Parameters.AddWithValue("$cashier", auction.Cashier ?? string.Empty); command.Parameters.AddWithValue("$premium", auction.BuyerPremiumPercent.ToString(CultureInfo.InvariantCulture));
         command.Parameters.AddWithValue("$cardFee",auction.CreditCardFeePercent.ToString(CultureInfo.InvariantCulture));
+        command.Parameters.AddWithValue("$cardFixedFee",auction.CreditCardFeeFixedAmount.ToString(CultureInfo.InvariantCulture));
         command.Parameters.AddWithValue("$commission", auction.DefaultConsignorCommissionPercent.ToString(CultureInfo.InvariantCulture)); command.Parameters.AddWithValue("$tax", auction.SalesTaxPercent.ToString(CultureInfo.InvariantCulture));
         command.Parameters.AddWithValue("$taxBasis", auction.SalesTaxBasis.ToString());
         command.Parameters.AddWithValue("$invoiceFooter", auction.InvoiceFooter ?? string.Empty); command.Parameters.AddWithValue("$receiptFooter", auction.ReceiptFooter ?? string.Empty);

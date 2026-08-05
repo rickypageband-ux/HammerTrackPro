@@ -17,7 +17,13 @@ public sealed class CashierViewModel
         if (amount <= 0) throw new InvalidOperationException("Payment amount must be greater than zero.");
         PendingPayments.Add(new PaymentRequest { Method=method,Amount=amount,ProcessingFee=CalculateCardFee(method,amount),Reference=reference?.Trim() ?? string.Empty });
     }
-    public decimal CalculateCardFee(PaymentMethod method,decimal amount)=>method==PaymentMethod.Card?decimal.Round(amount*_service.GetCurrentAuction().CreditCardFeePercent/100m,2,MidpointRounding.AwayFromZero):0m;
+    public decimal CalculateCardFee(PaymentMethod method,decimal amount)
+    {
+        if(method!=PaymentMethod.Card||amount<=0)return 0m;
+        var auction=_service.GetCurrentAuction();
+        return decimal.Round(amount*auction.CreditCardFeePercent/100m+auction.CreditCardFeeFixedAmount,2,MidpointRounding.AwayFromZero);
+    }
+    public decimal SuggestedPaymentAmount(PaymentMethod method)=>method==PaymentMethod.Card?Invoice?.BalanceDue??0m:0m;
     public decimal PendingCardFee=>PendingPayments.Sum(item=>item.ProcessingFee);
     public void RemovePayment(PaymentRequest payment) => PendingPayments.Remove(payment);
     public void RecordPayments()
