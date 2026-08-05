@@ -116,7 +116,7 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
             {
                 command.CommandText = """
                     SELECT i.InvoiceId,i.AuctionId,i.AuctionBidderId,a.AuctionNumber,ab.BidderNumber,
-                           trim(b.FirstName || ' ' || b.LastName),trim(b.Address || ' ' || b.City || ' ' || b.State || ' ' || b.Zip),
+                           trim(b.FirstName || ' ' || b.LastName),trim(b.Address || ' ' || b.City || ' ' || b.State || ' ' || b.Zip),b.Phone,b.Email,
                            i.BuyerPremiumPercent,i.SalesTaxPercent,i.SalesTaxBasis,i.HammerSubtotal,i.BuyerPremiumAmount,
                            i.SalesTaxAmount,i.TotalAmount,i.Status,i.CreatedUtc,i.UpdatedUtc,i.CreditCardFeeAmount
                     FROM Invoices i JOIN Auctions a ON a.AuctionId=i.AuctionId
@@ -128,13 +128,13 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
                 result = new Invoice
                 {
                     InvoiceId=reader.GetInt64(0),AuctionId=reader.GetInt64(1),AuctionBidderId=reader.GetInt64(2),AuctionNumber=reader.GetString(3),
-                    BidderNumber=reader.GetInt32(4),BuyerName=reader.GetString(5),BuyerAddress=reader.GetString(6),
-                    BuyerPremiumPercent=decimal.Parse(reader.GetString(7),CultureInfo.InvariantCulture),SalesTaxPercent=decimal.Parse(reader.GetString(8),CultureInfo.InvariantCulture),
-                    SalesTaxBasis=Enum.Parse<SalesTaxBasis>(reader.GetString(9)),HammerSubtotal=decimal.Parse(reader.GetString(10),CultureInfo.InvariantCulture),
-                    BuyerPremiumAmount=decimal.Parse(reader.GetString(11),CultureInfo.InvariantCulture),SalesTaxAmount=decimal.Parse(reader.GetString(12),CultureInfo.InvariantCulture),
-                    TotalAmount=decimal.Parse(reader.GetString(13),CultureInfo.InvariantCulture),Status=reader.GetString(14),
-                    CreatedUtc=DateTime.Parse(reader.GetString(15),CultureInfo.InvariantCulture,DateTimeStyles.RoundtripKind),
-                    UpdatedUtc=DateTime.Parse(reader.GetString(16),CultureInfo.InvariantCulture,DateTimeStyles.RoundtripKind),CreditCardFeeAmount=decimal.Parse(reader.GetString(17),CultureInfo.InvariantCulture)
+                    BidderNumber=reader.GetInt32(4),BuyerName=reader.GetString(5),BuyerAddress=reader.GetString(6),BuyerPhone=reader.GetString(7),BuyerEmail=reader.GetString(8),
+                    BuyerPremiumPercent=decimal.Parse(reader.GetString(9),CultureInfo.InvariantCulture),SalesTaxPercent=decimal.Parse(reader.GetString(10),CultureInfo.InvariantCulture),
+                    SalesTaxBasis=Enum.Parse<SalesTaxBasis>(reader.GetString(11)),HammerSubtotal=decimal.Parse(reader.GetString(12),CultureInfo.InvariantCulture),
+                    BuyerPremiumAmount=decimal.Parse(reader.GetString(13),CultureInfo.InvariantCulture),SalesTaxAmount=decimal.Parse(reader.GetString(14),CultureInfo.InvariantCulture),
+                    TotalAmount=decimal.Parse(reader.GetString(15),CultureInfo.InvariantCulture),Status=reader.GetString(16),
+                    CreatedUtc=DateTime.Parse(reader.GetString(17),CultureInfo.InvariantCulture,DateTimeStyles.RoundtripKind),
+                    UpdatedUtc=DateTime.Parse(reader.GetString(18),CultureInfo.InvariantCulture,DateTimeStyles.RoundtripKind),CreditCardFeeAmount=decimal.Parse(reader.GetString(19),CultureInfo.InvariantCulture)
                 };
             }
             using (var purchases = connection.CreateCommand())
@@ -513,16 +513,16 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
             command.Transaction = transaction;
             command.CommandText = auction.AuctionId == 0
                 ? """
-                    INSERT INTO Auctions(AuctionNumber, AuctionName, AuctionDate, AuctionTime, Location, Auctioneer, Clerk, Cashier,
+                    INSERT INTO Auctions(AuctionNumber, AuctionName, AuctionDate, AuctionTime, Location,CompanyName,CompanyAddress,CompanyCity,CompanyState,CompanyZip,CompanyPhone,CompanyEmail,Auctioneer, Clerk, Cashier,
                         BuyerPremiumPercent,CreditCardFeePercent,CreditCardFeeFixedAmount,DefaultConsignorCommissionPercent,SalesTaxPercent,SalesTaxBasis,InvoiceFooter,ReceiptFooter,
                         Status, CreatedDate, CreatedUtc, UpdatedUtc)
-                    VALUES($number, $name, $date, $time, $location, $auctioneer, $clerk, $cashier,
+                    VALUES($number, $name, $date, $time, $location,$companyName,$companyAddress,$companyCity,$companyState,$companyZip,$companyPhone,$companyEmail,$auctioneer, $clerk, $cashier,
                         $premium,$cardFee,$cardFixedFee,$commission,$tax,$taxBasis,$invoiceFooter,$receiptFooter,$status,$created,$created,$updated);
                     SELECT last_insert_rowid();
                     """
                 : """
                     UPDATE Auctions SET AuctionNumber=$number, AuctionName=$name, AuctionDate=$date, AuctionTime=$time,
-                        Location=$location, Auctioneer=$auctioneer, Clerk=$clerk, Cashier=$cashier,
+                        Location=$location,CompanyName=$companyName,CompanyAddress=$companyAddress,CompanyCity=$companyCity,CompanyState=$companyState,CompanyZip=$companyZip,CompanyPhone=$companyPhone,CompanyEmail=$companyEmail,Auctioneer=$auctioneer, Clerk=$clerk, Cashier=$cashier,
                         BuyerPremiumPercent=$premium,CreditCardFeePercent=$cardFee,CreditCardFeeFixedAmount=$cardFixedFee,DefaultConsignorCommissionPercent=$commission,SalesTaxPercent=$tax,SalesTaxBasis=$taxBasis,
                         InvoiceFooter=$invoiceFooter, ReceiptFooter=$receiptFooter, Status=$status, UpdatedUtc=$updated
                     WHERE AuctionId=$id;
@@ -1517,6 +1517,7 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
         if(version<12){using var transaction=connection.BeginTransaction();using var migration=connection.CreateCommand();migration.Transaction=transaction;migration.CommandText="ALTER TABLE Auctions ADD COLUMN CreditCardFeePercent TEXT NOT NULL DEFAULT '2.65'; ALTER TABLE Invoices ADD COLUMN CreditCardFeeAmount TEXT NOT NULL DEFAULT '0'; ALTER TABLE Payments ADD COLUMN ProcessingFee TEXT NOT NULL DEFAULT '0'; INSERT INTO Settings(Key,Value) VALUES('DatabaseSchemaVersion','12') ON CONFLICT(Key) DO UPDATE SET Value='12';";migration.ExecuteNonQuery();transaction.Commit();}
         if(version<13){using var transaction=connection.BeginTransaction();using var migration=connection.CreateCommand();migration.Transaction=transaction;migration.CommandText="CREATE TABLE StaffPayments(StaffPaymentId INTEGER PRIMARY KEY AUTOINCREMENT,AuctionId INTEGER NOT NULL,Category TEXT NOT NULL,Payee TEXT NOT NULL,Amount TEXT NOT NULL,Method TEXT NOT NULL,PaidUtc TEXT NOT NULL,Notes TEXT NOT NULL DEFAULT '',VoidsStaffPaymentId INTEGER NULL,ReplacementForStaffPaymentId INTEGER NULL,VoidReason TEXT NOT NULL DEFAULT '',FOREIGN KEY(AuctionId) REFERENCES Auctions(AuctionId) ON DELETE RESTRICT,FOREIGN KEY(VoidsStaffPaymentId) REFERENCES StaffPayments(StaffPaymentId) ON DELETE RESTRICT,FOREIGN KEY(ReplacementForStaffPaymentId) REFERENCES StaffPayments(StaffPaymentId) ON DELETE RESTRICT);CREATE INDEX IX_StaffPayments_AuctionPaidUtc ON StaffPayments(AuctionId,PaidUtc);CREATE INDEX IX_StaffPayments_Voids ON StaffPayments(VoidsStaffPaymentId);INSERT INTO Settings(Key,Value) VALUES('DatabaseSchemaVersion','13') ON CONFLICT(Key) DO UPDATE SET Value='13';";migration.ExecuteNonQuery();transaction.Commit();}
         if(version<14){using var transaction=connection.BeginTransaction();using var migration=connection.CreateCommand();migration.Transaction=transaction;migration.CommandText="ALTER TABLE Auctions ADD COLUMN CreditCardFeeFixedAmount TEXT NOT NULL DEFAULT '0.15'; UPDATE Auctions SET CreditCardFeePercent='2.65'; INSERT INTO Settings(Key,Value) VALUES('DatabaseSchemaVersion','14') ON CONFLICT(Key) DO UPDATE SET Value='14';";migration.ExecuteNonQuery();transaction.Commit();}
+        if(version<15){using var transaction=connection.BeginTransaction();using var migration=connection.CreateCommand();migration.Transaction=transaction;migration.CommandText="ALTER TABLE Auctions ADD COLUMN CompanyName TEXT NOT NULL DEFAULT ''; ALTER TABLE Auctions ADD COLUMN CompanyAddress TEXT NOT NULL DEFAULT ''; ALTER TABLE Auctions ADD COLUMN CompanyCity TEXT NOT NULL DEFAULT ''; ALTER TABLE Auctions ADD COLUMN CompanyState TEXT NOT NULL DEFAULT ''; ALTER TABLE Auctions ADD COLUMN CompanyZip TEXT NOT NULL DEFAULT ''; ALTER TABLE Auctions ADD COLUMN CompanyPhone TEXT NOT NULL DEFAULT ''; ALTER TABLE Auctions ADD COLUMN CompanyEmail TEXT NOT NULL DEFAULT ''; INSERT INTO Settings(Key,Value) VALUES('DatabaseSchemaVersion','15') ON CONFLICT(Key) DO UPDATE SET Value='15';";migration.ExecuteNonQuery();transaction.Commit();}
     }
 
     private static void UpgradeSalesTableForPassOut(SqliteConnection connection)
@@ -1828,7 +1829,7 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
     }
 
     private const string AuctionSelectSql = """
-        SELECT AuctionId,AuctionNumber,AuctionName,AuctionDate,AuctionTime,Location,Auctioneer,Clerk,Cashier,
+        SELECT AuctionId,AuctionNumber,AuctionName,AuctionDate,AuctionTime,Location,CompanyName,CompanyAddress,CompanyCity,CompanyState,CompanyZip,CompanyPhone,CompanyEmail,Auctioneer,Clerk,Cashier,
                BuyerPremiumPercent,CreditCardFeePercent,CreditCardFeeFixedAmount,DefaultConsignorCommissionPercent,SalesTaxPercent,SalesTaxBasis,InvoiceFooter,ReceiptFooter,
                Status,CreatedDate
         FROM Auctions
@@ -1858,10 +1859,10 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
     {
         AuctionId = reader.GetInt64(0), AuctionNumber = reader.GetString(1), AuctionName = reader.GetString(2),
         AuctionDate = DateTime.Parse(reader.GetString(3), CultureInfo.InvariantCulture),
-        AuctionTime = TimeSpan.Parse(reader.GetString(4), CultureInfo.InvariantCulture), Location = reader.GetString(5),
-        Auctioneer = reader.GetString(6), Clerk = reader.GetString(7), Cashier = reader.GetString(8),
-        BuyerPremiumPercent = decimal.Parse(reader.GetString(9), CultureInfo.InvariantCulture),
-        CreditCardFeePercent=decimal.Parse(reader.GetString(10),CultureInfo.InvariantCulture),CreditCardFeeFixedAmount=decimal.Parse(reader.GetString(11),CultureInfo.InvariantCulture),DefaultConsignorCommissionPercent = decimal.Parse(reader.GetString(12), CultureInfo.InvariantCulture),SalesTaxPercent=decimal.Parse(reader.GetString(13),CultureInfo.InvariantCulture), SalesTaxBasis=Enum.Parse<SalesTaxBasis>(reader.GetString(14)),InvoiceFooter=reader.GetString(15),ReceiptFooter=reader.GetString(16),Status=reader.GetString(17),CreatedDate=DateTime.Parse(reader.GetString(18),CultureInfo.InvariantCulture,DateTimeStyles.RoundtripKind)
+        AuctionTime = TimeSpan.Parse(reader.GetString(4), CultureInfo.InvariantCulture), Location = reader.GetString(5),CompanyName=reader.GetString(6),CompanyAddress=reader.GetString(7),CompanyCity=reader.GetString(8),CompanyState=reader.GetString(9),CompanyZip=reader.GetString(10),CompanyPhone=reader.GetString(11),CompanyEmail=reader.GetString(12),
+        Auctioneer = reader.GetString(13), Clerk = reader.GetString(14), Cashier = reader.GetString(15),
+        BuyerPremiumPercent = decimal.Parse(reader.GetString(16), CultureInfo.InvariantCulture),
+        CreditCardFeePercent=decimal.Parse(reader.GetString(17),CultureInfo.InvariantCulture),CreditCardFeeFixedAmount=decimal.Parse(reader.GetString(18),CultureInfo.InvariantCulture),DefaultConsignorCommissionPercent = decimal.Parse(reader.GetString(19), CultureInfo.InvariantCulture),SalesTaxPercent=decimal.Parse(reader.GetString(20),CultureInfo.InvariantCulture), SalesTaxBasis=Enum.Parse<SalesTaxBasis>(reader.GetString(21)),InvoiceFooter=reader.GetString(22),ReceiptFooter=reader.GetString(23),Status=reader.GetString(24),CreatedDate=DateTime.Parse(reader.GetString(25),CultureInfo.InvariantCulture,DateTimeStyles.RoundtripKind)
     };
 
     private static void AddAuctionParameters(SqliteCommand command, Auction auction, string now)
@@ -1869,6 +1870,7 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
         command.Parameters.AddWithValue("$id", auction.AuctionId); command.Parameters.AddWithValue("$number", auction.AuctionNumber.Trim());
         command.Parameters.AddWithValue("$name", auction.AuctionName.Trim()); command.Parameters.AddWithValue("$date", auction.AuctionDate.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
         command.Parameters.AddWithValue("$time", auction.AuctionTime.ToString("c", CultureInfo.InvariantCulture)); command.Parameters.AddWithValue("$location", auction.Location ?? string.Empty);
+        command.Parameters.AddWithValue("$companyName",auction.CompanyName??string.Empty);command.Parameters.AddWithValue("$companyAddress",auction.CompanyAddress??string.Empty);command.Parameters.AddWithValue("$companyCity",auction.CompanyCity??string.Empty);command.Parameters.AddWithValue("$companyState",auction.CompanyState??string.Empty);command.Parameters.AddWithValue("$companyZip",auction.CompanyZip??string.Empty);command.Parameters.AddWithValue("$companyPhone",auction.CompanyPhone??string.Empty);command.Parameters.AddWithValue("$companyEmail",auction.CompanyEmail??string.Empty);
         command.Parameters.AddWithValue("$auctioneer", auction.Auctioneer ?? string.Empty); command.Parameters.AddWithValue("$clerk", auction.Clerk ?? string.Empty);
         command.Parameters.AddWithValue("$cashier", auction.Cashier ?? string.Empty); command.Parameters.AddWithValue("$premium", auction.BuyerPremiumPercent.ToString(CultureInfo.InvariantCulture));
         command.Parameters.AddWithValue("$cardFee",auction.CreditCardFeePercent.ToString(CultureInfo.InvariantCulture));

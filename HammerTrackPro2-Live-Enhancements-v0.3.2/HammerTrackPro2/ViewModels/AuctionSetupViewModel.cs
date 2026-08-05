@@ -61,6 +61,8 @@ public sealed class AuctionSetupViewModel
         {
             AuctionName = source.AuctionName, AuctionDate = DateTime.Today, AuctionTime = source.AuctionTime,
             Location = source.Location, Auctioneer = source.Auctioneer, Clerk = source.Clerk, Cashier = source.Cashier,
+            CompanyName=source.CompanyName,CompanyAddress=source.CompanyAddress,CompanyCity=source.CompanyCity,CompanyState=source.CompanyState,
+            CompanyZip=source.CompanyZip,CompanyPhone=source.CompanyPhone,CompanyEmail=source.CompanyEmail,
             BuyerPremiumPercent = source.BuyerPremiumPercent,
             CreditCardFeePercent = source.CreditCardFeePercent,
             CreditCardFeeFixedAmount = source.CreditCardFeeFixedAmount,

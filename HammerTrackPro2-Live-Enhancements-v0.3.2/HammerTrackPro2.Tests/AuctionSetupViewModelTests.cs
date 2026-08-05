@@ -33,6 +33,8 @@ public sealed class AuctionSetupViewModelTests
         Assert.Equal(12.5m, viewModel.CurrentAuction.BuyerPremiumPercent);
         Assert.Equal(2.65m,viewModel.CurrentAuction.CreditCardFeePercent);
         Assert.Equal(0.15m,viewModel.CurrentAuction.CreditCardFeeFixedAmount);
+        Assert.Equal("RPDAVID Auctions",viewModel.CurrentAuction.CompanyName);
+        Assert.Equal("555-0100",viewModel.CurrentAuction.CompanyPhone);
         viewModel.CurrentAuction.AuctionNumber = "FALL-26";
         viewModel.CopyConsignors = true;
         viewModel.Save();
@@ -64,7 +66,7 @@ public sealed class AuctionSetupViewModelTests
         public List<Auction> Auctions { get; } = [new Auction
         {
             AuctionId = 1, AuctionNumber = "SPRING-26", AuctionName = "Spring", BuyerPremiumPercent = 12.5m,
-            CreditCardFeePercent=2.65m,CreditCardFeeFixedAmount=0.15m,
+            CreditCardFeePercent=2.65m,CreditCardFeeFixedAmount=0.15m,CompanyName="RPDAVID Auctions",CompanyPhone="555-0100",CompanyEmail="office@example.com",
             DefaultConsignorCommissionPercent = 18, SalesTaxPercent = 6, InvoiceFooter = "Thank you", Status = "Setup"
         }];
         public (long Source, long Destination)? CopiedAssociations { get; private set; }

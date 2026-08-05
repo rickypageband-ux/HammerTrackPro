@@ -42,6 +42,8 @@ public sealed class MigrationTests
         using var database = TemporaryDatabase.Create();
         var store = new SqliteDataStore(database.Path);
         var auction = store.GetCurrentAuction();
+        auction.CompanyName="RPDAVID Auctions";auction.CompanyAddress="123 Main St";auction.CompanyPhone="555-0100";auction.CompanyEmail="office@example.com";auction=store.SaveAuction(auction);
+        Assert.Equal("RPDAVID Auctions",auction.CompanyName);Assert.Equal("123 Main St",auction.CompanyAddress);Assert.Equal("555-0100",auction.CompanyPhone);Assert.Equal("office@example.com",auction.CompanyEmail);
         store.SaveConsignor(new Consignor
         {
             ConsignorNumber = 22,
@@ -67,7 +69,8 @@ public sealed class MigrationTests
         Assert.Equal(consignor.ConsignorId, lot.ConsignorId);
         Assert.True(consignor.Require1099);
         Assert.NotEqual(default, consignor.CreatedDate);
-        Assert.Equal("14", Scalar(database.Path, "SELECT Value FROM Settings WHERE Key='DatabaseSchemaVersion';"));
+        Assert.Equal("15", Scalar(database.Path, "SELECT Value FROM Settings WHERE Key='DatabaseSchemaVersion';"));
+        Assert.Equal("CompanyName",Scalar(database.Path,"SELECT name FROM pragma_table_info('Auctions') WHERE name='CompanyName';"));
         Assert.Equal("IX_Consignors_ConsignorNumber", Scalar(database.Path, "SELECT name FROM sqlite_master WHERE type='index' AND name='IX_Consignors_ConsignorNumber';"));
         Assert.Equal("IX_AuctionLots_AuctionLotNumber", Scalar(database.Path, "SELECT name FROM sqlite_master WHERE type='index' AND name='IX_AuctionLots_AuctionLotNumber';"));
         Assert.Equal("IX_AuctionBidders_AuctionBidderNumber", Scalar(database.Path, "SELECT name FROM sqlite_master WHERE type='index' AND name='IX_AuctionBidders_AuctionBidderNumber';"));
@@ -87,7 +90,7 @@ public sealed class MigrationTests
         Assert.Equal(7, lot.LotNumber);
         Assert.True(lot.AuctionId > 0);
         Assert.True(lot.ConsignorId > 0);
-        Assert.Equal("14", Scalar(database.Path, "SELECT Value FROM Settings WHERE Key='DatabaseSchemaVersion';"));
+        Assert.Equal("15", Scalar(database.Path, "SELECT Value FROM Settings WHERE Key='DatabaseSchemaVersion';"));
         Assert.Equal("7", Scalar(database.Path, "SELECT LotNumber FROM Lots WHERE LotNumber=7;"));
         Assert.Equal("7", Scalar(database.Path, "SELECT LotNumber FROM AuctionLots WHERE LotNumber=7;"));
     }

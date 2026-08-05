@@ -16,6 +16,20 @@ public sealed class Auction
     public TimeSpan AuctionTime { get; set; }
     [Category("Schedule")]
     public string Location { get; set; } = string.Empty;
+    [Category("Auction Company"), DisplayName("Company Name")]
+    public string CompanyName { get; set; } = string.Empty;
+    [Category("Auction Company"), DisplayName("Street Address")]
+    public string CompanyAddress { get; set; } = string.Empty;
+    [Category("Auction Company")]
+    public string CompanyCity { get; set; } = string.Empty;
+    [Category("Auction Company")]
+    public string CompanyState { get; set; } = string.Empty;
+    [Category("Auction Company"), DisplayName("ZIP Code")]
+    public string CompanyZip { get; set; } = string.Empty;
+    [Category("Auction Company"), DisplayName("Phone Number")]
+    public string CompanyPhone { get; set; } = string.Empty;
+    [Category("Auction Company"), DisplayName("Email Address")]
+    public string CompanyEmail { get; set; } = string.Empty;
     [Category("Staff")]
     public string Auctioneer { get; set; } = string.Empty;
     [Category("Staff")]
@@ -45,6 +59,12 @@ public sealed class Auction
 
     [Browsable(false)]
     public string DisplayText => $"{AuctionNumber} - {AuctionName}";
+
+    [Browsable(false)]
+    public string CompanyDisplayName => string.IsNullOrWhiteSpace(CompanyName)?AuctionName:CompanyName;
+
+    [Browsable(false)]
+    public string CompanyFormattedAddress => string.Join(", ",new[]{CompanyAddress,string.Join(" ",new[]{CompanyCity,CompanyState,CompanyZip}.Where(value=>!string.IsNullOrWhiteSpace(value)))}.Where(value=>!string.IsNullOrWhiteSpace(value)));
 }
 
 public enum SalesTaxBasis { None, HammerOnly, HammerPlusBuyerPremium }

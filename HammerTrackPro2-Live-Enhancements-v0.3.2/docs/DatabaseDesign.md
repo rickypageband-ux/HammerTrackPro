@@ -66,6 +66,8 @@ Migration 13 adds the auction-scoped append-only `StaffPayments` ledger with sel
 
 Migration 14 additively adds `Auctions.CreditCardFeeFixedAmount`, changes persisted auction card percentages from the superseded 3% rate to 2.65%, and defaults the fixed component to $0.15. The existing percentage field and all invoice/payment history are preserved; only future card payments use the updated current-auction terms. Rollback is restore-from-backup.
 
+Migration 15 additively adds optional `CompanyName`, `CompanyAddress`, `CompanyCity`, `CompanyState`, `CompanyZip`, `CompanyPhone`, and `CompanyEmail` fields to `Auctions`. Existing auctions receive empty values and retain every prior field and relationship. The printed invoice/receipt and End-of-Night report fall back to `AuctionName` when Company Name is blank. Rollback is restore-from-backup.
+
 ## Migrations 7 and 8
 
 The ordered transaction:

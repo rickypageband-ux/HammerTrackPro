@@ -39,7 +39,7 @@ public sealed class CashierViewModel
         return new Invoice
         {
             InvoiceId=invoice.InvoiceId,AuctionId=invoice.AuctionId,AuctionBidderId=invoice.AuctionBidderId,
-            AuctionNumber=invoice.AuctionNumber,BidderNumber=invoice.BidderNumber,BuyerName=invoice.BuyerName,BuyerAddress=invoice.BuyerAddress,
+            AuctionNumber=invoice.AuctionNumber,BidderNumber=invoice.BidderNumber,BuyerName=invoice.BuyerName,BuyerAddress=invoice.BuyerAddress,BuyerPhone=invoice.BuyerPhone,BuyerEmail=invoice.BuyerEmail,
             BuyerPremiumPercent=invoice.BuyerPremiumPercent,SalesTaxPercent=invoice.SalesTaxPercent,SalesTaxBasis=invoice.SalesTaxBasis,
             HammerSubtotal=invoice.HammerSubtotal,BuyerPremiumAmount=invoice.BuyerPremiumAmount,SalesTaxAmount=invoice.SalesTaxAmount,
             CreditCardFeeAmount=invoice.CreditCardFeeAmount+previewFee,TotalAmount=invoice.TotalAmount+previewFee,

@@ -137,4 +137,8 @@ Status: Cashier and the approved closed-auction consignor payout extension are i
 
 ## Invoice condition of sale
 
+- Auction Setup captures optional auction-company name, address, phone, and email information for printed documents through additive schema migration 15.
+- Invoice/receipt printing uses the embedded HammerTrack Pro logo, auction-company and bidder contact information, itemized purchases and payment history, structured totals, paid/unpaid status, configured footer, warranty language, and print timestamp.
+- End-of-Night printing uses matching branding, auction-company information, grouped buyer revenue and seller/operating expense sections, highlighted net cash movement, staff-payment ledger, and review signature lines.
+- Package the professional printed-document redesign as upgrade version 0.7.22.
 - Every local or LAN Cashier invoice preview/print includes the approved Condition of Sale – Disclaimer of Warranties with its exact heading and two-paragraph wording.

@@ -23,5 +23,6 @@
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="HammerTrackPro2.Tests" />
+    <EmbeddedResource Include="Assets\HammerTrackPro.png" />
   </ItemGroup>
 </Project>
