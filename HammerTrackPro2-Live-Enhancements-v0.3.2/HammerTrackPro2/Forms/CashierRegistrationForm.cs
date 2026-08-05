@@ -17,12 +17,13 @@ public sealed class CashierRegistrationForm : Form
         _viewModel=viewModel??throw new ArgumentNullException(nameof(viewModel));
         Text=viewModel.IsSeller?"Register Seller":"Register Buyer";
         StartPosition=FormStartPosition.CenterParent;
-        Width=viewModel.IsSeller?520:900;
-        Height=viewModel.IsSeller?390:560;
-        MinimumSize=viewModel.IsSeller?new Size(500,360):new Size(760,480);
+        Width=920;
+        Height=590;
+        MinimumSize=new Size(780,500);
+        BackColor=Color.FromArgb(242,245,248);
 
         var editor=BuildEditor();
-        if(viewModel.IsSeller) Controls.Add(editor);
+        if(viewModel.RegisteredBidders.Count==0)Controls.Add(editor);
         else
         {
             var split=new SplitContainer{Size=new Size(860,500),Dock=DockStyle.Fill,Panel1MinSize=360,Panel2MinSize=300,SplitterDistance=420,Padding=new Padding(8)};
@@ -33,9 +34,11 @@ public sealed class CashierRegistrationForm : Form
                 RowHeadersVisible=false,SelectionMode=DataGridViewSelectionMode.FullRowSelect,AutoSizeColumnsMode=DataGridViewAutoSizeColumnsMode.Fill,
                 DataSource=viewModel.RegisteredBidders.ToList()
             };
+            grid.CellDoubleClick+=(_,_)=>{if(grid.CurrentRow?.DataBoundItem is RegisteredBidderSummary bidder)_number.Value=bidder.BuyerNumber;};
             var right=new TableLayoutPanel{Dock=DockStyle.Fill,RowCount=2,Padding=new Padding(10)};
             right.RowStyles.Add(new RowStyle(SizeType.AutoSize));right.RowStyles.Add(new RowStyle(SizeType.Percent,100));
-            right.Controls.Add(new Label{Text=$"Registered Bidders - Current Auction ({viewModel.RegisteredBidders.Count})",AutoSize=true,Font=new Font("Segoe UI",11F,FontStyle.Bold),Margin=new Padding(0,0,0,8)},0,0);
+            var listTitle=viewModel.IsSeller?"Existing Buyer Numbers — double-click to link":"Registered Buyers — Current Auction";
+            right.Controls.Add(new Label{Text=$"{listTitle} ({viewModel.RegisteredBidders.Count})",AutoSize=true,Font=new Font("Segoe UI",11F,FontStyle.Bold),ForeColor=Color.FromArgb(24,50,74),Margin=new Padding(0,0,0,8)},0,0);
             right.Controls.Add(grid,0,1);split.Panel2.Controls.Add(right);Controls.Add(split);
         }
     }

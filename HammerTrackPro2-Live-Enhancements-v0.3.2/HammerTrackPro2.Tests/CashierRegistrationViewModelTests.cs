@@ -1,6 +1,7 @@
 using HammerTrackPro2.Models;
 using HammerTrackPro2.Forms;
 using HammerTrackPro2.ViewModels;
+using System.Windows.Forms;
 
 namespace HammerTrackPro2.Tests;
 
@@ -27,5 +28,21 @@ public sealed class CashierRegistrationViewModelTests
         Assert.Contains("already registered",error.Message);
         viewModel.Create(12,"","New","Buyer","","");
         Assert.Equal(12,viewModel.Buyer!.BidderNumber);
+    }
+
+    [Fact]
+    public void SellerRegistrationForm_ShowsExistingBuyerNumbersForLinking()
+    {
+        using var form=new CashierRegistrationForm(new CashierRegistrationViewModel(true,[new(){BuyerNumber=14,Name="Existing Buyer"}]));
+        Assert.Equal("Register Seller",form.Text);
+        Assert.True(form.Width>=780);
+        Assert.Contains(form.Controls.Cast<Control>().SelectMany(Descendants),x=>x is DataGridView);
+    }
+
+    private static IEnumerable<Control> Descendants(Control control)
+    {
+        yield return control;
+        foreach(Control child in control.Controls)
+            foreach(var descendant in Descendants(child))yield return descendant;
     }
 }

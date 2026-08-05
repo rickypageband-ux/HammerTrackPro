@@ -10,7 +10,17 @@ public sealed class CashierService : ICashierService
     public Task<bool> CheckConnectionAsync(CancellationToken cancellationToken=default) => Task.FromResult(true);
     public Invoice RegisterBuyer(AuctionBidder bidder){ArgumentNullException.ThrowIfNull(bidder);var auction=_dataStore.GetCurrentAuction();if(string.Equals(auction.Status,"Closed",StringComparison.OrdinalIgnoreCase))throw new InvalidOperationException("This auction is closed. New buyers cannot be registered.");if(_dataStore.Load().Bidders.Any(x=>x.BidderNumber==bidder.BidderNumber))throw new InvalidOperationException($"Buyer Number #{bidder.BidderNumber} is already registered in the current auction. Use Lookup instead.");bidder.AuctionId=auction.AuctionId;new AuctionService(_dataStore).SaveBidder(bidder,null);return LoadInvoice(bidder.BidderNumber);}
     public IReadOnlyList<RegisteredBidderSummary> GetRegisteredBidders()=>_dataStore.Load().Bidders.OrderBy(x=>x.BidderNumber).Select(x=>new RegisteredBidderSummary{BuyerNumber=x.BidderNumber,Name=x.FullName}).ToList();
-    public ConsignorSettlement RegisterConsignor(Consignor consignor){ArgumentNullException.ThrowIfNull(consignor);if(string.Equals(_dataStore.GetCurrentAuction().Status,"Closed",StringComparison.OrdinalIgnoreCase))throw new InvalidOperationException("This auction is closed. New sellers cannot be registered.");if(_dataStore.GetConsignors().Any(x=>x.ConsignorNumber==consignor.ConsignorNumber))throw new InvalidOperationException($"Seller Number #{consignor.ConsignorNumber} already exists. Use Lookup or Seller Management instead.");consignor.Active=true;new ConsignorService(_dataStore).SaveConsignor(consignor,null);return LoadConsignorSettlement(consignor.ConsignorNumber);}
+    public ConsignorSettlement RegisterConsignor(Consignor consignor)
+    {
+        ArgumentNullException.ThrowIfNull(consignor);
+        if(string.Equals(_dataStore.GetCurrentAuction().Status,"Closed",StringComparison.OrdinalIgnoreCase))throw new InvalidOperationException("This auction is closed. New sellers cannot be registered.");
+        if(_dataStore.GetConsignors().Any(x=>x.ConsignorNumber==consignor.ConsignorNumber))throw new InvalidOperationException($"Seller Number #{consignor.ConsignorNumber} already exists. Use Lookup or Seller Management instead.");
+        var existingBuyer=_dataStore.Load().Bidders.SingleOrDefault(x=>x.BidderNumber==consignor.ConsignorNumber);
+        if(existingBuyer is not null)consignor.LinkedBuyerId=existingBuyer.BuyerId;
+        consignor.Active=true;
+        new ConsignorService(_dataStore).SaveConsignor(consignor,null);
+        return LoadConsignorSettlement(consignor.ConsignorNumber);
+    }
     public IReadOnlyList<UnpaidInvoiceSummary> GetUnpaidInvoices()=>_dataStore.Load().Bidders.Select(x=>LoadInvoice(x.BidderNumber)).Where(x=>x.BalanceDue>0).OrderBy(x=>x.BidderNumber).Select(x=>new UnpaidInvoiceSummary{BuyerNumber=x.BidderNumber,BuyerName=x.BuyerName,InvoiceTotal=x.TotalAmount,AmountPaid=x.AmountPaid,BalanceDue=x.BalanceDue}).ToList();
     public AuctionSettlementReport GetAuctionSettlementReport()=>_dataStore.LoadAuctionSettlementReport();
     public StaffPayment RecordStaffPayment(StaffPayment payment)

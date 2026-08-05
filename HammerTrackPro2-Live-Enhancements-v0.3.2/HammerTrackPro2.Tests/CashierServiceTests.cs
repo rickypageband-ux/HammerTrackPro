@@ -19,6 +19,19 @@ public sealed class CashierServiceTests
     public void CashierRegistration_CreatesAndSelectsCurrentAuctionRecords()
     {using var db=TemporaryDatabase.Create();var store=new SqliteDataStore(db.Path);var cashier=new CashierService(store);Assert.Equal(41,cashier.RegisterBuyer(new AuctionBidder{BidderNumber=41,FirstName="New",LastName="Buyer"}).BidderNumber);Assert.Equal(42,cashier.RegisterConsignor(new Consignor{ConsignorNumber=42,BusinessName="Farm"}).ConsignorNumber);Assert.Throws<InvalidOperationException>(()=>cashier.RegisterBuyer(new AuctionBidder{BidderNumber=41,FirstName="Dup"}));Assert.Throws<InvalidOperationException>(()=>cashier.RegisterConsignor(new Consignor{ConsignorNumber=42,BusinessName="Dup"}));}
 
+    [Fact]
+    public void CashierSellerRegistration_ReusesExistingSameNumberBuyerIdentity()
+    {
+        using var database=TemporaryDatabase.Create();var store=new SqliteDataStore(database.Path);var cashier=new CashierService(store);
+        cashier.RegisterBuyer(new AuctionBidder{BidderNumber=64,FirstName="Jordan",LastName="Seller"});
+        var settlement=cashier.RegisterConsignor(new Consignor{ConsignorNumber=64,FirstName="Jordan",LastName="Seller"});
+        var bidder=store.Load().Bidders.Single(x=>x.BidderNumber==64);
+        var seller=store.GetConsignors().Single(x=>x.ConsignorNumber==64);
+        Assert.Equal(bidder.BuyerId,seller.LinkedBuyerId);
+        Assert.Equal(64,settlement.ConsignorNumber);
+        Assert.Single(store.GetBuyers(),x=>x.BuyerId==seller.LinkedBuyerId);
+    }
+
     [Theory]
     [InlineData(SalesTaxBasis.None, 110)]
     [InlineData(SalesTaxBasis.HammerOnly, 115)]

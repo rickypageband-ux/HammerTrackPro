@@ -48,7 +48,7 @@ public sealed class NetworkCashierTests
     }
     [Fact]
     public async Task CashierClient_RegistersThroughHost()
-    {using var db=TemporaryDatabase.Create();var store=CreateAccount(db.Path);var c=Configuration("REG");await using var host=await CashierNetworkHost.StartAsync(new CashierService(store),c,useHttps:false);using var remote=new RemoteCashierService(c,true);Assert.Equal(51,remote.RegisterBuyer(new AuctionBidder{BidderNumber=51,FirstName="Remote"}).BidderNumber);Assert.Equal(52,remote.RegisterConsignor(new Consignor{ConsignorNumber=52,BusinessName="Remote Farm"}).ConsignorNumber);}
+    {using var db=TemporaryDatabase.Create();var store=CreateAccount(db.Path);var c=Configuration("REG");await using var host=await CashierNetworkHost.StartAsync(new CashierService(store),c,useHttps:false);using var remote=new RemoteCashierService(c,true);Assert.Equal(51,remote.RegisterBuyer(new AuctionBidder{BidderNumber=51,FirstName="Remote"}).BidderNumber);Assert.Equal(51,remote.RegisterConsignor(new Consignor{ConsignorNumber=51,FirstName="Remote"}).ConsignorNumber);Assert.Equal(52,remote.RegisterConsignor(new Consignor{ConsignorNumber=52,BusinessName="Remote Farm"}).ConsignorNumber);Assert.Equal(store.Load().Bidders.Single(x=>x.BidderNumber==51).BuyerId,store.GetConsignors().Single(x=>x.ConsignorNumber==51).LinkedBuyerId);}
 
     [Fact]
     public void HostConfiguration_RejectsANetworkDatabasePath()
