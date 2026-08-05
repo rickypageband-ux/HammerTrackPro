@@ -79,6 +79,8 @@ Selecting Card in Cashier fills the current invoice balance and immediately prev
 
 Cashier uses a branded, full-screen-capable workspace with larger uniform controls and direct Buyer and Seller registration. Registering a Seller with an existing same-number current-auction Buyer links the Seller to that durable Buyer identity instead of creating a duplicate or rejecting the registration.
 
+Seller Management uses the same branded workspace, full-screen controls, large uniform actions, searchable seller count, focused directory columns, and clear add/edit/save feedback. Sensitive Tax ID values remain in the details editor rather than the directory grid.
+
 The operator interface uses **Seller** wording while retaining the existing `Consignor` domain and database names for backward compatibility. Creating a seller also creates and links the same current-auction Buyer Number; if that Buyer Number is already assigned to someone else, saving is stopped so the operator can choose another Seller Number.
 
 Lot entry lists sellers by seller number and name, refreshes after Seller Management closes, and retains inactive sellers for historical/controlled assignment with a visible inactive label.
