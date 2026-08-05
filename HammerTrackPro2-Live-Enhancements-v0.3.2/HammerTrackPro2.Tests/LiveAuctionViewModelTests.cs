@@ -1,12 +1,27 @@
 using HammerTrackPro2.Models;
 using HammerTrackPro2.Services;
 using HammerTrackPro2.ViewModels;
+using HammerTrackPro2.Forms;
 using Microsoft.Data.Sqlite;
+using System.Windows.Forms;
 
 namespace HammerTrackPro2.Tests;
 
 public sealed class LiveAuctionViewModelTests
 {
+    [Fact]
+    public void LiveAuction_ActionButtonsUseFullWidthEqualColumnLayout()
+    {
+        using var database=TemporaryDatabase.Create();var store=new SqliteDataStore(database.Path);var service=new AuctionService(store);
+        using var form=new LiveAuctionForm(service,new LiveAuctionViewModel(service,new ConsignorService(store)));
+        var buttons=form.Controls.Cast<Control>().SelectMany(Descendants).OfType<Button>().Where(x=>x.Text.Contains("Enter")||x.Text.Contains("F4")||x.Text.Contains("F8")||x.Text.Contains("F11")||x.Text.Contains("F12")).ToList();
+        Assert.Equal(5,buttons.Count);
+        Assert.All(buttons,x=>{Assert.False(x.AutoSize);Assert.Equal(DockStyle.Fill,x.Dock);});
+        var actionLayout=Assert.IsType<TableLayoutPanel>(buttons[0].Parent);
+        Assert.Equal(5,actionLayout.ColumnCount);
+        Assert.All(buttons,x=>Assert.Same(actionLayout,x.Parent));
+    }
+
     [Fact]
     public void QuickAdd_CreatesCurrentAuctionLotAndAssociatesActiveConsignor()
     {
@@ -69,6 +84,13 @@ public sealed class LiveAuctionViewModelTests
     {
         using var connection=new SqliteConnection($"Data Source={path}"); connection.Open();
         using var command=connection.CreateCommand(); command.CommandText=sql; return command.ExecuteScalar()?.ToString();
+    }
+
+    private static IEnumerable<Control> Descendants(Control control)
+    {
+        yield return control;
+        foreach(Control child in control.Controls)
+            foreach(var descendant in Descendants(child))yield return descendant;
     }
 
     private sealed class TemporaryDatabase : IDisposable

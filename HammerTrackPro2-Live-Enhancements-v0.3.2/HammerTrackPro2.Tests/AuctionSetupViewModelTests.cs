@@ -1,11 +1,25 @@
 using HammerTrackPro2.Models;
 using HammerTrackPro2.Services;
 using HammerTrackPro2.ViewModels;
+using HammerTrackPro2.Forms;
+using System.Windows.Forms;
 
 namespace HammerTrackPro2.Tests;
 
 public sealed class AuctionSetupViewModelTests
 {
+    [Fact]
+    public void AuctionSetup_UsesBrandedFullScreenWorkspaceAndUniformActions()
+    {
+        using var form=new AuctionSetupForm(new AuctionSetupViewModel(new FakeAuctionSetupService()));
+        var controls=form.Controls.Cast<Control>().SelectMany(Descendants).ToList();
+        var actions=controls.OfType<Button>().Where(x=>x.Text is "New Auction" or "Load Selected" or "Duplicate" or "Close Auction" or "Save Auction").ToList();
+        Assert.Equal("HammerTrack Pro - Auction Setup",form.Text);
+        Assert.Equal(5,actions.Count);
+        Assert.All(actions,x=>Assert.True(x.MinimumSize.Height>=42));
+        Assert.Contains(controls.OfType<Button>(),x=>x.Text=="Full Screen");
+    }
+
     [Fact]
     public void SaveDuplicate_CopiesConfigurationAndAssociationsOnlyWhenRequested()
     {
@@ -17,6 +31,8 @@ public sealed class AuctionSetupViewModelTests
         Assert.Equal(0, viewModel.CurrentAuction.AuctionId);
         Assert.Equal(string.Empty, viewModel.CurrentAuction.AuctionNumber);
         Assert.Equal(12.5m, viewModel.CurrentAuction.BuyerPremiumPercent);
+        Assert.Equal(2.65m,viewModel.CurrentAuction.CreditCardFeePercent);
+        Assert.Equal(0.15m,viewModel.CurrentAuction.CreditCardFeeFixedAmount);
         viewModel.CurrentAuction.AuctionNumber = "FALL-26";
         viewModel.CopyConsignors = true;
         viewModel.Save();
@@ -35,12 +51,20 @@ public sealed class AuctionSetupViewModelTests
         Assert.Equal("Setup", viewModel.CurrentAuction.Status);
     }
 
+    private static IEnumerable<Control> Descendants(Control control)
+    {
+        yield return control;
+        foreach(Control child in control.Controls)
+            foreach(var descendant in Descendants(child))yield return descendant;
+    }
+
     private sealed class FakeAuctionSetupService : IAuctionSetupService
     {
         private long _currentId = 1;
         public List<Auction> Auctions { get; } = [new Auction
         {
             AuctionId = 1, AuctionNumber = "SPRING-26", AuctionName = "Spring", BuyerPremiumPercent = 12.5m,
+            CreditCardFeePercent=2.65m,CreditCardFeeFixedAmount=0.15m,
             DefaultConsignorCommissionPercent = 18, SalesTaxPercent = 6, InvoiceFooter = "Thank you", Status = "Setup"
         }];
         public (long Source, long Destination)? CopiedAssociations { get; private set; }

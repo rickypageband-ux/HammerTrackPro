@@ -57,9 +57,10 @@ public sealed class LiveAuctionForm : Form
         var root = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
+            AutoScroll = true,
             ColumnCount = 1,
             RowCount = 8,
-            Padding = new Padding(24),
+            Padding = new Padding(16),
             BackColor = Color.FromArgb(242, 245, 248)
         };
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 190));
@@ -175,15 +176,15 @@ public sealed class LiveAuctionForm : Form
 
     private Control BuildEntryCard()
     {
-        var card = new Panel { Dock = DockStyle.Fill, BackColor = Color.White, Padding = new Padding(22), Margin = new Padding(0, 14, 0, 14) };
+        var card = new Panel { Dock = DockStyle.Fill, BackColor = Color.White, Padding = new Padding(18), Margin = new Padding(0, 12, 0, 12),MinimumSize=new Size(0,340) };
         var form = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 5 };
         form.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 220));
         form.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        form.RowStyles.Add(new RowStyle(SizeType.Percent, 22));
-        form.RowStyles.Add(new RowStyle(SizeType.Percent, 22));
-        form.RowStyles.Add(new RowStyle(SizeType.Percent, 22));
-        form.RowStyles.Add(new RowStyle(SizeType.Percent, 16));
-        form.RowStyles.Add(new RowStyle(SizeType.Percent, 18));
+        form.RowStyles.Add(new RowStyle(SizeType.Absolute, 62));
+        form.RowStyles.Add(new RowStyle(SizeType.Absolute, 62));
+        form.RowStyles.Add(new RowStyle(SizeType.Absolute, 62));
+        form.RowStyles.Add(new RowStyle(SizeType.Absolute, 44));
+        form.RowStyles.Add(new RowStyle(SizeType.Absolute, 62));
 
         ConfigureNumber(_lotNumber, 999999, 0);
         ConfigureNumber(_bidderNumber, 999999, 0);
@@ -213,14 +214,15 @@ public sealed class LiveAuctionForm : Form
         form.Controls.Add(new Label(), 0, 3);
         form.Controls.Add(_passOutMode, 1, 3);
 
-        var buttons = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.LeftToRight, WrapContents = true };
+        var buttons = new TableLayoutPanel { Dock=DockStyle.Fill,ColumnCount=5,RowCount=1,Margin=new Padding(0,4,0,0) };
+        for(var column=0;column<5;column++)buttons.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,20));
         ConfigureButton(_completeSale, "RECORD BUYER  (Enter)", (_, _) => CompleteSale(), true);
         ConfigureButton(_closeLot, "Close Lot  (F12)", (_, _) => CloseCurrentLot());
         ConfigureButton(_passLot, "Pass Item / Next  (F4)", (_, _) => PassCurrentLot());
         ConfigureButton(_undoLastSale, "Undo Last Buyer  (F8)", (_, _) => UndoLastSale());
         ConfigureButton(_fullScreenButton, "Fullscreen  (F11)", (_, _) => ToggleFullScreen());
-        buttons.Controls.AddRange(new Control[] { _completeSale, _passLot, _closeLot, _undoLastSale, _fullScreenButton });
-        form.Controls.Add(buttons, 1, 4);
+        buttons.Controls.Add(_completeSale,0,0);buttons.Controls.Add(_passLot,1,0);buttons.Controls.Add(_closeLot,2,0);buttons.Controls.Add(_undoLastSale,3,0);buttons.Controls.Add(_fullScreenButton,4,0);
+        form.SetColumnSpan(buttons,2);form.Controls.Add(buttons,0,4);
         card.Controls.Add(form);
         return card;
     }
@@ -265,9 +267,11 @@ public sealed class LiveAuctionForm : Form
     private static void ConfigureButton(Button button, string text, EventHandler click, bool primary = false)
     {
         button.Text = text;
-        button.AutoSize = true;
-        button.Padding = new Padding(16, 9, 16, 9);
-        button.Font = new Font("Segoe UI", primary ? 13F : 11F, FontStyle.Bold);
+        button.AutoSize = false;
+        button.Dock=DockStyle.Fill;
+        button.Height=50;
+        button.Margin=new Padding(4);
+        button.Font = new Font("Segoe UI", primary ? 11F : 9.5F, FontStyle.Bold);
         if (primary)
         {
             button.BackColor = Color.FromArgb(24, 96, 150);

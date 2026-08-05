@@ -54,6 +54,9 @@ Status: Cashier and the approved closed-auction consignor payout extension are i
 - Cashier invoice and consignor settlement print actions open a full print preview first; operators can print from the preview toolbar.
 - Seller Management matches the branded Cashier workspace with large uniform Add/Save/Delete actions, full-screen/F11 support, a focused directory that keeps Tax ID out of the list view, seller counts, improved search guidance, and explicit add/edit/save status feedback.
 - Package the Seller Management usability and branding update as upgrade version 0.7.15.
+- Auction Setup matches the branded Cashier and Seller Management workspaces with full-screen/F11 support, large uniform actions, a clear auction directory/current-auction indicator, duplication guidance, and explicit status feedback.
+- Live Auction action buttons span the complete entry card in five equal fixed-height columns, preventing wrapping or clipping at supported window sizes and Windows display scaling; the form provides scrolling if vertical space is constrained.
+- Duplicating an auction carries forward both persisted credit-card fee components along with the other auction commercial terms.
 
 ## Distribution and licensing extension
 
