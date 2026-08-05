@@ -25,6 +25,7 @@ public sealed class DriverLicenseScannerForm : Form
         var switchCamera=Button("Next Camera",SwitchCamera);switchCamera.Dock=DockStyle.Right;var cancel=Button("Cancel",Close);cancel.Dock=DockStyle.Right;header.Controls.Add(cancel);header.Controls.Add(switchCamera);
         var instruction=new Label{Text="Hold the PDF417 barcode on the back of the license steady inside the camera view. The window closes automatically after a successful scan.",Dock=DockStyle.Top,Height=58,Padding=new Padding(18,12,18,8),Font=new Font("Segoe UI",10.5F),ForeColor=Navy,BackColor=Color.White};
         var statusPanel=new Panel{Dock=DockStyle.Bottom,Height=50,BackColor=Navy,Padding=new Padding(18,4,18,4)};_status.Text="Starting camera…";statusPanel.Controls.Add(_status);
+        _preview.Paint+=(_,e)=>{var insetX=Math.Max(30,_preview.ClientSize.Width/10);var insetY=Math.Max(30,_preview.ClientSize.Height/5);using var pen=new Pen(Gold,3F){DashStyle=System.Drawing.Drawing2D.DashStyle.Dash};e.Graphics.DrawRectangle(pen,insetX,insetY,Math.Max(1,_preview.ClientSize.Width-insetX*2),Math.Max(1,_preview.ClientSize.Height-insetY*2));};
         Controls.Add(_preview);Controls.Add(statusPanel);Controls.Add(instruction);Controls.Add(header);
         Shown+=(_,_)=>StartCamera();_timer.Tick+=(_,_)=>CaptureFrame();FormClosed+=(_,_)=>StopCamera();
     }
@@ -40,6 +41,7 @@ public sealed class DriverLicenseScannerForm : Form
             var prior=_preview.Image;_preview.Image=new Bitmap(frame);prior?.Dispose();
             _frameCount++;if(_frameCount%2!=0)return;
             if(_viewModel.ProcessFrame(frame)){_status.Text="Driver's license scanned — filling bidder information";DialogResult=DialogResult.OK;Close();}
+            else _status.Text=_viewModel.Status;
         }
         catch(Exception exception){_status.Text=$"Camera read error: {exception.Message}";}
         finally{_processing=false;}

@@ -1,4 +1,5 @@
 using System.Drawing;
+using System.Drawing.Imaging;
 using HammerTrackPro2.Models;
 using HammerTrackPro2.Services;
 using HammerTrackPro2.ViewModels;
@@ -38,6 +39,16 @@ public sealed class DriverLicenseScannerTests
     }
 
     [Fact]
+    public void Decoder_ReadsLowContrastLicenseBarcodeInsideCameraSizedFrame()
+    {
+        var writer=new WindowsBarcodeWriter{Format=BarcodeFormat.PDF_417,Options=new EncodingOptions{Width=900,Height=300,Margin=20}};
+        using var barcode=writer.Write(Sample);using var frame=new Bitmap(1920,1080);using var graphics=Graphics.FromImage(frame);graphics.Clear(Color.LightGray);
+        using var attributes=new ImageAttributes();attributes.SetColorMatrix(new ColorMatrix(new[]{new[]{0.32F,0F,0F,0F,0F},new[]{0F,0.32F,0F,0F,0F},new[]{0F,0F,0.32F,0F,0F},new[]{0F,0F,0F,1F,0F},new[]{0.38F,0.38F,0.38F,0F,1F}}));
+        graphics.DrawImage(barcode,new Rectangle(480,380,960,320),0,0,barcode.Width,barcode.Height,GraphicsUnit.Pixel,attributes);
+        var result=new DriverLicenseBarcodeDecoder().Decode(frame);Assert.NotNull(result);Assert.Equal("PA12345678",result!.DriversLicense);
+    }
+
+    [Fact]
     public void ViewModel_LeavesResultEmptyUntilDecoderFindsLicense()
     {
         using var bitmap=new Bitmap(10,10);var viewModel=new DriverLicenseScanViewModel(new EmptyDecoder());
@@ -51,5 +62,5 @@ public sealed class DriverLicenseScannerTests
         using var session=new CameraCaptureSession();Assert.Null(session.ReadFrame());
     }
 
-    private sealed class EmptyDecoder : IDriverLicenseBarcodeDecoder{public DriverLicenseScanData? Decode(Bitmap frame)=>null;}
+    private sealed class EmptyDecoder : IDriverLicenseBarcodeDecoder{public string Status=>"No barcode";public DriverLicenseScanData? Decode(Bitmap frame)=>null;}
 }

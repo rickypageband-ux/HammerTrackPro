@@ -8,5 +8,6 @@ public sealed class DriverLicenseScanViewModel
     private readonly IDriverLicenseBarcodeDecoder _decoder;
     public DriverLicenseScanViewModel(IDriverLicenseBarcodeDecoder decoder)=>_decoder=decoder??throw new ArgumentNullException(nameof(decoder));
     public DriverLicenseScanData? Result { get; private set; }
+    public string Status=>_decoder.Status;
     public bool ProcessFrame(Bitmap frame){Result=_decoder.Decode(frame);return Result is not null;}
 }

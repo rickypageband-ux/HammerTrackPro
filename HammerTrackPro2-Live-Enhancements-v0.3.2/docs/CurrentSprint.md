@@ -174,3 +174,6 @@ Status: Cashier and the approved closed-auction consignor payout extension are i
 - OpenCvSharp provides Windows camera/frame capture; ZXing.Net's Windows compatibility binding restricts decoding to PDF417. Both dependencies use Apache-2.0 licensing and are packaged locally in the self-contained installer.
 - No database migration is required because the scanner fills the existing Buyer fields introduced in migration 8.
 - Package driver's-license camera scanning as upgrade version 0.7.28.
+- Improve real-camera recognition with 1920x1080 capture, a visible positioning guide, enlarged contrast-equalized and adaptive-threshold decode attempts, relaxed valid-AAMVA header handling, and live actionable recognition status.
+- Verify decoding against a low-contrast PDF417 license barcode placed inside a camera-sized frame.
+- Package the camera recognition correction as upgrade version 0.7.29.

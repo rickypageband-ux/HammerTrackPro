@@ -13,7 +13,7 @@ public sealed class CameraCaptureSession : IDisposable
         for(var offset=0;offset<5;offset++)
         {
             var index=(startingIndex+offset)%5;var capture=new VideoCapture(index,VideoCaptureAPIs.DSHOW);
-            if(capture.IsOpened()){capture.Set(VideoCaptureProperties.FrameWidth,1280);capture.Set(VideoCaptureProperties.FrameHeight,720);capture.Set(VideoCaptureProperties.AutoFocus,1);_capture=capture;CameraIndex=index;return;}
+            if(capture.IsOpened()){capture.Set(VideoCaptureProperties.FrameWidth,1920);capture.Set(VideoCaptureProperties.FrameHeight,1080);capture.Set(VideoCaptureProperties.AutoFocus,1);_capture=capture;CameraIndex=index;return;}
             capture.Dispose();
         }
         throw new InvalidOperationException("No available camera was found. Connect a camera, close other apps using it, and try again.");

@@ -11,8 +11,9 @@ public sealed partial class AamvaDriverLicenseParser
     {
         if(string.IsNullOrWhiteSpace(rawBarcode))throw new InvalidOperationException("The driver's-license barcode was empty.");
         var normalized=rawBarcode.Replace('\u001d','\n').Replace('\u001e','\n').Replace('\r','\n');
-        if(!normalized.Contains("ANSI ",StringComparison.OrdinalIgnoreCase))throw new InvalidOperationException("The scanned PDF417 barcode is not an AAMVA driver's license.");
         var fields=ReadFields(normalized);
+        var hasIdentity=fields.ContainsKey("DAQ")&&(fields.ContainsKey("DCS")||fields.ContainsKey("DAC")||fields.ContainsKey("DCT")||fields.ContainsKey("DAA"));
+        if(!normalized.Contains("ANSI",StringComparison.OrdinalIgnoreCase)&&!hasIdentity)throw new InvalidOperationException("The scanned PDF417 barcode is not an AAMVA driver's license.");
         var license=Value(fields,"DAQ");
         var last=Value(fields,"DCS");
         var first=FirstNonEmpty(Value(fields,"DAC"),Value(fields,"DCT"));
