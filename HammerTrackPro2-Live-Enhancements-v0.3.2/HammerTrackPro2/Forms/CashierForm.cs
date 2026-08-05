@@ -160,7 +160,7 @@ public sealed class CashierForm : Form
         PrepareSelectedPaymentAmount();
         RefreshPaymentPreview();
     }
-    private void PrepareSelectedPaymentAmount(){if(_method.SelectedItem is not PaymentMethod.Card)return;var suggested=_viewModel.SuggestedPaymentAmount(PaymentMethod.Card);if(suggested>=0&&suggested<=_amount.Maximum)_amount.Value=suggested;}
+    private void PrepareSelectedPaymentAmount(){if(_method.SelectedItem is not PaymentMethod method)return;var suggested=_viewModel.SuggestedPaymentAmount(method);if(suggested>=0&&suggested<=_amount.Maximum)_amount.Value=suggested;}
     private void RefreshSettlement()
     {
         var settlement=_viewModel.Settlement; if(settlement is null)return;

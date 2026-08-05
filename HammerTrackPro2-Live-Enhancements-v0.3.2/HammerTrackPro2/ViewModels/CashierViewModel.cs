@@ -26,7 +26,7 @@ public sealed class CashierViewModel
         return decimal.Round(amount*auction.CreditCardFeePercent/100m+auction.CreditCardFeeFixedAmount,2,MidpointRounding.AwayFromZero);
     }
     public decimal RemainingInvoiceAmount=>Math.Max(0m,(Invoice?.BalanceDue??0m)-PendingPayments.Sum(item=>item.Amount));
-    public decimal SuggestedPaymentAmount(PaymentMethod method)=>method==PaymentMethod.Card?RemainingInvoiceAmount:0m;
+    public decimal SuggestedPaymentAmount(PaymentMethod method)=>RemainingInvoiceAmount;
     public string CardFeeDescription
     {
         get{var auction=_service.GetCurrentAuction();return $"{auction.CreditCardFeePercent:0.##}% + {auction.CreditCardFeeFixedAmount:C2}";}

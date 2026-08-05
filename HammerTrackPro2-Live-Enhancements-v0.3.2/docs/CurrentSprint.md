@@ -122,6 +122,8 @@ Status: Cashier and the approved closed-auction consignor payout extension are i
 - Card entry labels the base invoice amount separately from the calculated card charge, refreshes the full remaining base amount on every Card selection or invoice lookup, subtracts pending split-payment amounts, and records the fee-inclusive total as paid locally or through the LAN cashier.
 - Card preview text always displays the current Auction's configured percentage and fixed amount rather than a hard-coded description.
 - Package the full-card payment entry and recording correction as upgrade version 0.7.18.
+- Looking up a bidder fills the payment amount with the remaining invoice balance for Cash, Check, or Card; changing methods and adding or removing pending split payments refreshes the suggested remainder.
+- Package the all-method bidder-balance autofill as upgrade version 0.7.19.
 
 ## End-of-night settlement
 
