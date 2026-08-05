@@ -15,6 +15,8 @@ public sealed class CashierViewModel
     public void AddPayment(PaymentMethod method, decimal amount, string reference)
     {
         if (amount <= 0) throw new InvalidOperationException("Payment amount must be greater than zero.");
+        var remaining=RemainingInvoiceAmount;
+        if(method!=PaymentMethod.Cash&&amount>remaining)throw new InvalidOperationException($"Enter no more than the remaining invoice amount of {remaining:C2}. The card fee is added automatically after this amount.");
         PendingPayments.Add(new PaymentRequest { Method=method,Amount=amount,ProcessingFee=CalculateCardFee(method,amount),Reference=reference?.Trim() ?? string.Empty });
     }
     public decimal CalculateCardFee(PaymentMethod method,decimal amount)
@@ -23,7 +25,12 @@ public sealed class CashierViewModel
         var auction=_service.GetCurrentAuction();
         return decimal.Round(amount*auction.CreditCardFeePercent/100m+auction.CreditCardFeeFixedAmount,2,MidpointRounding.AwayFromZero);
     }
-    public decimal SuggestedPaymentAmount(PaymentMethod method)=>method==PaymentMethod.Card?Invoice?.BalanceDue??0m:0m;
+    public decimal RemainingInvoiceAmount=>Math.Max(0m,(Invoice?.BalanceDue??0m)-PendingPayments.Sum(item=>item.Amount));
+    public decimal SuggestedPaymentAmount(PaymentMethod method)=>method==PaymentMethod.Card?RemainingInvoiceAmount:0m;
+    public string CardFeeDescription
+    {
+        get{var auction=_service.GetCurrentAuction();return $"{auction.CreditCardFeePercent:0.##}% + {auction.CreditCardFeeFixedAmount:C2}";}
+    }
     public decimal PendingCardFee=>PendingPayments.Sum(item=>item.ProcessingFee);
     public Invoice CreateInvoicePreview(PaymentMethod method,decimal amount)
     {

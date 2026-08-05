@@ -26,6 +26,15 @@ public sealed class NetworkCashierTests
     }
 
     [Fact]
+    public async Task CashierClient_RecordsFullInvoiceAmountByCardAndAddsFeeOnHost()
+    {
+        using var database=TemporaryDatabase.Create();var store=CreateAccount(database.Path);var configuration=Configuration("CARD-FEE");
+        await using var host=await CashierNetworkHost.StartAsync(new CashierService(store),configuration,useHttps:false);using var remote=new RemoteCashierService(configuration,true);
+        var paid=remote.RecordPayments(25,[new PaymentRequest{Method=PaymentMethod.Card,Amount=110m}]);
+        Assert.Equal("Paid",paid.Status);Assert.Equal(3.07m,paid.CreditCardFeeAmount);Assert.Equal(113.07m,paid.TotalAmount);Assert.Equal(113.07m,paid.AmountPaid);Assert.Equal(0m,paid.BalanceDue);
+    }
+
+    [Fact]
     public async Task CashierClient_RejectsAnUnpairedWorkstation()
     {
         using var database=TemporaryDatabase.Create(); var store=CreateAccount(database.Path);

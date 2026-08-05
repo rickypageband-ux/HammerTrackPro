@@ -46,7 +46,7 @@ public sealed class CashierForm : Form
         if(configuration is not null) lookup.Controls.Add(Button("Network Setup",OpenNetworkSetup));
         var paymentEntry=ActionFlow();
         paymentEntry.Controls.Add(new Label { Text="Method",AutoSize=true }); paymentEntry.Controls.Add(_method);
-        paymentEntry.Controls.Add(new Label { Text="Amount",AutoSize=true }); paymentEntry.Controls.Add(_amount);
+        paymentEntry.Controls.Add(new Label { Text="Invoice Amount (before card fee)",AutoSize=true }); paymentEntry.Controls.Add(_amount);
         paymentEntry.Controls.Add(new Label { Text="Check/Card Reference",AutoSize=true }); paymentEntry.Controls.Add(_reference);
         paymentEntry.Controls.Add(_paymentPreview);
         paymentEntry.Controls.Add(Button("Add Payment",AddPayment)); paymentEntry.Controls.Add(Button("Remove Selected",RemovePayment));
@@ -67,7 +67,7 @@ public sealed class CashierForm : Form
         StyleInputs();StyleGrid(_purchases);StyleGrid(_payments);StyleGrid(_pending);StyleGrid(_settlementLots);StyleGrid(_payouts);
         _method.SelectedIndexChanged+=(_,_)=>PaymentMethodChanged();_amount.ValueChanged+=(_,_)=>RefreshPaymentPreview();
         _fullScreenButton.Click+=(_,_)=>ToggleFullScreen();KeyDown+=(_,e)=>{if(e.KeyCode==Keys.F11){ToggleFullScreen();e.Handled=true;}else if(e.KeyCode==Keys.Escape&&_fullScreen){ToggleFullScreen();e.Handled=true;}};
-        RefreshPaymentPreview();
+        PrepareSelectedPaymentAmount();RefreshPaymentPreview();
         Shown+=async(_,_)=>await CheckConnection(); _connectionTimer.Tick+=async(_,_)=>await CheckConnection(); _connectionTimer.Start();
         FormClosed+=(_,_)=>{_connectionTimer.Stop();_connectionTimer.Dispose();};
     }
@@ -146,24 +146,21 @@ public sealed class CashierForm : Form
         if (invoice is null) return;
         _heading.Text=$"Invoice {invoice.FormattedInvoiceNumber} — {invoice.BuyerName} — {invoice.Status}";
         _purchases.DataSource=invoice.Purchases.ToList(); _payments.DataSource=invoice.Payments.ToList(); _pending.DataSource=_viewModel.PendingPayments.ToList();
-        RefreshPaymentPreview();
+        PrepareSelectedPaymentAmount();RefreshPaymentPreview();
     }
-    private void RefreshPaymentPreview(){if(_method.SelectedItem is not PaymentMethod method)return;var fee=_viewModel.CalculateCardFee(method,_amount.Value);_paymentPreview.Text=method==PaymentMethod.Card?$"Card fee (2.65% + $0.15) {fee:C2}; tender {_amount.Value+fee:C2}":$"{method}: no card fee";_paymentPreview.ForeColor=method==PaymentMethod.Card?Color.DarkRed:Color.DarkGreen;RefreshInvoiceTotals(method,fee);}
+    private void RefreshPaymentPreview(){if(_method.SelectedItem is not PaymentMethod method)return;var fee=_viewModel.CalculateCardFee(method,_amount.Value);_paymentPreview.Text=method==PaymentMethod.Card?$"Invoice {_amount.Value:C2} + card fee ({_viewModel.CardFeeDescription}) {fee:C2} = charge {_amount.Value+fee:C2}":$"{method}: no card fee";_paymentPreview.ForeColor=method==PaymentMethod.Card?Color.DarkRed:Color.DarkGreen;RefreshInvoiceTotals(method,fee);}
     private void RefreshInvoiceTotals(PaymentMethod method,decimal activeFee)
     {
         var invoice=_viewModel.Invoice;if(invoice is null)return;
         var previewFee=_viewModel.PendingCardFee+(method==PaymentMethod.Card?activeFee:0m);
-        _totals.Text=$"Hammer {invoice.HammerSubtotal:C2}   Premium {invoice.BuyerPremiumAmount:C2}   Tax {invoice.SalesTaxAmount:C2}   Card fee {invoice.CreditCardFeeAmount+previewFee:C2}{(previewFee>0?$" ({previewFee:C2} pending)":"")}   Total {invoice.TotalAmount+previewFee:C2}   Paid {invoice.AmountPaid:C2}   Balance {invoice.BalanceDue+previewFee:C2}";
+        _totals.Text=$"Hammer {invoice.HammerSubtotal:C2}   Premium {invoice.BuyerPremiumAmount:C2}   Tax {invoice.SalesTaxAmount:C2}   Card fee {invoice.CreditCardFeeAmount+previewFee:C2}{(previewFee>0?$" ({previewFee:C2} pending)":"")}   Invoice total with fee {invoice.TotalAmount+previewFee:C2}   Paid {invoice.AmountPaid:C2}   Invoice balance before fee {_viewModel.RemainingInvoiceAmount:C2}";
     }
     private void PaymentMethodChanged()
     {
-        if(_method.SelectedItem is PaymentMethod.Card)
-        {
-            var suggested=_viewModel.SuggestedPaymentAmount(PaymentMethod.Card);
-            if(suggested>0&&suggested<=_amount.Maximum)_amount.Value=suggested;
-        }
+        PrepareSelectedPaymentAmount();
         RefreshPaymentPreview();
     }
+    private void PrepareSelectedPaymentAmount(){if(_method.SelectedItem is not PaymentMethod.Card)return;var suggested=_viewModel.SuggestedPaymentAmount(PaymentMethod.Card);if(suggested>=0&&suggested<=_amount.Maximum)_amount.Value=suggested;}
     private void RefreshSettlement()
     {
         var settlement=_viewModel.Settlement; if(settlement is null)return;

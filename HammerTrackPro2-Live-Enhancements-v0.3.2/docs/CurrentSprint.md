@@ -119,6 +119,8 @@ Status: Cashier and the approved closed-auction consignor payout extension are i
 - Package the corrected card-fee calculation and Card-selection balance autofill as upgrade version 0.7.12.
 - On-screen totals and invoice print preview include the currently selected Card fee before recording; persistence remains deferred until Record Payments succeeds.
 - Package the pending card-fee invoice preview correction as upgrade version 0.7.13.
+- Card entry labels the base invoice amount separately from the calculated card charge, refreshes the full remaining base amount on every Card selection or invoice lookup, subtracts pending split-payment amounts, and records the fee-inclusive total as paid locally or through the LAN cashier.
+- Card preview text always displays the current Auction's configured percentage and fixed amount rather than a hard-coded description.
 
 ## End-of-night settlement
 
