@@ -193,3 +193,5 @@ Status: Cashier and the approved closed-auction consignor payout extension are i
 - Package the dedicated NETUM keyboard receiver correction as upgrade version 0.7.32.
 - Treat optional AAMVA elements such as DCF, DCG, DCL, DCM, DCR, DDA-DDF, and DAW as boundaries in collapsed NETUM streams so they are never appended to the driver's-license number.
 - Package the collapsed AAMVA field-boundary correction as upgrade version 0.7.33.
+- Reject apparent field markers that overlap by one or two characters with the next real identity marker, preserving names ending in D or DA such as DAVID, RICHARD, and WANDA in collapsed scanner streams.
+- Package the collapsed-name boundary correction as upgrade version 0.7.34.

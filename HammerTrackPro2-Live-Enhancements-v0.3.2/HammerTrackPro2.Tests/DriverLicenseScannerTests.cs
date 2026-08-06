@@ -104,9 +104,17 @@ public sealed class DriverLicenseScannerTests
     [Fact]
     public void Parser_StopsLicenseNumberAtOptionalAamvaFieldsInCollapsedNetumStream()
     {
-        const string netum="ANSI 636026080102DLDAQ8406290DCF2000200102245974463DCGUSADDEUDDFUDDGUDCLW  DCM****DCRA - Corrective LensDDAFDDB01012018DAW280DCSDOE DACJANE";
+        const string netum="ANSI 636026080102DLDAQ8406290DCF2000200102245974463DCGUSADDEUDDFUDDGUDCLW  DCM****DCRA - Corrective LensDDAFDDB01012018DAW280DCSDAVIDDACRICHARDDADWILLIAM";
         var result=new AamvaDriverLicenseParser().Parse(netum);
-        Assert.Equal("8406290",result.DriversLicense);Assert.Equal("DOE",result.LastName);Assert.Equal("JANE",result.FirstName);
+        Assert.Equal("8406290",result.DriversLicense);Assert.Equal("DAVID",result.LastName);Assert.Equal("RICHARD",result.FirstName);
+    }
+
+    [Fact]
+    public void Parser_DoesNotStartAFieldInsideANameEndingInDa()
+    {
+        const string netum="ANSI 636026080102DLDAQ123456DCFCONTROLDCSSMITHDACWANDADADMARIE";
+        var result=new AamvaDriverLicenseParser().Parse(netum);
+        Assert.Equal("SMITH",result.LastName);Assert.Equal("WANDA",result.FirstName);
     }
 
     private sealed class EmptyDecoder : IDriverLicenseBarcodeDecoder{public string Status=>"No barcode";public DriverLicenseScanData? Decode(Bitmap frame)=>null;}

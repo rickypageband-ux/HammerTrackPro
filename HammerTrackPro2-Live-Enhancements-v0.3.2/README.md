@@ -85,6 +85,7 @@ The scanner requests a high-resolution frame, displays a dashed positioning guid
 Bidder entry also provides Use Handheld Scanner for PDF417-capable scanners such as compatible NETUM 2D models. In USB HID/keyboard mode, the USB cable, 2.4 GHz receiver, or Bluetooth connection can supply the license barcode; HammerTrack detects the completed transmission, hides and discards the raw data, and fills the same reviewable bidder fields.
 NETUM streams are accepted when the scanner sends AAMVA fields with line breaks, tabs, or with the separators removed. A dedicated private keyboard receiver accepts both rapid typed and paste-style scanner transmissions, displays a live received-character count, and parses automatically after the scan pauses.
 Optional AAMVA fields in collapsed NETUM transmissions are treated as boundaries, preventing document-control, restriction, and physical-description data from being appended to the driver's-license number.
+Collapsed-stream boundary detection preserves the final letters of names when they overlap visually with the next three-letter AAMVA marker, including names ending in D or DA.
 
 Cashier uses a branded, full-screen-capable workspace with larger uniform controls and direct Buyer and Seller registration. Registering a Seller with an existing same-number current-auction Buyer links the Seller to that durable Buyer identity instead of creating a duplicate or rejecting the registration.
 
