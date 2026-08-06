@@ -6,7 +6,8 @@ namespace HammerTrackPro2.ViewModels;
 
 public sealed class HandheldLicenseScanViewModel
 {
-    public const int CompletionDelayMilliseconds=1800;
+    public const int InitialCompletionDelayMilliseconds=550;
+    public const int AdditionalChunkDelayMilliseconds=1800;
     private readonly AamvaDriverLicenseParser _parser;
     private readonly StringBuilder _buffer=new();
     public HandheldLicenseScanViewModel(AamvaDriverLicenseParser? parser=null)=>_parser=parser??new AamvaDriverLicenseParser();
@@ -27,11 +28,16 @@ public sealed class HandheldLicenseScanViewModel
         foreach(var character in characters)Receive(character);
     }
 
-    public bool Complete()
+    public bool Complete(bool discardOnFailure=true)
     {
         if(_buffer.Length==0){Status="No scanner data received. Confirm USB HID/keyboard mode and try again.";return false;}
         try{Result=_parser.Parse(_buffer.ToString());Status="Driver's license scanned";return true;}
-        catch(InvalidOperationException exception){Result=null;Status=$"Scan was not recognized: {exception.Message} Check that PDF417 is enabled and scan again.";_buffer.Clear();return false;}
+        catch(InvalidOperationException exception)
+        {
+            Result=null;
+            if(!discardOnFailure){Status=$"Receiving license barcodeâ€¦ {_buffer.Length} characters. Waiting for the remaining scanner data.";return false;}
+            Status=$"Scan was not recognized: {exception.Message} Check that PDF417 is enabled and scan again.";_buffer.Clear();return false;
+        }
     }
 
     public void Reset(){_buffer.Clear();Result=null;Status="Ready — pull the scanner trigger";}

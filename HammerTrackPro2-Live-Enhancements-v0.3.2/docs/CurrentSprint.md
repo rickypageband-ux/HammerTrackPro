@@ -182,7 +182,7 @@ Status: Cashier and the approved closed-auction consignor payout extension are i
 
 - Cashier Add Buyer and the main Bidders screen provide Use Handheld Scanner alongside Scan with Camera.
 - Accept PDF417-capable scanners operating as a USB HID/keyboard through a USB cable, 2.4 GHz receiver, or Bluetooth; no vendor driver, serial-port assignment, or database/network change is required in keyboard mode.
-- Capture the scanner keystroke stream in a dedicated private window and detect completion after 1.8 seconds without input, rather than treating internal AAMVA line breaks as the end of the scan. The longer settling period prevents slower workstations from parsing and clearing a license between scanner chunks.
+- Capture the scanner keystroke stream in a dedicated private window. Try parsing after the normal 550-millisecond pause; if the data is incomplete, retain it privately for an additional 1.8-second chunk window and retry instead of clearing it. This preserves fast behavior while allowing slower workstations to assemble the complete transmission.
 - Never display, log, persist, or transmit the raw barcode. Parse locally and return only the existing bidder fields for operator review before the normal save operation.
 - Show actionable PDF417/HID guidance after an unrelated or incomplete scan, clear the rejected buffer, and allow immediate rescan.
 - Automated tests cover character-stream collection, AAMVA parsing, successful completion, rejection/reset, and visibility of both camera and handheld actions.
@@ -196,3 +196,4 @@ Status: Cashier and the approved closed-auction consignor payout extension are i
 - Reject apparent field markers that overlap by one or two characters with the next real identity marker, preserving names ending in D or DA such as DAVID, RICHARD, and WANDA in collapsed scanner streams.
 - Package the collapsed-name boundary correction as upgrade version 0.7.34.
 - Package the slower-workstation scanner settling correction as upgrade version 0.7.35.
+- Replace the fixed long delay with adaptive incomplete-scan retention and package the cross-workstation correction as upgrade version 0.7.36.

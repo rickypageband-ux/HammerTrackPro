@@ -9,8 +9,9 @@ public sealed class HandheldLicenseScannerForm : Form
     private readonly HandheldLicenseScanViewModel _viewModel=new();
     private readonly Label _status=new(){Dock=DockStyle.Fill,TextAlign=ContentAlignment.MiddleCenter,Font=new Font("Segoe UI",12F,FontStyle.Bold),ForeColor=Navy};
     private readonly TextBox _scannerInput=new(){Multiline=true,AcceptsReturn=true,AcceptsTab=true,ShortcutsEnabled=true,TabStop=false,BorderStyle=BorderStyle.None,Size=new Size(1,1),Location=new Point(1,1)};
-    private readonly System.Windows.Forms.Timer _completionTimer=new(){Interval=HandheldLicenseScanViewModel.CompletionDelayMilliseconds};
+    private readonly System.Windows.Forms.Timer _completionTimer=new(){Interval=HandheldLicenseScanViewModel.InitialCompletionDelayMilliseconds};
     private bool _clearingScannerInput;
+    private bool _waitingForSlowChunk;
     public DriverLicenseScanData? Result=>_viewModel.Result;
 
     public HandheldLicenseScannerForm()
@@ -32,11 +33,19 @@ public sealed class HandheldLicenseScannerForm : Form
         _scannerInput.Clear();
         _clearingScannerInput=false;
         _viewModel.Receive(characters);
+        _waitingForSlowChunk=false;_completionTimer.Interval=HandheldLicenseScanViewModel.InitialCompletionDelayMilliseconds;
         _status.Text=_viewModel.Status;_status.ForeColor=Navy;_completionTimer.Stop();_completionTimer.Start();
     }
 
     private void FocusScannerInput(){if(!IsDisposed&&_scannerInput.CanFocus)_scannerInput.Focus();}
-    private void CompleteScan(){_completionTimer.Stop();if(_viewModel.Complete()){System.Media.SystemSounds.Asterisk.Play();DialogResult=DialogResult.OK;Close();return;}_status.Text=_viewModel.Status;_status.ForeColor=Color.DarkRed;}
-    private void Reset(){_completionTimer.Stop();_viewModel.Reset();_status.Text=_viewModel.Status;_status.ForeColor=Navy;FocusScannerInput();}
+    private void CompleteScan()
+    {
+        _completionTimer.Stop();
+        if(_viewModel.Complete(_waitingForSlowChunk)){System.Media.SystemSounds.Asterisk.Play();DialogResult=DialogResult.OK;Close();return;}
+        _status.Text=_viewModel.Status;
+        if(!_waitingForSlowChunk){_waitingForSlowChunk=true;_status.ForeColor=Navy;_completionTimer.Interval=HandheldLicenseScanViewModel.AdditionalChunkDelayMilliseconds;_completionTimer.Start();return;}
+        _status.ForeColor=Color.DarkRed;
+    }
+    private void Reset(){_completionTimer.Stop();_waitingForSlowChunk=false;_completionTimer.Interval=HandheldLicenseScanViewModel.InitialCompletionDelayMilliseconds;_viewModel.Reset();_status.Text=_viewModel.Status;_status.ForeColor=Navy;FocusScannerInput();}
     private static Button Button(string text,Action action,bool accent=false){var button=new Button{Text=text,Width=180,Height=44,Margin=new Padding(6),FlatStyle=FlatStyle.Flat,BackColor=accent?Gold:Blue,ForeColor=accent?Navy:Color.White,Font=new Font("Segoe UI",10F,FontStyle.Bold),Cursor=Cursors.Hand};button.FlatAppearance.BorderColor=accent?Gold:Navy;button.Click+=(_,_)=>action();return button;}
 }

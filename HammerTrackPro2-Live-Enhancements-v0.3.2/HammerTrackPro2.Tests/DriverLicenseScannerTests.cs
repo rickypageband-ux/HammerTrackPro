@@ -17,7 +17,11 @@ public sealed class DriverLicenseScannerTests
     [Fact]
     public void HandheldScanner_AllowsSlowComputersToFinishTheBarcodeBeforeParsing()
     {
-        Assert.True(HandheldLicenseScanViewModel.CompletionDelayMilliseconds>=1500);
+        Assert.Equal(550,HandheldLicenseScanViewModel.InitialCompletionDelayMilliseconds);
+        Assert.True(HandheldLicenseScanViewModel.AdditionalChunkDelayMilliseconds>=1500);
+        var split=Sample.IndexOf("DAQ",StringComparison.Ordinal);var viewModel=new HandheldLicenseScanViewModel();viewModel.Receive(Sample[..split]);
+        Assert.False(viewModel.Complete(false));Assert.True(viewModel.CharacterCount>0);Assert.Contains("Waiting",viewModel.Status);
+        viewModel.Receive(Sample[split..]);Assert.True(viewModel.Complete());Assert.Equal("JANE",viewModel.Result!.FirstName);
     }
 
     [Fact]
