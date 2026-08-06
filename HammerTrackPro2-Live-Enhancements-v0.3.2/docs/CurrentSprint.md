@@ -191,3 +191,5 @@ Status: Cashier and the approved closed-auction consignor payout extension are i
 - Package the NETUM handheld compatibility correction as upgrade version 0.7.31.
 - Capture NETUM keyboard-wedge input through a dedicated private receiver so rapid typed and paste-style HID payloads cannot bypass the scanner window; discard each received block immediately after forwarding it to the scan view model.
 - Package the dedicated NETUM keyboard receiver correction as upgrade version 0.7.32.
+- Treat optional AAMVA elements such as DCF, DCG, DCL, DCM, DCR, DDA-DDF, and DAW as boundaries in collapsed NETUM streams so they are never appended to the driver's-license number.
+- Package the collapsed AAMVA field-boundary correction as upgrade version 0.7.33.

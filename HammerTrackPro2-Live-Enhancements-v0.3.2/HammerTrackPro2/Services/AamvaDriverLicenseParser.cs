@@ -49,6 +49,6 @@ public sealed partial class AamvaDriverLicenseParser
     [GeneratedRegex(@"(?:^|\n|DL|ID)(DAQ|DCS|DAC|DCT|DAD|DAA|DAG|DAI|DAJ|DAK)([^\n]+)",RegexOptions.IgnoreCase)]
     private static partial Regex FieldPattern();
 
-    [GeneratedRegex(@"(DAQ|DCS|DAC|DCT|DAD|DAA|DAG|DAI|DAJ|DAK)(.*?)(?=DAQ|DCS|DAC|DCT|DAD|DAA|DAG|DAI|DAJ|DAK|$)",RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"(DAQ|DCS|DAC|DCT|DAD|DAA|DAG|DAI|DAJ|DAK)(.*?)(?=DAQ|DCS|DAC|DCT|DAD|DAA|DAG|DAI|DAJ|DAK|DAU|DAW|DAX|DAY|DAZ|DBA|DBB|DBC|DBD|DBH|DBI|DBJ|DBK|DBL|DBM|DBN|DCA|DCB|DCD|DCF|DCG|DCH|DCI|DCJ|DCK|DCL|DCM|DCN|DCO|DCP|DCQ|DCR|DCU|DCV|DCW|DCX|DDA|DDB|DDC|DDD|DDE|DDF|DDG|DDH|DDI|DDJ|DDK|$)",RegexOptions.IgnoreCase)]
     private static partial Regex CollapsedFieldPattern();
 }
