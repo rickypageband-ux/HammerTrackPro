@@ -189,3 +189,5 @@ Status: Cashier and the approved closed-auction consignor payout extension are i
 - Package handheld driver's-license scanner support as upgrade version 0.7.30.
 - Accept NETUM HID streams that replace AAMVA line separators with Tab or remove them entirely, capture Tab without moving focus, and show live character-receipt feedback before parsing.
 - Package the NETUM handheld compatibility correction as upgrade version 0.7.31.
+- Capture NETUM keyboard-wedge input through a dedicated private receiver so rapid typed and paste-style HID payloads cannot bypass the scanner window; discard each received block immediately after forwarding it to the scan view model.
+- Package the dedicated NETUM keyboard receiver correction as upgrade version 0.7.32.

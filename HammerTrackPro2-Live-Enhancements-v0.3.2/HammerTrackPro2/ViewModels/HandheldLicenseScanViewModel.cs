@@ -21,6 +21,11 @@ public sealed class HandheldLicenseScanViewModel
         Status=$"Receiving license barcode… {_buffer.Length} characters";
     }
 
+    public void Receive(string characters)
+    {
+        foreach(var character in characters)Receive(character);
+    }
+
     public bool Complete()
     {
         if(_buffer.Length==0){Status="No scanner data received. Confirm USB HID/keyboard mode and try again.";return false;}

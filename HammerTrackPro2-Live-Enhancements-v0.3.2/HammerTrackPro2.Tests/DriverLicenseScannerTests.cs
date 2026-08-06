@@ -94,5 +94,12 @@ public sealed class DriverLicenseScannerTests
         Assert.True(viewModel.Complete());Assert.Equal("YORK",viewModel.Result!.City);Assert.Equal("17401-0000",viewModel.Result.Zip);
     }
 
+    [Fact]
+    public void HandheldScanner_AcceptsEntirePastedScannerPayload()
+    {
+        var viewModel=new HandheldLicenseScanViewModel();viewModel.Receive(Sample.Replace('\n','\t'));
+        Assert.True(viewModel.CharacterCount>100);Assert.True(viewModel.Complete());Assert.Equal("JANE",viewModel.Result!.FirstName);Assert.Equal("PA12345678",viewModel.Result.DriversLicense);
+    }
+
     private sealed class EmptyDecoder : IDriverLicenseBarcodeDecoder{public string Status=>"No barcode";public DriverLicenseScanData? Decode(Bitmap frame)=>null;}
 }
