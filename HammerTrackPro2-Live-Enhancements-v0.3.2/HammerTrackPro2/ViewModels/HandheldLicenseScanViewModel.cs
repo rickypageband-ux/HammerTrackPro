@@ -16,7 +16,7 @@ public sealed class HandheldLicenseScanViewModel
     public void Receive(char character)
     {
         if(character=='\0')return;
-        if(character is '\r' or '\n'){if(_buffer.Length==0||_buffer[^1]!='\n')_buffer.Append('\n');}
+        if(character is '\r' or '\n' or '\t' or '\f'){if(_buffer.Length==0||_buffer[^1]!='\n')_buffer.Append('\n');}
         else if(!char.IsControl(character)||character is '\u001d' or '\u001e')_buffer.Append(character);
         Status=$"Receiving license barcode… {_buffer.Length} characters";
     }

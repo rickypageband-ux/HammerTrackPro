@@ -19,10 +19,17 @@ public sealed class HandheldLicenseScannerForm : Form
         var privacy=new Label{Text="The raw barcode is hidden and discarded after parsing. Review the filled bidder fields before saving.",Dock=DockStyle.Bottom,Height=45,TextAlign=ContentAlignment.MiddleCenter,ForeColor=Color.DimGray};
         var actions=new FlowLayoutPanel{Dock=DockStyle.Bottom,Height=62,FlowDirection=FlowDirection.LeftToRight,Padding=new Padding(155,7,0,7),BackColor=Color.White};actions.Controls.Add(Button("Reset / Scan Again",Reset,true));actions.Controls.Add(Button("Cancel",Close));
         Controls.Add(_status);Controls.Add(privacy);Controls.Add(actions);Controls.Add(instructions);Controls.Add(header);
-        _status.Text=_viewModel.Status;KeyPress+=OnScannerCharacter;_completionTimer.Tick+=(_,_)=>CompleteScan();FormClosed+=(_,_)=>_completionTimer.Dispose();Shown+=(_,_)=>Activate();
+        _status.Text=_viewModel.Status;KeyPress+=OnScannerCharacter;_completionTimer.Tick+=(_,_)=>CompleteScan();FormClosed+=(_,_)=>_completionTimer.Dispose();Shown+=(_,_)=>Activate();Activated+=(_,_)=>_status.Text=_viewModel.CharacterCount==0?_viewModel.Status:$"Receiving license barcode... {_viewModel.CharacterCount} characters";
     }
 
-    private void OnScannerCharacter(object? sender,KeyPressEventArgs eventArgs){eventArgs.Handled=true;_viewModel.Receive(eventArgs.KeyChar);_status.Text=_viewModel.Status;_status.ForeColor=Navy;_completionTimer.Stop();_completionTimer.Start();}
+    protected override bool ProcessCmdKey(ref Message message,Keys keyData)
+    {
+        if((keyData&Keys.KeyCode)==Keys.Tab){ReceiveCharacter('\t');return true;}
+        return base.ProcessCmdKey(ref message,keyData);
+    }
+
+    private void OnScannerCharacter(object? sender,KeyPressEventArgs eventArgs){eventArgs.Handled=true;ReceiveCharacter(eventArgs.KeyChar);}
+    private void ReceiveCharacter(char character){_viewModel.Receive(character);_status.Text=_viewModel.Status;_status.ForeColor=Navy;_completionTimer.Stop();_completionTimer.Start();}
     private void CompleteScan(){_completionTimer.Stop();if(_viewModel.Complete()){System.Media.SystemSounds.Asterisk.Play();DialogResult=DialogResult.OK;Close();return;}_status.Text=_viewModel.Status;_status.ForeColor=Color.DarkRed;}
     private void Reset(){_completionTimer.Stop();_viewModel.Reset();_status.Text=_viewModel.Status;_status.ForeColor=Navy;Activate();}
     private static Button Button(string text,Action action,bool accent=false){var button=new Button{Text=text,Width=180,Height=44,Margin=new Padding(6),FlatStyle=FlatStyle.Flat,BackColor=accent?Gold:Blue,ForeColor=accent?Navy:Color.White,Font=new Font("Segoe UI",10F,FontStyle.Bold),Cursor=Cursors.Hand};button.FlatAppearance.BorderColor=accent?Gold:Navy;button.Click+=(_,_)=>action();return button;}

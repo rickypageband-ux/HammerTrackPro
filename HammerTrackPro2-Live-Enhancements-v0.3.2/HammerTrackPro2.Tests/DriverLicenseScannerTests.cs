@@ -78,5 +78,21 @@ public sealed class DriverLicenseScannerTests
         foreach(var character in Sample)viewModel.Receive(character);Assert.True(viewModel.Complete());
     }
 
+    [Fact]
+    public void HandheldScanner_ParsesNetumStreamWhenLineSeparatorsAreRemoved()
+    {
+        var collapsed=Sample.Replace("\n",string.Empty,StringComparison.Ordinal);
+        var viewModel=new HandheldLicenseScanViewModel();foreach(var character in collapsed)viewModel.Receive(character);
+        Assert.True(viewModel.Complete());Assert.Equal("JANE",viewModel.Result!.FirstName);Assert.Equal("DOE",viewModel.Result.LastName);Assert.Equal("PA12345678",viewModel.Result.DriversLicense);
+    }
+
+    [Fact]
+    public void HandheldScanner_TreatsScannerTabsAsLicenseFieldSeparators()
+    {
+        var tabSeparated=Sample.Replace('\n','\t');
+        var viewModel=new HandheldLicenseScanViewModel();foreach(var character in tabSeparated)viewModel.Receive(character);
+        Assert.True(viewModel.Complete());Assert.Equal("YORK",viewModel.Result!.City);Assert.Equal("17401-0000",viewModel.Result.Zip);
+    }
+
     private sealed class EmptyDecoder : IDriverLicenseBarcodeDecoder{public string Status=>"No barcode";public DriverLicenseScanData? Decode(Bitmap frame)=>null;}
 }

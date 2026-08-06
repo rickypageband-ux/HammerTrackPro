@@ -10,7 +10,7 @@ public sealed partial class AamvaDriverLicenseParser
     public DriverLicenseScanData Parse(string rawBarcode)
     {
         if(string.IsNullOrWhiteSpace(rawBarcode))throw new InvalidOperationException("The driver's-license barcode was empty.");
-        var normalized=rawBarcode.Replace('\u001d','\n').Replace('\u001e','\n').Replace('\r','\n');
+        var normalized=rawBarcode.Replace('\u001d','\n').Replace('\u001e','\n').Replace('\t','\n').Replace('\f','\n').Replace('\r','\n');
         var fields=ReadFields(normalized);
         var hasIdentity=fields.ContainsKey("DAQ")&&(fields.ContainsKey("DCS")||fields.ContainsKey("DAC")||fields.ContainsKey("DCT")||fields.ContainsKey("DAA"));
         if(!normalized.Contains("ANSI",StringComparison.OrdinalIgnoreCase)&&!hasIdentity)throw new InvalidOperationException("The scanned PDF417 barcode is not an AAMVA driver's license.");
@@ -30,6 +30,14 @@ public sealed partial class AamvaDriverLicenseParser
             var code=match.Groups[1].Value;var value=match.Groups[2].Value.Trim();
             if(KnownCodes.Contains(code,StringComparer.OrdinalIgnoreCase)&&!fields.ContainsKey(code))fields[code]=value;
         }
+        var collapsed=text.Replace("\n",string.Empty,StringComparison.Ordinal);
+        var collapsedFields=new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase);
+        foreach(Match match in CollapsedFieldPattern().Matches(collapsed))
+        {
+            var code=match.Groups[1].Value;var value=match.Groups[2].Value.Trim();
+            if(KnownCodes.Contains(code,StringComparer.OrdinalIgnoreCase)&&!collapsedFields.ContainsKey(code))collapsedFields[code]=value;
+        }
+        if(collapsedFields.Count>1)foreach(var field in collapsedFields)fields[field.Key]=field.Value;
         return fields;
     }
 
@@ -40,4 +48,7 @@ public sealed partial class AamvaDriverLicenseParser
 
     [GeneratedRegex(@"(?:^|\n|DL|ID)(DAQ|DCS|DAC|DCT|DAD|DAA|DAG|DAI|DAJ|DAK)([^\n]+)",RegexOptions.IgnoreCase)]
     private static partial Regex FieldPattern();
+
+    [GeneratedRegex(@"(DAQ|DCS|DAC|DCT|DAD|DAA|DAG|DAI|DAJ|DAK)(.*?)(?=DAQ|DCS|DAC|DCT|DAD|DAA|DAG|DAI|DAJ|DAK|$)",RegexOptions.IgnoreCase)]
+    private static partial Regex CollapsedFieldPattern();
 }

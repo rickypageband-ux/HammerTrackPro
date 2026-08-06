@@ -187,3 +187,5 @@ Status: Cashier and the approved closed-auction consignor payout extension are i
 - Show actionable PDF417/HID guidance after an unrelated or incomplete scan, clear the rejected buffer, and allow immediate rescan.
 - Automated tests cover character-stream collection, AAMVA parsing, successful completion, rejection/reset, and visibility of both camera and handheld actions.
 - Package handheld driver's-license scanner support as upgrade version 0.7.30.
+- Accept NETUM HID streams that replace AAMVA line separators with Tab or remove them entirely, capture Tab without moving focus, and show live character-receipt feedback before parsing.
+- Package the NETUM handheld compatibility correction as upgrade version 0.7.31.
