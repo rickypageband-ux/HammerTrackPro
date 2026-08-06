@@ -15,6 +15,12 @@ public sealed class DriverLicenseScannerTests
     private const string Sample="@\nANSI 636026080102DL00410288ZA03290015DLDAQPA12345678\nDCSDOE\nDACJANE\nDADMARIE\nDAG123 MAIN STREET\nDAIYORK\nDAJPA\nDAK174010000\n";
 
     [Fact]
+    public void HandheldScanner_AllowsSlowComputersToFinishTheBarcodeBeforeParsing()
+    {
+        Assert.True(HandheldLicenseScanViewModel.CompletionDelayMilliseconds>=1500);
+    }
+
+    [Fact]
     public void Parser_MapsAamvaIdentityAndAddressWithoutRetainingRawBarcode()
     {
         var result=new AamvaDriverLicenseParser().Parse(Sample);

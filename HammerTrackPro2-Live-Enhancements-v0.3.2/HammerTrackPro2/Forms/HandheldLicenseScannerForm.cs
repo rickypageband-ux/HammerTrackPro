@@ -9,7 +9,7 @@ public sealed class HandheldLicenseScannerForm : Form
     private readonly HandheldLicenseScanViewModel _viewModel=new();
     private readonly Label _status=new(){Dock=DockStyle.Fill,TextAlign=ContentAlignment.MiddleCenter,Font=new Font("Segoe UI",12F,FontStyle.Bold),ForeColor=Navy};
     private readonly TextBox _scannerInput=new(){Multiline=true,AcceptsReturn=true,AcceptsTab=true,ShortcutsEnabled=true,TabStop=false,BorderStyle=BorderStyle.None,Size=new Size(1,1),Location=new Point(1,1)};
-    private readonly System.Windows.Forms.Timer _completionTimer=new(){Interval=550};
+    private readonly System.Windows.Forms.Timer _completionTimer=new(){Interval=HandheldLicenseScanViewModel.CompletionDelayMilliseconds};
     private bool _clearingScannerInput;
     public DriverLicenseScanData? Result=>_viewModel.Result;
 

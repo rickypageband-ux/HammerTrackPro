@@ -6,6 +6,7 @@ namespace HammerTrackPro2.ViewModels;
 
 public sealed class HandheldLicenseScanViewModel
 {
+    public const int CompletionDelayMilliseconds=1800;
     private readonly AamvaDriverLicenseParser _parser;
     private readonly StringBuilder _buffer=new();
     public HandheldLicenseScanViewModel(AamvaDriverLicenseParser? parser=null)=>_parser=parser??new AamvaDriverLicenseParser();
