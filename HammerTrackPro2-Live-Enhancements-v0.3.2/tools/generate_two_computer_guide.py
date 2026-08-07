@@ -130,7 +130,7 @@ def page_one(c):
     y = H - 4.55 * inch
     y = callout(c, "Use this sequence exactly: install both PCs, collect both Machine IDs, activate both PCs, configure the host, then pair the cashier.", y)
     y = table(c, [
-        ["Installer", "HammerTrackPro-0.7.39-x64-signed.msi"],
+        ["Installer", "HammerTrackPro-0.7.40-x64-signed.msi"],
         ["Supported setup", "Two Windows x64 computers on the same private local network"],
         ["Computer 1", "Live Auction Host - owns the auction database"],
         ["Computer 2", "Cashier Workstation - connects securely to the host"],
@@ -147,7 +147,7 @@ def page_two(c):
     y = paragraph(c, "Gather everything before auction day. Perform the installation while both computers can remain on the same private network.", LEFT, y) - 10
     y = section(c, "You will need", y)
     y = checklist(c, [
-        "The HammerTrack Pro 0.7.39 signed MSI installer on a USB drive or other trusted transfer method.",
+        "The HammerTrack Pro 0.7.40 signed MSI installer on a USB drive or other trusted transfer method.",
         "Administrator permission on both Windows computers.",
         "One host computer for live-auction operation and one cashier computer.",
         "Both computers connected to the same trusted private router or LAN.",
@@ -171,7 +171,7 @@ def page_two(c):
 def page_three(c):
     header(c, "2. Install and activate both computers", 3)
     y = H - 1.16 * inch
-    y = step(c, 1, "Install on the host", "Copy HammerTrackPro-0.7.39-x64-signed.msi to the live-auction computer. Double-click it, approve the Windows administrator prompt, and complete the installer.", y)
+    y = step(c, 1, "Install on the host", "Copy HammerTrackPro-0.7.40-x64-signed.msi to the live-auction computer. Double-click it, approve the Windows administrator prompt, and complete the installer.", y)
     y = step(c, 2, "Install on the cashier", "Repeat the same signed MSI installation on the cashier computer.", y)
     y = step(c, 3, "Launch HammerTrack Pro", "Use the Desktop or Start Menu shortcut. The installer is locally self-signed. If Windows displays an unknown-publisher warning on a computer that does not trust the local certificate, confirm the MSI came from your trusted HammerTrack provider before continuing.", y)
     y = step(c, 4, "Collect both Machine IDs", "At the activation screen, select Copy Machine ID on each computer. Label each ID as Host or Cashier and send both IDs to the license issuer.", y)

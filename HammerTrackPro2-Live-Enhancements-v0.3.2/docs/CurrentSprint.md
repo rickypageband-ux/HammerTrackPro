@@ -227,3 +227,11 @@ Status: Cashier and the approved closed-auction consignor payout extension are i
 - Remove camera-scan buttons. Preserve Scan ID unchanged and add Scan New ID instructions for reflective polycarbonate cards and regular/inverse PDF417 scanner configuration.
 - Migrations 17 and 18 add correction metadata and the append-only Refunds ledger.
 - Package these approved corrections as upgrade version 0.7.39.
+
+## Seller item summary and NT-1228BL guidance
+
+- Keep the existing Print Settlement option unchanged.
+- Add Print Item Summary grouped by lot, description, and price each, with quantity sold and line total.
+- Print Total Items Sold and Total Hammer Sales at the end of the new summary.
+- Update Scan New ID instructions for the NETUM NT-1228BL PDF417 Regular/Inverse Decode > Decode Both option (called Read Normal Phase / Phase Reversal in the older full manual).
+- Package the update as version 0.7.40.

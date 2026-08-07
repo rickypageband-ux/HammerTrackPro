@@ -61,7 +61,7 @@ public sealed class CashierForm : Form
         tabs.TabPages.Add(Page("Refund History",_refunds));
         tabs.TabPages.Add(Page("Seller Lots",_settlementLots)); tabs.TabPages.Add(Page("Seller Payouts",_payouts));
         var sellerEntry=ActionFlow();
-        sellerEntry.Controls.Add(new Label { Text="Seller Number",AutoSize=true }); sellerEntry.Controls.Add(_consignorNumber); sellerEntry.Controls.Add(Button("Lookup Seller",LookupConsignor)); sellerEntry.Controls.Add(Button("Add Seller",RegisterConsignor)); sellerEntry.Controls.Add(Button("Print Settlement",PrintSettlement));
+        sellerEntry.Controls.Add(new Label { Text="Seller Number",AutoSize=true }); sellerEntry.Controls.Add(_consignorNumber); sellerEntry.Controls.Add(Button("Lookup Seller",LookupConsignor)); sellerEntry.Controls.Add(Button("Add Seller",RegisterConsignor)); sellerEntry.Controls.Add(Button("Print Settlement",PrintSettlement));sellerEntry.Controls.Add(Button("Print Item Summary",PrintSellerItemSummary));
         sellerEntry.Controls.Add(new Label { Text="Payout Method",AutoSize=true }); sellerEntry.Controls.Add(_payoutMethod); sellerEntry.Controls.Add(new Label { Text="Amount",AutoSize=true }); sellerEntry.Controls.Add(_payoutAmount);
         sellerEntry.Controls.Add(new Label { Text="Check/ACH Reference",AutoSize=true }); sellerEntry.Controls.Add(_payoutReference); sellerEntry.Controls.Add(Button("Record Seller Payout",RecordConsignorPayout));
         var summary=new Panel{Dock=DockStyle.Fill,Height=70,Padding=new Padding(18,8,18,8),BackColor=Color.White};_heading.Dock=DockStyle.Top;_heading.Font=new Font("Segoe UI",13F,FontStyle.Bold);_heading.ForeColor=Navy;_totals.Dock=DockStyle.Bottom;_totals.Font=new Font("Segoe UI",10F,FontStyle.Bold);summary.Controls.Add(_totals);summary.Controls.Add(_heading);
@@ -119,6 +119,7 @@ public sealed class CashierForm : Form
         using var document=new SettlementPrinter().CreateDocument(settlement,_cashierService.GetCurrentAuction());
         ShowPrintPreview(document);
     }
+    private void PrintSellerItemSummary(){var settlement=_viewModel.Settlement??throw new InvalidOperationException("Look up a seller before printing an item summary.");using var document=new SellerItemSummaryPrinter().CreateDocument(settlement,_cashierService.GetCurrentAuction());ShowPrintPreview(document);}
     private void ShowPrintPreview(System.Drawing.Printing.PrintDocument document)
     {
         using var preview=new PrintPreviewDialog
