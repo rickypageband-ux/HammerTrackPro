@@ -26,6 +26,7 @@ public sealed class Invoice
     public DateTime UpdatedUtc { get; set; }
     public List<InvoiceLine> Purchases { get; set; } = [];
     public List<Payment> Payments { get; set; } = [];
+    public List<Refund> Refunds { get; set; } = [];
     public string FormattedInvoiceNumber => $"{AuctionNumber}-{BidderNumber:D4}";
 }
 
@@ -59,6 +60,35 @@ public sealed class PaymentRequest
     public decimal ProcessingFee { get; set; }
     public decimal TotalTender => Amount + ProcessingFee;
     public string Reference { get; set; } = string.Empty;
+}
+
+public sealed class Refund
+{
+    public long RefundId { get; set; }
+    public long InvoiceId { get; set; }
+    public long PaymentId { get; set; }
+    public PaymentMethod Method { get; set; }
+    public decimal Amount { get; set; }
+    public string Reason { get; set; } = string.Empty;
+    public string Reference { get; set; } = string.Empty;
+    public DateTime CreatedUtc { get; set; }
+}
+
+public sealed class RefundRequest
+{
+    public long PaymentId { get; set; }
+    public decimal Amount { get; set; }
+    public string Reason { get; set; } = string.Empty;
+    public string Reference { get; set; } = string.Empty;
+}
+
+public sealed class SaleCorrectionRequest
+{
+    public long SaleId { get; set; }
+    public int? BidderNumber { get; set; }
+    public int Quantity { get; set; } = 1;
+    public decimal HammerPrice { get; set; }
+    public string Reason { get; set; } = string.Empty;
 }
 
 public enum PaymentMethod { Cash, Check, Card }

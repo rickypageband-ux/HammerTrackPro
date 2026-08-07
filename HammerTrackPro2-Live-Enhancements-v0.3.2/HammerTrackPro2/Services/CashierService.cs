@@ -98,6 +98,28 @@ public sealed class CashierService : ICashierService
         return updated;
     }
 
+    public Invoice RecordRefund(int bidderNumber,RefundRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);var invoice=LoadInvoice(bidderNumber);
+        var payment=invoice.Payments.SingleOrDefault(x=>x.PaymentId==request.PaymentId)??throw new InvalidOperationException("Select an original payment to refund.");
+        if(request.Amount<=0)throw new InvalidOperationException("Refund amount must be greater than zero.");
+        if(string.IsNullOrWhiteSpace(request.Reason))throw new InvalidOperationException("A refund reason is required.");
+        var alreadyRefunded=invoice.Refunds.Where(x=>x.PaymentId==payment.PaymentId).Sum(x=>x.Amount);
+        var refundable=Math.Max(0m,payment.AppliedAmount-payment.ProcessingFee-alreadyRefunded);
+        if(request.Amount>refundable)throw new InvalidOperationException($"Refund no more than the remaining purchase amount of {refundable:C2}. Card fees are not refundable.");
+        var updated=_dataStore.RecordInvoiceRefund(bidderNumber,new Refund{InvoiceId=invoice.InvoiceId,PaymentId=payment.PaymentId,Method=payment.Method,Amount=Money(request.Amount),Reason=request.Reason.Trim(),Reference=request.Reference?.Trim()??string.Empty});Recalculate(updated);return updated;
+    }
+
+    public Invoice CorrectSale(int bidderNumber,SaleCorrectionRequest correction)
+    {
+        ArgumentNullException.ThrowIfNull(correction);if(string.IsNullOrWhiteSpace(correction.Reason))throw new InvalidOperationException("A sale correction reason is required.");
+        if(correction.BidderNumber is not null&&(correction.Quantity<=0||correction.HammerPrice<0))throw new InvalidOperationException("Replacement quantity must be positive and price cannot be negative.");
+        var invoice=LoadInvoice(bidderNumber);var line=invoice.Purchases.SingleOrDefault(x=>x.SaleId==correction.SaleId)??throw new InvalidOperationException("Select a sale from this buyer's invoice.");
+        var staysWithBuyer=correction.BidderNumber==bidderNumber;var projectedHammer=invoice.HammerSubtotal-line.LineTotal+(staysWithBuyer?correction.Quantity*correction.HammerPrice:0m);var projectedPremium=Money(projectedHammer*invoice.BuyerPremiumPercent/100m);var projectedTaxable=invoice.SalesTaxBasis switch{SalesTaxBasis.None=>0m,SalesTaxBasis.HammerOnly=>projectedHammer,SalesTaxBasis.HammerPlusBuyerPremium=>projectedHammer+projectedPremium,_=>throw new InvalidOperationException("The auction sales-tax basis is invalid.")};var projectedTotal=projectedHammer+projectedPremium+Money(projectedTaxable*invoice.SalesTaxPercent/100m)+invoice.CreditCardFeeAmount;
+        if(invoice.AmountPaid>projectedTotal)throw new InvalidOperationException($"Record a refund of at least {invoice.AmountPaid-projectedTotal:C2} before reducing, removing, or moving this paid sale.");
+        var updated=_dataStore.CorrectInvoiceSale(bidderNumber,correction);Recalculate(updated);return updated;
+    }
+
     internal static void Recalculate(Invoice invoice)
     {
         invoice.HammerSubtotal = Money(invoice.Purchases.Sum(item => item.LineTotal));
@@ -112,7 +134,7 @@ public sealed class CashierService : ICashierService
         invoice.SalesTaxAmount = Money(taxable * invoice.SalesTaxPercent / 100m);
         invoice.CreditCardFeeAmount=Money(invoice.Payments.Sum(item=>item.ProcessingFee));
         invoice.TotalAmount = invoice.HammerSubtotal + invoice.BuyerPremiumAmount + invoice.SalesTaxAmount+invoice.CreditCardFeeAmount;
-        invoice.AmountPaid = Money(invoice.Payments.Sum(item => item.AppliedAmount));
+        invoice.AmountPaid = Money(invoice.Payments.Sum(item => item.AppliedAmount)-invoice.Refunds.Sum(item=>item.Amount));
         invoice.BalanceDue = Math.Max(0, invoice.TotalAmount-invoice.AmountPaid);
         invoice.Status = invoice.BalanceDue == 0 ? "Paid" : invoice.AmountPaid > 0 ? "Partially Paid" : "Unpaid";
     }

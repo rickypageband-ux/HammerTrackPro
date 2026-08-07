@@ -141,7 +141,7 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
             {
                 purchases.CommandText = """
                     SELECT s.Id,s.LotNumber,al.Description,s.Quantity,s.HammerPrice FROM Sales s
-                    JOIN AuctionLots al ON al.AuctionLotId=s.AuctionLotId WHERE s.AuctionBidderId=$registration ORDER BY s.Id;
+                    JOIN AuctionLots al ON al.AuctionLotId=s.AuctionLotId WHERE s.AuctionBidderId=$registration AND s.IsVoided=0 ORDER BY s.Id;
                     """;
                 purchases.Parameters.AddWithValue("$registration", auctionBidderId); using var reader = purchases.ExecuteReader();
                 while (reader.Read()) result.Purchases.Add(new InvoiceLine { SaleId=reader.GetInt64(0),LotNumber=reader.GetInt32(1),Description=reader.GetString(2),Quantity=reader.GetInt32(3),HammerPrice=decimal.Parse(reader.GetString(4),CultureInfo.InvariantCulture) });
@@ -158,8 +158,30 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
                     CreatedUtc=DateTime.Parse(reader.GetString(7),CultureInfo.InvariantCulture,DateTimeStyles.RoundtripKind),ProcessingFee=decimal.Parse(reader.GetString(8),CultureInfo.InvariantCulture)
                 });
             }
+            using(var refunds=connection.CreateCommand())
+            {
+                refunds.CommandText="SELECT RefundId,InvoiceId,PaymentId,Method,Amount,Reason,Reference,CreatedUtc FROM Refunds WHERE InvoiceId=$invoice ORDER BY RefundId;";refunds.Parameters.AddWithValue("$invoice",result.InvoiceId);using var reader=refunds.ExecuteReader();while(reader.Read())result.Refunds.Add(new Refund{RefundId=reader.GetInt64(0),InvoiceId=reader.GetInt64(1),PaymentId=reader.GetInt64(2),Method=Enum.Parse<PaymentMethod>(reader.GetString(3)),Amount=decimal.Parse(reader.GetString(4),CultureInfo.InvariantCulture),Reason=reader.GetString(5),Reference=reader.GetString(6),CreatedUtc=DateTime.Parse(reader.GetString(7),CultureInfo.InvariantCulture,DateTimeStyles.RoundtripKind)});
+            }
             return result;
         }
+    }
+
+    public Invoice RecordInvoiceRefund(int bidderNumber,Refund refund)
+    {
+        lock(_sync){using var c=OpenConnection();using var t=c.BeginTransaction();var now=DateTime.UtcNow.ToString("O",CultureInfo.InvariantCulture);using(var q=c.CreateCommand()){q.Transaction=t;q.CommandText="SELECT p.InvoiceId,p.Method,CAST(p.AppliedAmount AS REAL)-CAST(p.ProcessingFee AS REAL)-COALESCE((SELECT SUM(CAST(r.Amount AS REAL)) FROM Refunds r WHERE r.PaymentId=p.PaymentId),0) FROM Payments p JOIN Invoices i ON i.InvoiceId=p.InvoiceId JOIN AuctionBidders ab ON ab.AuctionBidderId=i.AuctionBidderId WHERE p.PaymentId=$payment AND ab.AuctionId=$auction AND ab.BidderNumber=$bidder;";q.Parameters.AddWithValue("$payment",refund.PaymentId);q.Parameters.AddWithValue("$auction",GetCurrentAuctionId(c));q.Parameters.AddWithValue("$bidder",bidderNumber);using var r=q.ExecuteReader();if(!r.Read())throw new InvalidOperationException("The selected payment was not found for this bidder.");var remaining=Convert.ToDecimal(r.GetDouble(2),CultureInfo.InvariantCulture);if(refund.Amount>remaining)throw new InvalidOperationException($"Refund no more than the remaining purchase amount of {remaining:C2}.");refund.InvoiceId=r.GetInt64(0);refund.Method=Enum.Parse<PaymentMethod>(r.GetString(1));}
+            using(var insert=c.CreateCommand()){insert.Transaction=t;insert.CommandText="INSERT INTO Refunds(InvoiceId,PaymentId,Method,Amount,Reason,Reference,CreatedUtc) VALUES($invoice,$payment,$method,$amount,$reason,$reference,$utc); SELECT last_insert_rowid();";insert.Parameters.AddWithValue("$invoice",refund.InvoiceId);insert.Parameters.AddWithValue("$payment",refund.PaymentId);insert.Parameters.AddWithValue("$method",refund.Method.ToString());insert.Parameters.AddWithValue("$amount",refund.Amount.ToString(CultureInfo.InvariantCulture));insert.Parameters.AddWithValue("$reason",refund.Reason);insert.Parameters.AddWithValue("$reference",refund.Reference);insert.Parameters.AddWithValue("$utc",now);refund.RefundId=Convert.ToInt64(insert.ExecuteScalar(),CultureInfo.InvariantCulture);}
+            using(var update=c.CreateCommand()){update.Transaction=t;update.CommandText="UPDATE Invoices SET Status=CASE WHEN (SELECT COALESCE(SUM(CAST(AppliedAmount AS REAL)),0) FROM Payments WHERE InvoiceId=$invoice)-(SELECT COALESCE(SUM(CAST(Amount AS REAL)),0) FROM Refunds WHERE InvoiceId=$invoice)>=CAST(TotalAmount AS REAL) THEN 'Paid' WHEN (SELECT COALESCE(SUM(CAST(AppliedAmount AS REAL)),0) FROM Payments WHERE InvoiceId=$invoice)-(SELECT COALESCE(SUM(CAST(Amount AS REAL)),0) FROM Refunds WHERE InvoiceId=$invoice)>0 THEN 'Partially Paid' ELSE 'Unpaid' END,UpdatedUtc=$utc WHERE InvoiceId=$invoice; UPDATE Sales SET Paid=0 WHERE AuctionBidderId=(SELECT AuctionBidderId FROM Invoices WHERE InvoiceId=$invoice);";update.Parameters.AddWithValue("$invoice",refund.InvoiceId);update.Parameters.AddWithValue("$utc",now);update.ExecuteNonQuery();}
+            WriteAudit(c,t,"RefundRecorded",$"Invoice #{refund.InvoiceId}, payment #{refund.PaymentId}, method={refund.Method}, amount={refund.Amount:C2}, reason={refund.Reason}");t.Commit();return LoadCashierInvoice(bidderNumber);}
+    }
+
+    public Invoice CorrectInvoiceSale(int bidderNumber,SaleCorrectionRequest correction)
+    {
+        lock(_sync){using var c=OpenConnection();using var t=c.BeginTransaction();var auctionId=GetCurrentAuctionId(c);long lotId;int lotNumber;long oldRegistration;decimal oldTotal;using(var q=c.CreateCommand()){q.Transaction=t;q.CommandText="SELECT AuctionLotId,LotNumber,AuctionBidderId,CAST(HammerPrice AS REAL)*Quantity FROM Sales WHERE Id=$id AND AuctionId=$auction AND IsVoided=0;";q.Parameters.AddWithValue("$id",correction.SaleId);q.Parameters.AddWithValue("$auction",auctionId);using var r=q.ExecuteReader();if(!r.Read())throw new InvalidOperationException("The selected sale was not found or was already corrected.");lotId=r.GetInt64(0);lotNumber=r.GetInt32(1);oldRegistration=r.GetInt64(2);oldTotal=Convert.ToDecimal(r.GetDouble(3),CultureInfo.InvariantCulture);}
+            long? newRegistration=null;if(correction.BidderNumber is int newBidder){using var q=c.CreateCommand();q.Transaction=t;q.CommandText="SELECT AuctionBidderId FROM AuctionBidders WHERE AuctionId=$auction AND BidderNumber=$bidder;";q.Parameters.AddWithValue("$auction",auctionId);q.Parameters.AddWithValue("$bidder",newBidder);var value=q.ExecuteScalar();if(value is null)throw new InvalidOperationException($"Bidder #{newBidder} is not registered in the current auction.");newRegistration=Convert.ToInt64(value,CultureInfo.InvariantCulture);}
+            var projectedReduction=oldTotal-(correction.BidderNumber is null?0m:correction.Quantity*correction.HammerPrice);if(projectedReduction>0){using var q=c.CreateCommand();q.Transaction=t;q.CommandText="SELECT COALESCE(SUM(CAST(p.AppliedAmount AS REAL)),0)-COALESCE((SELECT SUM(CAST(r.Amount AS REAL)) FROM Refunds r WHERE r.InvoiceId=i.InvoiceId),0),CAST(i.TotalAmount AS REAL) FROM Invoices i LEFT JOIN Payments p ON p.InvoiceId=i.InvoiceId WHERE i.AuctionBidderId=$registration GROUP BY i.InvoiceId;";q.Parameters.AddWithValue("$registration",oldRegistration);using var r=q.ExecuteReader();if(r.Read()){var netPaid=Convert.ToDecimal(r.GetDouble(0),CultureInfo.InvariantCulture);var currentTotal=Convert.ToDecimal(r.GetDouble(1),CultureInfo.InvariantCulture);if(netPaid>currentTotal-projectedReduction)throw new InvalidOperationException($"Record a refund of at least {netPaid-(currentTotal-projectedReduction):C2} before reducing or removing this paid sale.");}}
+            var utc=DateTime.UtcNow.ToString("O",CultureInfo.InvariantCulture);using(var update=c.CreateCommand()){update.Transaction=t;update.CommandText="UPDATE Sales SET IsVoided=1,VoidedUtc=$utc,VoidReason=$reason WHERE Id=$id;";update.Parameters.AddWithValue("$utc",utc);update.Parameters.AddWithValue("$reason",correction.Reason);update.Parameters.AddWithValue("$id",correction.SaleId);update.ExecuteNonQuery();}
+            long? replacementId=null;if(correction.BidderNumber is int replacementBidder){using var insert=c.CreateCommand();insert.Transaction=t;insert.CommandText="INSERT INTO Sales(AuctionId,AuctionLotId,AuctionBidderId,LotNumber,BidderNumber,HammerPrice,Quantity,SaleUtc,Paid,CorrectionForSaleId) VALUES($auction,$lot,$registration,$lotNumber,$bidder,$price,$quantity,$utc,0,$original); SELECT last_insert_rowid();";insert.Parameters.AddWithValue("$auction",auctionId);insert.Parameters.AddWithValue("$lot",lotId);insert.Parameters.AddWithValue("$registration",newRegistration!.Value);insert.Parameters.AddWithValue("$lotNumber",lotNumber);insert.Parameters.AddWithValue("$bidder",replacementBidder);insert.Parameters.AddWithValue("$price",correction.HammerPrice.ToString(CultureInfo.InvariantCulture));insert.Parameters.AddWithValue("$quantity",correction.Quantity);insert.Parameters.AddWithValue("$utc",utc);insert.Parameters.AddWithValue("$original",correction.SaleId);replacementId=Convert.ToInt64(insert.ExecuteScalar(),CultureInfo.InvariantCulture);}else{using var lot=c.CreateCommand();lot.Transaction=t;lot.CommandText="UPDATE AuctionLots SET Status='Available',LotStatus='Available',UpdatedUtc=$utc WHERE AuctionLotId=$lot AND NOT EXISTS(SELECT 1 FROM Sales WHERE AuctionLotId=$lot AND IsVoided=0);";lot.Parameters.AddWithValue("$utc",utc);lot.Parameters.AddWithValue("$lot",lotId);lot.ExecuteNonQuery();}
+            RefreshInvoiceTotals(c,t,oldRegistration);if(newRegistration is long nr&&nr!=oldRegistration)RefreshInvoiceTotals(c,t,nr);WriteAudit(c,t,"SaleCorrected",$"Sale #{correction.SaleId}, lot #{lotNumber}, replacement={replacementId?.ToString()??"removed"}, bidder={correction.BidderNumber?.ToString()??"none"}, quantity={correction.Quantity}, unit={correction.HammerPrice:C2}, reason={correction.Reason}");t.Commit();return LoadCashierInvoice(bidderNumber);}
     }
 
     public Invoice RecordInvoicePayments(Invoice invoice, IReadOnlyList<Payment> payments)
@@ -277,7 +299,7 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
                 lines.CommandText="""
                     SELECT s.Id,al.LotNumber,al.Description,s.Quantity,s.HammerPrice FROM Sales s
                     JOIN AuctionLots al ON al.AuctionLotId=s.AuctionLotId
-                    WHERE s.AuctionId=$auction AND al.ConsignorId=$consignor ORDER BY al.LotNumber,s.Id;
+                    WHERE s.AuctionId=$auction AND al.ConsignorId=$consignor AND s.IsVoided=0 ORDER BY al.LotNumber,s.Id;
                     """;
                 lines.Parameters.AddWithValue("$auction",auctionId); lines.Parameters.AddWithValue("$consignor",consignorId);
                 using var reader=lines.ExecuteReader(); while(reader.Read()) result.Lots.Add(new ConsignorSettlementLine
@@ -761,7 +783,7 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
             using(var seed=OpenConnection()){var a=GetCurrentAuctionId(seed);using var q=seed.CreateCommand();q.CommandText="SELECT c.ConsignorNumber FROM AuctionConsignors ac JOIN Consignors c ON c.ConsignorId=ac.ConsignorId WHERE ac.AuctionId=$a;";q.Parameters.AddWithValue("$a",a);using var r=q.ExecuteReader();var numbers=new List<int>();while(r.Read())numbers.Add(r.GetInt32(0));r.Close();foreach(var n in numbers)LoadConsignorSettlement(n);}
             using var connection=OpenConnection();var auction=GetAuction(connection,GetCurrentAuctionId(connection));var report=new AuctionSettlementReport{AuctionId=auction.AuctionId,AuctionNumber=auction.AuctionNumber,AuctionName=auction.AuctionName};
             decimal Sum(string sql){using var c=connection.CreateCommand();c.CommandText=sql;c.Parameters.AddWithValue("$a",auction.AuctionId);return Convert.ToDecimal(c.ExecuteScalar()??0,CultureInfo.InvariantCulture);}
-            report.HammerSales=Sum("SELECT COALESCE(SUM(CAST(HammerPrice AS REAL)*Quantity),0) FROM Sales WHERE AuctionId=$a;");report.BuyerPremiums=Sum("SELECT COALESCE(SUM(CAST(BuyerPremiumAmount AS REAL)),0) FROM Invoices WHERE AuctionId=$a;");report.CreditCardFees=Sum("SELECT COALESCE(SUM(CAST(CreditCardFeeAmount AS REAL)),0) FROM Invoices WHERE AuctionId=$a;");report.SalesTaxCollected=Sum("SELECT COALESCE(SUM(CAST(SalesTaxAmount AS REAL)),0) FROM Invoices WHERE AuctionId=$a;");report.InvoiceTotal=Sum("SELECT COALESCE(SUM(CAST(TotalAmount AS REAL)),0) FROM Invoices WHERE AuctionId=$a;");report.InvoiceAmountPaid=Sum("SELECT COALESCE(SUM(CAST(p.AppliedAmount AS REAL)),0) FROM Payments p JOIN Invoices i ON i.InvoiceId=p.InvoiceId WHERE i.AuctionId=$a;");report.InvoiceBalanceUnpaid=Math.Max(0,report.InvoiceTotal-report.InvoiceAmountPaid);report.ConsignorGrossSales=Sum("SELECT COALESCE(SUM(CAST(HammerSubtotal AS REAL)),0) FROM ConsignorSettlements WHERE AuctionId=$a;");report.ConsignorCommissions=Sum("SELECT COALESCE(SUM(CAST(CommissionAmount AS REAL)),0) FROM ConsignorSettlements WHERE AuctionId=$a;");report.PurchaseBalanceOffsets=Sum("SELECT COALESCE(SUM(CAST(HammerSubtotal AS REAL)-CAST(CommissionAmount AS REAL)-CAST(NetAmount AS REAL)),0) FROM ConsignorSettlements WHERE AuctionId=$a;");report.ConsignorPayouts=Sum("SELECT COALESCE(SUM(CAST(cp.Amount AS REAL)),0) FROM ConsignorPayouts cp JOIN ConsignorSettlements cs ON cs.ConsignorSettlementId=cp.ConsignorSettlementId WHERE cs.AuctionId=$a;");
+            report.HammerSales=Sum("SELECT COALESCE(SUM(CAST(HammerPrice AS REAL)*Quantity),0) FROM Sales WHERE AuctionId=$a AND IsVoided=0;");report.BuyerPremiums=Sum("SELECT COALESCE(SUM(CAST(BuyerPremiumAmount AS REAL)),0) FROM Invoices WHERE AuctionId=$a;");report.CreditCardFees=Sum("SELECT COALESCE(SUM(CAST(CreditCardFeeAmount AS REAL)),0) FROM Invoices WHERE AuctionId=$a;");report.SalesTaxCollected=Sum("SELECT COALESCE(SUM(CAST(SalesTaxAmount AS REAL)),0) FROM Invoices WHERE AuctionId=$a;");report.InvoiceTotal=Sum("SELECT COALESCE(SUM(CAST(TotalAmount AS REAL)),0) FROM Invoices WHERE AuctionId=$a;");report.InvoiceAmountPaid=Sum("SELECT COALESCE(SUM(CAST(p.AppliedAmount AS REAL)),0) FROM Payments p JOIN Invoices i ON i.InvoiceId=p.InvoiceId WHERE i.AuctionId=$a;")-Sum("SELECT COALESCE(SUM(CAST(r.Amount AS REAL)),0) FROM Refunds r JOIN Invoices i ON i.InvoiceId=r.InvoiceId WHERE i.AuctionId=$a;");report.InvoiceBalanceUnpaid=Math.Max(0,report.InvoiceTotal-report.InvoiceAmountPaid);report.ConsignorGrossSales=Sum("SELECT COALESCE(SUM(CAST(HammerSubtotal AS REAL)),0) FROM ConsignorSettlements WHERE AuctionId=$a;");report.ConsignorCommissions=Sum("SELECT COALESCE(SUM(CAST(CommissionAmount AS REAL)),0) FROM ConsignorSettlements WHERE AuctionId=$a;");report.PurchaseBalanceOffsets=Sum("SELECT COALESCE(SUM(CAST(HammerSubtotal AS REAL)-CAST(CommissionAmount AS REAL)-CAST(NetAmount AS REAL)),0) FROM ConsignorSettlements WHERE AuctionId=$a;");report.ConsignorPayouts=Sum("SELECT COALESCE(SUM(CAST(cp.Amount AS REAL)),0) FROM ConsignorPayouts cp JOIN ConsignorSettlements cs ON cs.ConsignorSettlementId=cp.ConsignorSettlementId WHERE cs.AuctionId=$a;");
             using var ledger=connection.CreateCommand();ledger.CommandText="SELECT StaffPaymentId,AuctionId,Category,Payee,Amount,Method,PaidUtc,Notes,VoidsStaffPaymentId,ReplacementForStaffPaymentId,VoidReason FROM StaffPayments WHERE AuctionId=$a ORDER BY StaffPaymentId;";ledger.Parameters.AddWithValue("$a",auction.AuctionId);using var reader=ledger.ExecuteReader();while(reader.Read())report.StaffLedger.Add(ReadStaff(reader));report.StaffPayments=report.StaffLedger.Sum(x=>x.Amount);return report;
         }
     }
@@ -901,7 +923,7 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
             using var command = connection.CreateCommand();
             command.CommandText = """
                 SELECT Id, AuctionId, LotNumber, BidderNumber, HammerPrice, SaleUtc, Paid, Quantity
-                FROM Sales WHERE AuctionId=$auctionId
+                FROM Sales WHERE AuctionId=$auctionId AND IsVoided=0
                 ORDER BY Id DESC
                 LIMIT 1;
                 """;
@@ -917,7 +939,7 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
         lock(_sync)
         {
             using var connection=OpenConnection();using var command=connection.CreateCommand();
-            command.CommandText="SELECT Id,AuctionId,LotNumber,BidderNumber,HammerPrice,SaleUtc,Paid,Quantity FROM Sales WHERE AuctionId=$auctionId AND LotNumber=$lot ORDER BY Id;";
+            command.CommandText="SELECT Id,AuctionId,LotNumber,BidderNumber,HammerPrice,SaleUtc,Paid,Quantity FROM Sales WHERE AuctionId=$auctionId AND LotNumber=$lot AND IsVoided=0 ORDER BY Id;";
             command.Parameters.AddWithValue("$auctionId",GetCurrentAuctionId(connection));command.Parameters.AddWithValue("$lot",lotNumber);
             using var reader=command.ExecuteReader();var sales=new List<Sale>();while(reader.Read())sales.Add(ReadSale(reader));return sales;
         }
@@ -956,7 +978,7 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
             using (var ensureLast = connection.CreateCommand())
             {
                 ensureLast.Transaction = transaction;
-                ensureLast.CommandText = "SELECT Id FROM Sales WHERE AuctionId=$auctionId ORDER BY Id DESC LIMIT 1;";
+                ensureLast.CommandText = "SELECT Id FROM Sales WHERE AuctionId=$auctionId AND IsVoided=0 ORDER BY Id DESC LIMIT 1;";
                 ensureLast.Parameters.AddWithValue("$auctionId", auctionId);
                 var lastId = Convert.ToInt64(ensureLast.ExecuteScalar(), CultureInfo.InvariantCulture);
                 if (lastId != saleId) throw new InvalidOperationException("Only the most recent sale can be undone.");
@@ -974,7 +996,7 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
             using (var countSales = connection.CreateCommand())
             {
                 countSales.Transaction = transaction;
-                countSales.CommandText = "SELECT COUNT(*) FROM Sales WHERE AuctionLotId=$auctionLotId;";
+                countSales.CommandText = "SELECT COUNT(*) FROM Sales WHERE AuctionLotId=$auctionLotId AND IsVoided=0;";
                 countSales.Parameters.AddWithValue("$auctionLotId", auctionLotId);
                 remainingSales = Convert.ToInt32(countSales.ExecuteScalar(), CultureInfo.InvariantCulture);
             }
@@ -1002,7 +1024,7 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
         {
             using var connection = OpenConnection();
             using var command = connection.CreateCommand();
-            command.CommandText = "SELECT COUNT(*) FROM Sales WHERE AuctionId=$auctionId AND LotNumber=$lot;";
+            command.CommandText = "SELECT COUNT(*) FROM Sales WHERE AuctionId=$auctionId AND LotNumber=$lot AND IsVoided=0;";
             command.Parameters.AddWithValue("$auctionId", GetCurrentAuctionId(connection));
             command.Parameters.AddWithValue("$lot", lotNumber);
             return Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture);
@@ -1023,8 +1045,8 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
                         (SELECT COUNT(*) FROM AuctionBidders WHERE AuctionId=$auctionId),
                         (SELECT COUNT(*) FROM AuctionLots WHERE AuctionId=$auctionId),
                         (SELECT COUNT(*) FROM AuctionLots WHERE AuctionId=$auctionId AND lower(Status)='sold'),
-                        COALESCE((SELECT SUM(CAST(HammerPrice AS REAL)*Quantity) FROM Sales WHERE AuctionId=$auctionId), 0),
-                        COALESCE((SELECT AVG(CAST(HammerPrice AS REAL)*Quantity) FROM Sales WHERE AuctionId=$auctionId), 0);
+                        COALESCE((SELECT SUM(CAST(HammerPrice AS REAL)*Quantity) FROM Sales WHERE AuctionId=$auctionId AND IsVoided=0), 0),
+                        COALESCE((SELECT AVG(CAST(HammerPrice AS REAL)*Quantity) FROM Sales WHERE AuctionId=$auctionId AND IsVoided=0), 0);
                     """;
                 command.Parameters.AddWithValue("$auctionId", GetCurrentAuctionId(connection));
                 using var reader = command.ExecuteReader();
@@ -1053,7 +1075,7 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
                         UNION ALL
                         SELECT 'Lot #' || LotNumber || ' sold to bidder #' || BidderNumber || ': ' || Quantity || ' x $' || HammerPrice AS ActivityText,
                                SaleUtc AS ActivityUtc
-                        FROM Sales WHERE AuctionId=$auctionId
+                        FROM Sales WHERE AuctionId=$auctionId AND IsVoided=0
                     )
                     ORDER BY ActivityUtc DESC
                     LIMIT 8;
@@ -1537,6 +1559,14 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
             if(!ColumnExists(connection,transaction,"Sales","Quantity")){using var alter=connection.CreateCommand();alter.Transaction=transaction;alter.CommandText="ALTER TABLE Sales ADD COLUMN Quantity INTEGER NOT NULL DEFAULT 1 CHECK(Quantity>0);";alter.ExecuteNonQuery();}
             using var migration=connection.CreateCommand();migration.Transaction=transaction;migration.CommandText="INSERT INTO Settings(Key,Value) VALUES('DatabaseSchemaVersion','16') ON CONFLICT(Key) DO UPDATE SET Value='16';";migration.ExecuteNonQuery();transaction.Commit();
         }
+        if(version<17)
+        {
+            using var transaction=connection.BeginTransaction();if(!ColumnExists(connection,transaction,"Sales","IsVoided")){using var alter=connection.CreateCommand();alter.Transaction=transaction;alter.CommandText="ALTER TABLE Sales ADD COLUMN IsVoided INTEGER NOT NULL DEFAULT 0; ALTER TABLE Sales ADD COLUMN VoidedUtc TEXT NOT NULL DEFAULT ''; ALTER TABLE Sales ADD COLUMN VoidReason TEXT NOT NULL DEFAULT ''; ALTER TABLE Sales ADD COLUMN CorrectionForSaleId INTEGER NULL REFERENCES Sales(Id) ON DELETE RESTRICT; CREATE INDEX IX_Sales_IsVoided ON Sales(AuctionId,IsVoided); CREATE INDEX IX_Sales_CorrectionFor ON Sales(CorrectionForSaleId);";alter.ExecuteNonQuery();}using var migration=connection.CreateCommand();migration.Transaction=transaction;migration.CommandText="INSERT INTO Settings(Key,Value) VALUES('DatabaseSchemaVersion','17') ON CONFLICT(Key) DO UPDATE SET Value='17';";migration.ExecuteNonQuery();transaction.Commit();
+        }
+        if(version<18)
+        {
+            using var transaction=connection.BeginTransaction();using var migration=connection.CreateCommand();migration.Transaction=transaction;migration.CommandText="CREATE TABLE IF NOT EXISTS Refunds(RefundId INTEGER PRIMARY KEY AUTOINCREMENT,InvoiceId INTEGER NOT NULL,PaymentId INTEGER NOT NULL,Method TEXT NOT NULL,Amount TEXT NOT NULL,Reason TEXT NOT NULL,Reference TEXT NOT NULL DEFAULT '',CreatedUtc TEXT NOT NULL,FOREIGN KEY(InvoiceId) REFERENCES Invoices(InvoiceId) ON DELETE RESTRICT,FOREIGN KEY(PaymentId) REFERENCES Payments(PaymentId) ON DELETE RESTRICT); CREATE INDEX IF NOT EXISTS IX_Refunds_InvoiceId ON Refunds(InvoiceId); CREATE INDEX IF NOT EXISTS IX_Refunds_PaymentId ON Refunds(PaymentId); INSERT INTO Settings(Key,Value) VALUES('DatabaseSchemaVersion','18') ON CONFLICT(Key) DO UPDATE SET Value='18';";migration.ExecuteNonQuery();transaction.Commit();
+        }
     }
 
     private static bool ColumnExists(SqliteConnection connection,SqliteTransaction transaction,string table,string column)
@@ -1580,30 +1610,30 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
 
     private static void RefreshInvoiceTotals(SqliteConnection connection,SqliteTransaction transaction,long auctionBidderId)
     {
-        decimal premiumRate; decimal taxRate; SalesTaxBasis taxBasis; long invoiceId;
+        decimal premiumRate; decimal taxRate; decimal cardFee; SalesTaxBasis taxBasis; long invoiceId;
         using (var command=connection.CreateCommand())
         {
-            command.Transaction=transaction; command.CommandText="SELECT InvoiceId,BuyerPremiumPercent,SalesTaxPercent,SalesTaxBasis FROM Invoices WHERE AuctionBidderId=$registration;";
+            command.Transaction=transaction; command.CommandText="SELECT InvoiceId,BuyerPremiumPercent,SalesTaxPercent,SalesTaxBasis,CreditCardFeeAmount FROM Invoices WHERE AuctionBidderId=$registration;";
             command.Parameters.AddWithValue("$registration",auctionBidderId); using var reader=command.ExecuteReader();
             if(!reader.Read()) return;
             invoiceId=reader.GetInt64(0); premiumRate=decimal.Parse(reader.GetString(1),CultureInfo.InvariantCulture);
-            taxRate=decimal.Parse(reader.GetString(2),CultureInfo.InvariantCulture); taxBasis=Enum.Parse<SalesTaxBasis>(reader.GetString(3));
+            taxRate=decimal.Parse(reader.GetString(2),CultureInfo.InvariantCulture); taxBasis=Enum.Parse<SalesTaxBasis>(reader.GetString(3));cardFee=decimal.Parse(reader.GetString(4),CultureInfo.InvariantCulture);
         }
         decimal hammer; decimal paid;
         using (var command=connection.CreateCommand())
         {
-            command.Transaction=transaction; command.CommandText="SELECT COALESCE(SUM(CAST(HammerPrice AS REAL)*Quantity),0) FROM Sales WHERE AuctionBidderId=$registration;";
+            command.Transaction=transaction; command.CommandText="SELECT COALESCE(SUM(CAST(HammerPrice AS REAL)*Quantity),0) FROM Sales WHERE AuctionBidderId=$registration AND IsVoided=0;";
             command.Parameters.AddWithValue("$registration",auctionBidderId); hammer=Convert.ToDecimal(command.ExecuteScalar(),CultureInfo.InvariantCulture);
         }
         using (var command=connection.CreateCommand())
         {
-            command.Transaction=transaction; command.CommandText="SELECT COALESCE(SUM(CAST(AppliedAmount AS REAL)),0) FROM Payments WHERE InvoiceId=$invoice;";
+            command.Transaction=transaction; command.CommandText="SELECT COALESCE(SUM(CAST(AppliedAmount AS REAL)),0)-COALESCE((SELECT SUM(CAST(Amount AS REAL)) FROM Refunds WHERE InvoiceId=$invoice),0) FROM Payments WHERE InvoiceId=$invoice;";
             command.Parameters.AddWithValue("$invoice",invoiceId); paid=Convert.ToDecimal(command.ExecuteScalar(),CultureInfo.InvariantCulture);
         }
         hammer=decimal.Round(hammer,2,MidpointRounding.AwayFromZero);
         var premium=decimal.Round(hammer*premiumRate/100m,2,MidpointRounding.AwayFromZero);
         var taxable=taxBasis switch { SalesTaxBasis.None=>0m,SalesTaxBasis.HammerOnly=>hammer,SalesTaxBasis.HammerPlusBuyerPremium=>hammer+premium,_=>throw new InvalidOperationException("Invalid sales-tax basis.") };
-        var tax=decimal.Round(taxable*taxRate/100m,2,MidpointRounding.AwayFromZero); var total=hammer+premium+tax;
+        var tax=decimal.Round(taxable*taxRate/100m,2,MidpointRounding.AwayFromZero); var total=hammer+premium+tax+cardFee;
         var status=paid>=total && total>0 ? "Paid" : paid>0 ? "Partially Paid" : "Unpaid";
         using (var command=connection.CreateCommand())
         {

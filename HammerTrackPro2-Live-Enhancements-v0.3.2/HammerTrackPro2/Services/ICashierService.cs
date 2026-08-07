@@ -7,6 +7,8 @@ public interface ICashierService
     Auction GetCurrentAuction();
     Invoice LoadInvoice(int bidderNumber);
     Invoice RecordPayments(int bidderNumber, IReadOnlyList<PaymentRequest> payments);
+    Invoice RecordRefund(int bidderNumber, RefundRequest refund)=>throw new NotSupportedException();
+    Invoice CorrectSale(int bidderNumber, SaleCorrectionRequest correction)=>throw new NotSupportedException();
     Invoice RegisterBuyer(AuctionBidder bidder);
     IReadOnlyList<RegisteredBidderSummary> GetRegisteredBidders();
     ConsignorSettlement LoadConsignorSettlement(int consignorNumber);

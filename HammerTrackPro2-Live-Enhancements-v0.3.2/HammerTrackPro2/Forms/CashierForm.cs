@@ -22,6 +22,7 @@ public sealed class CashierForm : Form
     private readonly DataGridView _purchases=new() { Dock=DockStyle.Fill,ReadOnly=true,AutoGenerateColumns=true,AllowUserToAddRows=false };
     private readonly DataGridView _payments=new() { Dock=DockStyle.Fill,ReadOnly=true,AutoGenerateColumns=true,AllowUserToAddRows=false };
     private readonly DataGridView _pending=new() { Dock=DockStyle.Fill,ReadOnly=true,AutoGenerateColumns=true,AllowUserToAddRows=false };
+    private readonly DataGridView _refunds=new() { Dock=DockStyle.Fill,ReadOnly=true,AutoGenerateColumns=true,AllowUserToAddRows=false };
     private readonly ComboBox _method=new() { DropDownStyle=ComboBoxStyle.DropDownList,DataSource=Enum.GetValues<PaymentMethod>() };
     private readonly NumericUpDown _amount=new() { DecimalPlaces=2,Maximum=100000000 };
     private readonly NumericUpDown _cashTendered=new() { DecimalPlaces=2,Maximum=100000000 };
@@ -44,7 +45,7 @@ public sealed class CashierForm : Form
         var header=BuildHeader();
         var lookup=ActionFlow();
         lookup.Controls.Add(new Label { Text="Auction Bidder Number",AutoSize=true }); lookup.Controls.Add(_bidderNumber);
-        lookup.Controls.Add(Button("Lookup Buyer",Lookup)); lookup.Controls.Add(Button("Add Buyer",RegisterBuyer)); lookup.Controls.Add(Button("Add Seller",RegisterConsignor)); lookup.Controls.Add(Button("Bidder Cards",ShowBidderCards)); lookup.Controls.Add(Button("Unpaid Buyers",ShowUnpaid)); lookup.Controls.Add(Button("End-of-Night",()=>{using var f=new AuctionSettlementForm(_cashierService);f.ShowDialog(this);})); lookup.Controls.Add(Button("Print Invoice",PrintInvoice));
+        lookup.Controls.Add(Button("Lookup Buyer",Lookup)); lookup.Controls.Add(Button("Add Buyer",RegisterBuyer)); lookup.Controls.Add(Button("Add Seller",RegisterConsignor)); lookup.Controls.Add(Button("Bidder Cards",ShowBidderCards)); lookup.Controls.Add(Button("Correct Sale",CorrectSale)); lookup.Controls.Add(Button("Refund",RecordRefund)); lookup.Controls.Add(Button("Unpaid Buyers",ShowUnpaid)); lookup.Controls.Add(Button("End-of-Night",()=>{using var f=new AuctionSettlementForm(_cashierService);f.ShowDialog(this);})); lookup.Controls.Add(Button("Print Invoice",PrintInvoice));
         if(configuration is not null) lookup.Controls.Add(Button("Network Setup",OpenNetworkSetup));
         var paymentEntry=ActionFlow();
         paymentEntry.Controls.Add(new Label { Text="Method",AutoSize=true }); paymentEntry.Controls.Add(_method);
@@ -57,6 +58,7 @@ public sealed class CashierForm : Form
         paymentEntry.Controls.Add(Button("Record Payments",RecordPayments));
         var tabs=new TabControl { Dock=DockStyle.Fill,Font=new Font("Segoe UI",10F,FontStyle.Bold),Padding=new Point(18,8) };
         tabs.TabPages.Add(Page("Purchases",_purchases)); tabs.TabPages.Add(Page("Payment History",_payments)); tabs.TabPages.Add(Page("Pending Split Payments",_pending));
+        tabs.TabPages.Add(Page("Refund History",_refunds));
         tabs.TabPages.Add(Page("Seller Lots",_settlementLots)); tabs.TabPages.Add(Page("Seller Payouts",_payouts));
         var sellerEntry=ActionFlow();
         sellerEntry.Controls.Add(new Label { Text="Seller Number",AutoSize=true }); sellerEntry.Controls.Add(_consignorNumber); sellerEntry.Controls.Add(Button("Lookup Seller",LookupConsignor)); sellerEntry.Controls.Add(Button("Add Seller",RegisterConsignor)); sellerEntry.Controls.Add(Button("Print Settlement",PrintSettlement));
@@ -68,7 +70,7 @@ public sealed class CashierForm : Form
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute,78));layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));layout.RowStyles.Add(new RowStyle(SizeType.Absolute,72));layout.RowStyles.Add(new RowStyle(SizeType.Percent,100));layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         layout.Controls.Add(header,0,0);layout.Controls.Add(Band("BUYER & INVOICE",lookup),0,1);layout.Controls.Add(summary,0,2);layout.Controls.Add(tabs,0,3);layout.Controls.Add(Band("PAYMENT",paymentEntry),0,4);layout.Controls.Add(sellerBand,0,5);
         Controls.Add(layout);
-        StyleInputs();StyleGrid(_purchases);StyleGrid(_payments);StyleGrid(_pending);StyleGrid(_settlementLots);StyleGrid(_payouts);
+        StyleInputs();StyleGrid(_purchases);StyleGrid(_payments);StyleGrid(_pending);StyleGrid(_refunds);StyleGrid(_settlementLots);StyleGrid(_payouts);
         _method.SelectedIndexChanged+=(_,_)=>PaymentMethodChanged();_amount.ValueChanged+=(_,_)=>{RefreshPaymentPreview();RefreshCashChange();};_cashTendered.ValueChanged+=(_,_)=>RefreshCashChange();
         _fullScreenButton.Click+=(_,_)=>ToggleFullScreen();KeyDown+=(_,e)=>{if(e.KeyCode==Keys.F11){ToggleFullScreen();e.Handled=true;}else if(e.KeyCode==Keys.Escape&&_fullScreen){ToggleFullScreen();e.Handled=true;}};
         PrepareSelectedPaymentAmount();RefreshPaymentPreview();
@@ -93,6 +95,8 @@ public sealed class CashierForm : Form
     private void RegisterBuyer(){using var f=new CashierRegistrationForm(new CashierRegistrationViewModel(false,_cashierService.GetRegisteredBidders()));if(f.ShowDialog(this)!=DialogResult.OK||f.Buyer is null)return;_viewModel.RegisterBuyer(f.Buyer);_bidderNumber.Value=f.Buyer.BidderNumber;RefreshInvoice();}
     private void RegisterConsignor(){using var f=new CashierRegistrationForm(new CashierRegistrationViewModel(true,_cashierService.GetRegisteredBidders()));if(f.ShowDialog(this)!=DialogResult.OK||f.Consignor is null)return;_viewModel.RegisterConsignor(f.Consignor);_consignorNumber.Value=f.Consignor.ConsignorNumber;RefreshSettlement();}
     private void ShowBidderCards(){using var f=new BidderCardForm(new BidderCardViewModel(_cashierService));f.ShowDialog(this);}
+    private void RecordRefund(){var invoice=_viewModel.Invoice??throw new InvalidOperationException("Look up a buyer before recording a refund.");using var form=new RefundForm(invoice);if(form.ShowDialog(this)!=DialogResult.OK||form.Request is null)return;if(MessageBox.Show(this,$"Record a {form.Request.Amount:C2} refund? Card fees will not be refunded.","Confirm Refund",MessageBoxButtons.YesNo,MessageBoxIcon.Warning)!=DialogResult.Yes)return;_viewModel.RecordRefund(form.Request);RefreshInvoice();}
+    private void CorrectSale(){var invoice=_viewModel.Invoice??throw new InvalidOperationException("Look up a buyer before correcting a sale.");if(_purchases.CurrentRow?.DataBoundItem is not InvoiceLine line)throw new InvalidOperationException("Select the customer sale to correct in the Purchases tab.");using var form=new SaleCorrectionForm(line,invoice.BidderNumber);if(form.ShowDialog(this)!=DialogResult.OK||form.Request is null)return;if(MessageBox.Show(this,"Save this audited sale correction? The original sale will remain in history.","Confirm Sale Correction",MessageBoxButtons.YesNo,MessageBoxIcon.Warning)!=DialogResult.Yes)return;_viewModel.CorrectSale(form.Request);RefreshInvoice();}
     private void ShowUnpaid(){var rows=_cashierService.GetUnpaidInvoices();using var f=new Form{Text="Current Auction - Unpaid Buyers",StartPosition=FormStartPosition.CenterParent,Width=800,Height=500};var grid=new DataGridView{Dock=DockStyle.Fill,ReadOnly=true,AutoGenerateColumns=true,DataSource=rows.ToList(),AutoSizeColumnsMode=DataGridViewAutoSizeColumnsMode.Fill};f.Controls.Add(grid);if(rows.Count==0)f.Controls.Add(new Label{Text="Everyone in the current auction is paid in full.",Dock=DockStyle.Top,Height=44,TextAlign=ContentAlignment.MiddleCenter,BackColor=Color.Honeydew,ForeColor=Color.DarkGreen});f.ShowDialog(this);}
     private void RecordConsignorPayout()
     {
@@ -150,7 +154,7 @@ public sealed class CashierForm : Form
         var invoice=_viewModel.Invoice;
         if (invoice is null) return;
         _heading.Text=$"Invoice {invoice.FormattedInvoiceNumber} — {invoice.BuyerName} — {invoice.Status}";
-        _purchases.DataSource=invoice.Purchases.ToList(); _payments.DataSource=invoice.Payments.ToList(); _pending.DataSource=_viewModel.PendingPayments.ToList();
+        _purchases.DataSource=invoice.Purchases.ToList(); _payments.DataSource=invoice.Payments.ToList(); _pending.DataSource=_viewModel.PendingPayments.ToList();_refunds.DataSource=invoice.Refunds.ToList();
         PrepareSelectedPaymentAmount();RefreshPaymentPreview();
     }
     private void RefreshPaymentPreview(){if(_method.SelectedItem is not PaymentMethod method)return;var fee=_viewModel.CalculateCardFee(method,_amount.Value);_paymentPreview.Text=method==PaymentMethod.Card?$"Invoice {_amount.Value:C2} + card fee ({_viewModel.CardFeeDescription}) {fee:C2} = charge {_amount.Value+fee:C2}":$"{method}: no card fee";_paymentPreview.ForeColor=method==PaymentMethod.Card?Color.DarkRed:Color.DarkGreen;RefreshInvoiceTotals(method,fee);}

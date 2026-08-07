@@ -59,6 +59,8 @@ public sealed class CashierViewModel
         if (Invoice is null) throw new InvalidOperationException("Look up a bidder before recording payments.");
         Invoice=_service.RecordPayments(Invoice.BidderNumber,PendingPayments); PendingPayments.Clear();
     }
+    public void RecordRefund(RefundRequest refund){if(Invoice is null)throw new InvalidOperationException("Look up a bidder before recording a refund.");Invoice=_service.RecordRefund(Invoice.BidderNumber,refund);PendingPayments.Clear();}
+    public void CorrectSale(SaleCorrectionRequest correction){if(Invoice is null)throw new InvalidOperationException("Look up a bidder before correcting a sale.");Invoice=_service.CorrectSale(Invoice.BidderNumber,correction);PendingPayments.Clear();}
     public void LookupConsignor(int consignorNumber) => Settlement=_service.LoadConsignorSettlement(consignorNumber);
     public void RegisterConsignor(Consignor consignor)=>Settlement=_service.RegisterConsignor(consignor);
     public void RecordConsignorPayout(ConsignorPayoutMethod method,decimal amount,string reference)

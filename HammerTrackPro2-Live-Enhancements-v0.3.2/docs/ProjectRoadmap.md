@@ -14,6 +14,7 @@ HammerTrack Pro 2 is a Windows auction-clerking application designed to keep bid
 - Persisted per-auction commercial terms; no hard-coded runtime premium/commission/tax values
 - Current-auction dashboard counts, gross sales, average sale price, and recent activity
 - Current-auction Cashier with persistent invoices, partial/split payments, cash change, and invoice printing
+- Append-only purchase refunds and audited sale correction/removal/reassignment, with paid-sale refund enforcement and retained card fees
 - Paired two-PC LAN mode with a live-auction HTTPS host and dedicated remote cashier workstation
 - Self-contained WiX MSI packaging with persistent ProgramData storage and signed offline per-PC licensing
 - Standard and multi-buyer pass-out sale recording
@@ -57,10 +58,8 @@ HammerTrack Pro 2 is a Windows auction-clerking application designed to keep bid
 1. Which roles may reopen a closed auction? Reopening intentionally awaits authentication/authorization.
 2. What network topology, number of simultaneous workstations, latency, and disconnect behavior must be supported?
 3. May a bidder or lot with historical sales ever be deleted or renumbered? Foreign keys restrict deletion and cascade number updates, while UI/service behavior needs an explicit policy.
-4. Is “Paid” part of the planned cashier workflow, and what audit/void semantics are legally or operationally required?
 5. Which lot statuses are valid? The model defaults to `Available`, the UI also uses `Hold` and `Sold`, but the database has no constraint.
 6. What retention, privacy, and access rules apply to driver’s-license and contact data?
-7. Should future authorized corrections extend beyond the latest sale within the current auction?
 8. Who owns roadmap approval, releases, and production database recovery?
 
 ## Roadmap hygiene

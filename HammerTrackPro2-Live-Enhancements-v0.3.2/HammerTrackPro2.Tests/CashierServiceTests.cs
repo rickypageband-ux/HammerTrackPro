@@ -33,6 +33,27 @@ public sealed class CashierServiceTests
         Assert.Equal("Paid",viewModel.Invoice.Status);
         Assert.Equal(110.24m,Assert.Single(viewModel.Invoice.Payments).TenderedAmount);
     }
+    [Fact]
+    public void RefundRetainsCardFeeAndPaidSaleRequiresRefundBeforeAuditedCorrection()
+    {
+        using var database=TemporaryDatabase.Create();var (store,cashier)=CreateAccount(database.Path,SalesTaxBasis.None);
+        var paid=cashier.RecordPayments(25,[new PaymentRequest{Method=PaymentMethod.Card,Amount=110m}]);var payment=Assert.Single(paid.Payments);Assert.Equal(3.07m,payment.ProcessingFee);
+        var sale=Assert.Single(paid.Purchases);var correction=new SaleCorrectionRequest{SaleId=sale.SaleId,BidderNumber=null,Reason="Clerk assigned item to wrong bidder"};
+        Assert.Contains("refund",Assert.Throws<InvalidOperationException>(()=>cashier.CorrectSale(25,correction)).Message,StringComparison.OrdinalIgnoreCase);
+        var refunded=cashier.RecordRefund(25,new RefundRequest{PaymentId=payment.PaymentId,Amount=110m,Reason="Returned purchase"});
+        Assert.Equal(3.07m,refunded.AmountPaid);Assert.Equal(3.07m,refunded.CreditCardFeeAmount);Assert.Equal(110m,Assert.Single(refunded.Refunds).Amount);
+        var corrected=cashier.CorrectSale(25,correction);Assert.Empty(corrected.Purchases);Assert.Equal(3.07m,corrected.TotalAmount);Assert.Equal(0m,corrected.BalanceDue);
+        Assert.Equal("1",Scalar(database.Path,"SELECT IsVoided FROM Sales WHERE Id=(SELECT MIN(Id) FROM Sales);"));
+        Assert.Equal("1",Scalar(database.Path,"SELECT COUNT(*) FROM AuditLog WHERE Action='RefundRecorded';"));Assert.Equal("1",Scalar(database.Path,"SELECT COUNT(*) FROM AuditLog WHERE Action='SaleCorrected';"));
+    }
+
+    [Fact]
+    public void SaleCorrectionCanMoveUnpaidPurchaseToAnotherRegisteredBidder()
+    {
+        using var database=TemporaryDatabase.Create();var (store,cashier)=CreateAccount(database.Path,SalesTaxBasis.None);cashier.RegisterBuyer(new AuctionBidder{BidderNumber=26,FirstName="Correct"});var original=cashier.LoadInvoice(25);var sale=Assert.Single(original.Purchases);
+        var oldInvoice=cashier.CorrectSale(25,new SaleCorrectionRequest{SaleId=sale.SaleId,BidderNumber=26,Quantity=2,HammerPrice=25m,Reason="Wrong bidder selected"});Assert.Empty(oldInvoice.Purchases);
+        var replacement=cashier.LoadInvoice(26);var line=Assert.Single(replacement.Purchases);Assert.Equal(2,line.Quantity);Assert.Equal(25m,line.HammerPrice);Assert.Equal(55m,replacement.TotalAmount);
+    }
     [Fact] public void LinkedConsignorBuyer_UnpaidPurchasesReducePayout(){using var db=TemporaryDatabase.Create();var store=new SqliteDataStore(db.Path);var auction=store.GetCurrentAuction();var cs=new ConsignorService(store);cs.SaveConsignor(new Consignor{ConsignorNumber=70,BusinessName="Buyer Seller",Active=true},null);var linked=store.GetConsignors().Single(x=>x.ConsignorNumber==70);Assert.NotNull(linked.LinkedBuyerId);var owner=store.GetConsignors().First();store.SaveLot(new AuctionLot{AuctionId=auction.AuctionId,ConsignorId=owner.ConsignorId,LotNumber=1,Description="Purchase"},null);store.RecordSale(1,70,100);store.SaveLot(new AuctionLot{AuctionId=auction.AuctionId,ConsignorId=linked.ConsignorId,LotNumber=2,Description="Consigned"},null);store.SaveBidder(new AuctionBidder{AuctionId=auction.AuctionId,BidderNumber=71,FirstName="Other"},null);store.RecordSale(2,71,200);var settlement=new CashierService(store).LoadConsignorSettlement(70);Assert.Equal(100,settlement.BuyerPurchaseBalanceDeduction);Assert.Equal(100,settlement.NetAmount);}
     [Fact] public void UnpaidReview_UsesFreshCurrentAuctionBalances(){using var db=TemporaryDatabase.Create();var (store,cashier)=CreateAccount(db.Path,SalesTaxBasis.None);Assert.Single(cashier.GetUnpaidInvoices());cashier.RecordPayments(25,[new PaymentRequest{Method=PaymentMethod.Cash,Amount=110}]);Assert.Empty(cashier.GetUnpaidInvoices());}
     [Fact] public void RegisteredBidderList_IsCurrentAuctionAndNumberSorted(){using var db=TemporaryDatabase.Create();var store=new SqliteDataStore(db.Path);var cashier=new CashierService(store);cashier.RegisterBuyer(new AuctionBidder{BidderNumber=20,FirstName="Twenty"});cashier.RegisterBuyer(new AuctionBidder{BidderNumber=5,FirstName="Five"});Assert.Equal([5,20],cashier.GetRegisteredBidders().Select(x=>x.BuyerNumber));}

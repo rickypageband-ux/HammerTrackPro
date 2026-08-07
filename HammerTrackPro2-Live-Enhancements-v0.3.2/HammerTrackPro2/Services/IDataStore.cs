@@ -8,6 +8,8 @@ public interface IDataStore : IConsignorRepository
     IReadOnlyList<Buyer> GetBuyers();
     Invoice LoadCashierInvoice(int bidderNumber);
     Invoice RecordInvoicePayments(Invoice invoice, IReadOnlyList<Payment> payments);
+    Invoice RecordInvoiceRefund(int bidderNumber, Refund refund)=>throw new NotSupportedException();
+    Invoice CorrectInvoiceSale(int bidderNumber, SaleCorrectionRequest correction)=>throw new NotSupportedException();
     ConsignorSettlement LoadConsignorSettlement(int consignorNumber);
     ConsignorSettlement RecordConsignorPayout(ConsignorSettlement settlement, ConsignorPayout payout);
     void SaveBidder(AuctionBidder bidder, int? originalBidderNumber);

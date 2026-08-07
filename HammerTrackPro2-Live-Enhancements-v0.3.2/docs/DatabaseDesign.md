@@ -6,7 +6,7 @@ HammerTrack Pro uses SQLite through `SqliteDataStore` on the live-auction host o
 
 The supported two-PC topology is `Cashier -> paired HTTPS API -> live-auction host -> local SQLite`. The cashier pins the host certificate fingerprint, sends a high-entropy pairing key, and never receives a database path or SQL access. Cashier writes execute through the same transactional service/data-store path as local writes. A disconnected cashier retries health checks; the live-auction host continues locally.
 
-## Schema version 14
+## Schema version 18
 
 ### `Auctions`
 
@@ -50,7 +50,9 @@ AuditLog remains append-only by convention and now includes auction save/select/
 
 Invoices has an auto-increment `InvoiceId`, unique `AuctionBidderId`, AuctionId, snapshotted premium/tax percentage and tax basis, calculated hammer/premium/tax/total values, status, and UTC timestamps. The operator-facing invoice number is formatted from AuctionNumber and BidderNumber; it is not another database identity.
 
-Payments is append-only for the current feature: `PaymentId`, InvoiceId, method, tendered amount, applied amount, change due, optional reference, and creation UTC. Amounts remain invariant decimal text. Indexes cover invoice joins and payment time. Split tender is represented by multiple Payment rows written in one transaction.
+Payments remains append-only: `PaymentId`, InvoiceId, method, tendered amount, applied amount, change due, optional reference, and creation UTC. Refunds is a separate append-only ledger tied to both the Invoice and original Payment, with method, purchase-only amount, required reason, optional reference, and UTC timestamp. Refunds never reverse the original card-processing fee. Amounts remain invariant decimal text. Split tender is represented by multiple Payment rows written in one transaction.
+
+Migration 17 additively marks corrected Sales with `IsVoided`, `VoidedUtc`, and `VoidReason`, and links an optional replacement through `CorrectionForSaleId`. Operational invoices, settlements, dashboards, and reports exclude voided sales while retaining the original row and audit event. Migration 18 creates the indexed Refunds ledger with restrictive foreign keys to Invoices and Payments. Both migrations are ordered, transactional, idempotent, and preserve version-3 upgrades; rollback is restore from the pre-upgrade backup.
 
 ### `ConsignorSettlements` and `ConsignorPayouts`
 

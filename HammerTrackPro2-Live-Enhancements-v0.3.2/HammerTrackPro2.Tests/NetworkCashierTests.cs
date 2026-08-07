@@ -35,6 +35,15 @@ public sealed class NetworkCashierTests
     }
 
     [Fact]
+    public async Task CashierClient_RecordsRefundAndAuditedSaleRemovalThroughHost()
+    {
+        using var database=TemporaryDatabase.Create();var store=CreateAccount(database.Path);var configuration=Configuration("REFUND");await using var host=await CashierNetworkHost.StartAsync(new CashierService(store),configuration,useHttps:false);using var remote=new RemoteCashierService(configuration,true);
+        var paid=remote.RecordPayments(25,[new PaymentRequest{Method=PaymentMethod.Card,Amount=110m}]);var payment=Assert.Single(paid.Payments);var sale=Assert.Single(paid.Purchases);
+        var refunded=remote.RecordRefund(25,new RefundRequest{PaymentId=payment.PaymentId,Amount=110m,Reason="Return"});Assert.Single(refunded.Refunds);Assert.Equal(3.07m,refunded.AmountPaid);
+        var corrected=remote.CorrectSale(25,new SaleCorrectionRequest{SaleId=sale.SaleId,BidderNumber=null,Reason="Returned"});Assert.Empty(corrected.Purchases);Assert.Equal(0m,corrected.BalanceDue);
+    }
+
+    [Fact]
     public async Task CashierClient_RejectsAnUnpairedWorkstation()
     {
         using var database=TemporaryDatabase.Create(); var store=CreateAccount(database.Path);

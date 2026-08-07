@@ -42,6 +42,8 @@ public sealed class CashierNetworkHost : IAsyncDisposable
         application.MapGet("/api/registrations/buyers",(ICashierService service)=>Execute(()=>service.GetRegisteredBidders()));
         application.MapPost("/api/registrations/buyers",(AuctionBidder bidder,ICashierService service)=>Execute(()=>service.RegisterBuyer(bidder)));
         application.MapPost("/api/invoices/{bidderNumber:int}/payments",(int bidderNumber,List<PaymentRequest> payments,ICashierService service)=>Execute(()=>service.RecordPayments(bidderNumber,payments)));
+        application.MapPost("/api/invoices/{bidderNumber:int}/refunds",(int bidderNumber,RefundRequest refund,ICashierService service)=>Execute(()=>service.RecordRefund(bidderNumber,refund)));
+        application.MapPost("/api/invoices/{bidderNumber:int}/sale-corrections",(int bidderNumber,SaleCorrectionRequest correction,ICashierService service)=>Execute(()=>service.CorrectSale(bidderNumber,correction)));
         application.MapGet("/api/settlements/{consignorNumber:int}",(int consignorNumber,ICashierService service)=>Execute(()=>service.LoadConsignorSettlement(consignorNumber)));
         application.MapPost("/api/registrations/consignors",(Consignor consignor,ICashierService service)=>Execute(()=>service.RegisterConsignor(consignor)));
         application.MapPost("/api/settlements/{consignorNumber:int}/payouts",(int consignorNumber,ConsignorPayoutRequest payout,ICashierService service)=>Execute(()=>service.RecordConsignorPayout(consignorNumber,payout)));

@@ -41,6 +41,8 @@ public sealed class RemoteCashierService : ICashierService,IDisposable
         try { using var response=_client.PostAsJsonAsync($"/api/invoices/{bidderNumber}/payments",payments,JsonOptions).GetAwaiter().GetResult(); return Read<Invoice>(response); }
         catch(HttpRequestException exception) { throw Unavailable(exception); } catch(TaskCanceledException exception) { throw Unavailable(exception); }
     }
+    public Invoice RecordRefund(int bidderNumber,RefundRequest refund)=>Post<RefundRequest,Invoice>($"/api/invoices/{bidderNumber}/refunds",refund);
+    public Invoice CorrectSale(int bidderNumber,SaleCorrectionRequest correction)=>Post<SaleCorrectionRequest,Invoice>($"/api/invoices/{bidderNumber}/sale-corrections",correction);
     public async Task<bool> CheckConnectionAsync(CancellationToken cancellationToken=default)
     {
         try { using var response=await _client.GetAsync("/api/health",cancellationToken); return response.IsSuccessStatusCode; }
