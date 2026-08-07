@@ -97,6 +97,8 @@ Seller Management uses the same branded workspace, full-screen controls, large u
 
 Auction Setup uses the branded full-screen workspace with a clear auction directory, large uniform New/Load/Duplicate/Close/Save actions, current-auction feedback, and an organized details editor. Live Auction keeps all five primary action buttons visible in an equal-width full-card row at normal and full-screen sizes.
 
+Saved auctions are identified in the Auction Setup list by date, auction number, auction name, and status. Duplicating an auction can optionally copy its registered bidders with the same bidder numbers while always starting with blank lots, sales, invoices, and payments.
+
 The operator interface uses **Seller** wording while retaining the existing `Consignor` domain and database names for backward compatibility. Creating a seller also creates and links the same current-auction Buyer Number; if that Buyer Number is already assigned to someone else, saving is stopped so the operator can choose another Seller Number.
 
 Lot entry lists sellers by seller number and name, refreshes after Seller Management closes, and retains inactive sellers for historical/controlled assignment with a visible inactive label.

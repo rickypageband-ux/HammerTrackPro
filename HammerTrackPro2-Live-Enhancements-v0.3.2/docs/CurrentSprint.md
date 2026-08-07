@@ -235,3 +235,11 @@ Status: Cashier and the approved closed-auction consignor payout extension are i
 - Print Total Items Sold and Total Hammer Sales at the end of the new summary.
 - Update Scan New ID instructions for the NETUM NT-1228BL PDF417 Regular/Inverse Decode > Decode Both option (called Read Normal Phase / Phase Reversal in the older full manual).
 - Package the update as version 0.7.40.
+
+## Saved-auction identification and bidder reuse
+
+- Identify every saved auction by date, auction number, auction name, and status instead of displaying the model type name.
+- Let an operator duplicate setup values and optionally register the same durable buyers under their existing bidder numbers in the new auction.
+- Start duplicated auctions without lots, sales, payments, refunds, or prior invoice balances; copied registrations receive fresh zero-dollar invoices.
+- Keep seller copying as an independent option.
+- Package the update as version 0.7.41.

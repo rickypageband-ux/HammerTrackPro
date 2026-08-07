@@ -83,6 +83,13 @@ public sealed class AuctionService : IAuctionService
         _dataStore.CopyConsignorAssociations(sourceAuctionId, destinationAuctionId);
     }
 
+    public void CopyBidderRegistrations(long sourceAuctionId, long destinationAuctionId)
+    {
+        if (sourceAuctionId <= 0) throw new ArgumentOutOfRangeException(nameof(sourceAuctionId));
+        if (destinationAuctionId <= 0) throw new ArgumentOutOfRangeException(nameof(destinationAuctionId));
+        _dataStore.CopyBidderRegistrations(sourceAuctionId, destinationAuctionId);
+    }
+
     public void ReopenAuction(long auctionId) =>
         throw new NotSupportedException("Reopening an auction requires administrator authentication and is not available in Sprint 2.");
 

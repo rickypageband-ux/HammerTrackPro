@@ -11,9 +11,10 @@ public sealed class AuctionSetupForm : Form
     private static readonly Color Canvas=Color.FromArgb(242,245,248);
 
     private readonly AuctionSetupViewModel _viewModel;
-    private readonly ComboBox _auctions=new(){DropDownStyle=ComboBoxStyle.DropDownList,DisplayMember=nameof(Auction.DisplayText),Dock=DockStyle.Top,Height=38};
+    private readonly ComboBox _auctions=new(){DropDownStyle=ComboBoxStyle.DropDownList,Dock=DockStyle.Top,Height=38};
     private readonly PropertyGrid _editor=new(){Dock=DockStyle.Fill,HelpVisible=true,ToolbarVisible=false,PropertySort=PropertySort.Categorized,BackColor=Color.White,ViewBackColor=Color.White,ViewForeColor=Color.FromArgb(35,45,55),CategoryForeColor=Color.FromArgb(24,50,74),LineColor=Color.FromArgb(220,226,232)};
     private readonly CheckBox _copyConsignors=new(){Text="Copy sellers into the duplicated auction",AutoSize=true};
+    private readonly CheckBox _copyBidders=new(){Text="Copy registered bidders and bidder numbers",AutoSize=true};
     private readonly Label _status=new(){Dock=DockStyle.Fill,TextAlign=ContentAlignment.MiddleLeft,AutoEllipsis=true};
     private readonly Label _currentAuction=new(){Dock=DockStyle.Fill,TextAlign=ContentAlignment.MiddleLeft,AutoEllipsis=true};
     private readonly Button _fullScreenButton=new(){Text="Full Screen"};
@@ -59,16 +60,17 @@ public sealed class AuctionSetupForm : Form
 
     private Control BuildNavigation()
     {
-        var panel=new TableLayoutPanel{Dock=DockStyle.Fill,RowCount=7,BackColor=Color.White,Padding=new Padding(16)};
-        panel.RowStyles.Add(new RowStyle(SizeType.Absolute,64));panel.RowStyles.Add(new RowStyle(SizeType.AutoSize));panel.RowStyles.Add(new RowStyle(SizeType.Absolute,52));panel.RowStyles.Add(new RowStyle(SizeType.AutoSize));panel.RowStyles.Add(new RowStyle(SizeType.AutoSize));panel.RowStyles.Add(new RowStyle(SizeType.Percent,100));panel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        var panel=new TableLayoutPanel{Dock=DockStyle.Fill,RowCount=8,BackColor=Color.White,Padding=new Padding(16)};
+        panel.RowStyles.Add(new RowStyle(SizeType.Absolute,64));panel.RowStyles.Add(new RowStyle(SizeType.AutoSize));panel.RowStyles.Add(new RowStyle(SizeType.Absolute,52));panel.RowStyles.Add(new RowStyle(SizeType.AutoSize));panel.RowStyles.Add(new RowStyle(SizeType.AutoSize));panel.RowStyles.Add(new RowStyle(SizeType.AutoSize));panel.RowStyles.Add(new RowStyle(SizeType.Percent,100));panel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         panel.Controls.Add(SectionHeader("AUCTION DIRECTORY","Select an auction, create a new one, or duplicate the selected auction."),0,0);
         panel.Controls.Add(new Label{Text="Saved Auctions",AutoSize=true,Font=new Font("Segoe UI",10F,FontStyle.Bold),ForeColor=Navy,Margin=new Padding(0,10,0,5)},0,1);
         _auctions.Font=new Font("Segoe UI",11F);panel.Controls.Add(_auctions,0,2);
         var actions=new TableLayoutPanel{Dock=DockStyle.Top,AutoSize=true,ColumnCount=2,RowCount=2,Margin=new Padding(0,10,0,0)};actions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,50));actions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,50));
         actions.Controls.Add(Button("New Auction",NewAuction,true),0,0);actions.Controls.Add(Button("Load Selected",LoadAuction),1,0);actions.Controls.Add(Button("Duplicate",DuplicateAuction),0,1);actions.Controls.Add(Button("Close Auction",CloseAuction,false,true),1,1);panel.Controls.Add(actions,0,3);
         _copyConsignors.Font=new Font("Segoe UI",10F,FontStyle.Bold);_copyConsignors.ForeColor=Navy;_copyConsignors.Margin=new Padding(4,14,4,10);panel.Controls.Add(_copyConsignors,0,4);
-        var hint=new Label{Text="Tip: Duplicate copies the selected auction's setup values. Check Copy Sellers only when the same sellers should participate in the new auction.",Dock=DockStyle.Top,AutoSize=true,MaximumSize=new Size(330,0),Font=new Font("Segoe UI",9F),ForeColor=Color.FromArgb(75,85,95),Padding=new Padding(4,8,4,8)};panel.Controls.Add(hint,0,5);
-        _currentAuction.Font=new Font("Segoe UI",10F,FontStyle.Bold);_currentAuction.ForeColor=Navy;_currentAuction.BackColor=Color.FromArgb(234,243,251);_currentAuction.Padding=new Padding(10);_currentAuction.Height=52;panel.Controls.Add(_currentAuction,0,6);
+        _copyBidders.Font=new Font("Segoe UI",10F,FontStyle.Bold);_copyBidders.ForeColor=Navy;_copyBidders.Margin=new Padding(4,0,4,10);panel.Controls.Add(_copyBidders,0,5);
+        var hint=new Label{Text="Tip: Duplicate starts a clean auction. Copy bidders keeps their existing bidder numbers, but never copies lots, sales, invoices, or payments.",Dock=DockStyle.Top,AutoSize=true,MaximumSize=new Size(330,0),Font=new Font("Segoe UI",9F),ForeColor=Color.FromArgb(75,85,95),Padding=new Padding(4,8,4,8)};panel.Controls.Add(hint,0,6);
+        _currentAuction.Font=new Font("Segoe UI",10F,FontStyle.Bold);_currentAuction.ForeColor=Navy;_currentAuction.BackColor=Color.FromArgb(234,243,251);_currentAuction.Padding=new Padding(10);_currentAuction.Height=52;panel.Controls.Add(_currentAuction,0,7);
         return panel;
     }
 
@@ -85,10 +87,10 @@ public sealed class AuctionSetupForm : Form
     private void HandleShortcut(KeyEventArgs e){if(e.KeyCode==Keys.F11){ToggleFullScreen();e.Handled=true;}else if(e.KeyCode==Keys.Escape&&_fullScreen){ToggleFullScreen();e.Handled=true;}else if(e.Control&&e.KeyCode==Keys.N){NewAuction();e.SuppressKeyPress=true;}else if(e.Control&&e.KeyCode==Keys.S){SaveAuction();e.SuppressKeyPress=true;}}
     private void NewAuction(){_viewModel.NewAuction();RefreshEditor();_status.Text="Creating a new auction. Complete the details and choose Save Auction.";}
     private void DuplicateAuction(){_viewModel.DuplicatePreviousAuction();RefreshEditor();_status.Text="Auction settings duplicated. Enter a new Auction Number and Name, choose whether to copy sellers, then save.";}
-    private void SaveAuction(){try{_viewModel.CopyConsignors=_copyConsignors.Checked;var saved=_viewModel.Save();RefreshEditor();_status.Text=$"Auction {saved.DisplayText} saved and selected.";}catch(Exception exception){ShowError(exception);}}
+    private void SaveAuction(){try{_viewModel.CopyConsignors=_copyConsignors.Checked;_viewModel.CopyBidders=_copyBidders.Checked;var saved=_viewModel.Save();RefreshEditor();_status.Text=$"Auction {saved.DisplayText} saved and selected.";}catch(Exception exception){ShowError(exception);}}
     private void LoadAuction(){if(_auctions.SelectedItem is not Auction auction){_status.Text="Select a saved auction before choosing Load Selected.";return;}try{_viewModel.LoadAuction(auction.AuctionId);RefreshEditor();_status.Text=$"Auction {auction.DisplayText} loaded and selected.";}catch(Exception exception){ShowError(exception);}}
     private void CloseAuction(){if(MessageBox.Show(this,"Close this auction? Operational changes will be locked and reopening is not currently available.","Close Auction",MessageBoxButtons.YesNo,MessageBoxIcon.Warning)!=DialogResult.Yes)return;try{_viewModel.CloseAuction();RefreshEditor();_status.Text="Auction closed. Invoices remain available for viewing and printing.";}catch(Exception exception){ShowError(exception);}}
-    private void RefreshEditor(){_auctions.DataSource=null;_auctions.DataSource=_viewModel.Auctions.ToList();_auctions.SelectedItem=_viewModel.Auctions.SingleOrDefault(x=>x.AuctionId==_viewModel.CurrentAuction.AuctionId);_editor.SelectedObject=_viewModel.CurrentAuction;_copyConsignors.Checked=_viewModel.CopyConsignors;_copyConsignors.Enabled=_viewModel.CurrentAuction.AuctionId==0;_currentAuction.Text=_viewModel.CurrentAuction.AuctionId==0?"NEW AUCTION - not yet saved":$"CURRENT: {_viewModel.CurrentAuction.DisplayText} ({_viewModel.CurrentAuction.Status})";}
+    private void RefreshEditor(){_auctions.DataSource=null;_auctions.DataSource=_viewModel.Auctions.ToList();_auctions.SelectedItem=_viewModel.Auctions.SingleOrDefault(x=>x.AuctionId==_viewModel.CurrentAuction.AuctionId);_editor.SelectedObject=_viewModel.CurrentAuction;_copyConsignors.Checked=_viewModel.CopyConsignors;_copyBidders.Checked=_viewModel.CopyBidders;var duplicating=_viewModel.CurrentAuction.AuctionId==0;_copyConsignors.Enabled=duplicating;_copyBidders.Enabled=duplicating;_currentAuction.Text=duplicating?"NEW AUCTION - not yet saved":$"CURRENT: {_viewModel.CurrentAuction.DisplayText} ({_viewModel.CurrentAuction.Status})";}
     private void ShowError(Exception exception){MessageBox.Show(exception.Message,"Auction Setup",MessageBoxButtons.OK,MessageBoxIcon.Error);_status.Text="The auction change was not saved. Correct the details and try again.";}
     private static void Execute(Action action){try{action();}catch(Exception exception){MessageBox.Show(exception.Message,"Auction Setup",MessageBoxButtons.OK,MessageBoxIcon.Error);}}
 }

@@ -37,9 +37,11 @@ public sealed class AuctionSetupViewModelTests
         Assert.Equal("555-0100",viewModel.CurrentAuction.CompanyPhone);
         viewModel.CurrentAuction.AuctionNumber = "FALL-26";
         viewModel.CopyConsignors = true;
+        viewModel.CopyBidders = true;
         viewModel.Save();
 
         Assert.Equal((1L, 2L), service.CopiedAssociations);
+        Assert.Equal((1L, 2L), service.CopiedBidders);
         Assert.Equal(2, service.Auctions.Count);
     }
 
@@ -51,6 +53,14 @@ public sealed class AuctionSetupViewModelTests
         viewModel.NewAuction();
         Assert.Equal(0, viewModel.CurrentAuction.BuyerPremiumPercent);
         Assert.Equal("Setup", viewModel.CurrentAuction.Status);
+        Assert.False(viewModel.CopyBidders);
+    }
+
+    [Fact]
+    public void AuctionDirectoryText_IdentifiesSavedAuctionsByDateNumberNameAndStatus()
+    {
+        var auction=new Auction{AuctionDate=new DateTime(2026,8,8),AuctionNumber="SAT-08",AuctionName="Saturday Night",Status="Setup"};
+        Assert.Equal("8/8/2026 - SAT-08 - Saturday Night (Setup)",auction.ToString());
     }
 
     private static IEnumerable<Control> Descendants(Control control)
@@ -70,6 +80,7 @@ public sealed class AuctionSetupViewModelTests
             DefaultConsignorCommissionPercent = 18, SalesTaxPercent = 6, InvoiceFooter = "Thank you", Status = "Setup"
         }];
         public (long Source, long Destination)? CopiedAssociations { get; private set; }
+        public (long Source, long Destination)? CopiedBidders { get; private set; }
         IReadOnlyList<Auction> IAuctionSetupService.GetAuctions() => Auctions;
         public Auction GetCurrentAuction() => Auctions.Single(item => item.AuctionId == _currentId);
         public Auction SaveAuction(Auction auction)
@@ -80,6 +91,7 @@ public sealed class AuctionSetupViewModelTests
         public void SelectAuction(long auctionId) => _currentId = auctionId;
         public void CloseAuction(long auctionId) => GetCurrentAuction().Status = "Closed";
         public void CopyConsignorAssociations(long sourceAuctionId, long destinationAuctionId) => CopiedAssociations = (sourceAuctionId, destinationAuctionId);
+        public void CopyBidderRegistrations(long sourceAuctionId, long destinationAuctionId) => CopiedBidders = (sourceAuctionId, destinationAuctionId);
         public void ReopenAuction(long auctionId) => throw new NotSupportedException();
     }
 }

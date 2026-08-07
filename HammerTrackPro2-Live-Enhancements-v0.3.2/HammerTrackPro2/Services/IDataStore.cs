@@ -22,6 +22,7 @@ public interface IDataStore : IConsignorRepository
     void SelectAuction(long auctionId);
     void CloseAuction(long auctionId);
     void CopyConsignorAssociations(long sourceAuctionId, long destinationAuctionId);
+    void CopyBidderRegistrations(long sourceAuctionId, long destinationAuctionId);
     Sale RecordSale(int lotNumber, int bidderNumber, decimal hammerPrice, bool keepLotOpen = false, int quantity = 1);
     void CloseLot(int lotNumber);
     void PassLot(int lotNumber);

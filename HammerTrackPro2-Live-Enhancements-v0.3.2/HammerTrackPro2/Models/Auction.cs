@@ -61,6 +61,11 @@ public sealed class Auction
     public string DisplayText => $"{AuctionNumber} - {AuctionName}";
 
     [Browsable(false)]
+    public string DirectoryDisplayText => $"{AuctionDate:M/d/yyyy} - {AuctionNumber} - {AuctionName} ({Status})";
+
+    public override string ToString() => DirectoryDisplayText;
+
+    [Browsable(false)]
     public string CompanyDisplayName => string.IsNullOrWhiteSpace(CompanyName)?AuctionName:CompanyName;
 
     [Browsable(false)]

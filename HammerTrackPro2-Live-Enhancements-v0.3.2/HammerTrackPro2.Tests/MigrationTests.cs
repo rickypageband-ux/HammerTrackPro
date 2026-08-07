@@ -131,6 +131,30 @@ public sealed class MigrationTests
     }
 
     [Fact]
+    public void CopyBidders_PreservesRegistrationNumbersButStartsWithBlankAuctionActivity()
+    {
+        using var database = TemporaryDatabase.Create();
+        var store = new SqliteDataStore(database.Path);
+        var first = store.GetCurrentAuction();
+        store.SaveBidder(new AuctionBidder { AuctionId=first.AuctionId,BidderNumber=501,FirstName="Pat",LastName="Buyer" },null);
+        var consignorId=long.Parse(Scalar(database.Path,"SELECT MIN(ConsignorId) FROM Consignors;")!,CultureInfo.InvariantCulture);
+        store.SaveLot(new AuctionLot { AuctionId=first.AuctionId,ConsignorId=consignorId,LotNumber=1,Description="Source item" },null);
+        store.RecordSale(1,501,25m);
+        var second=store.SaveAuction(NewAuction("SAT-26","Saturday Night"));
+
+        store.CopyBidderRegistrations(first.AuctionId,second.AuctionId);
+        store.SelectAuction(second.AuctionId);
+
+        var copied=Assert.Single(store.Load().Bidders);
+        Assert.Equal(501,copied.BidderNumber);
+        Assert.Equal("Pat",copied.FirstName);
+        Assert.Empty(store.Load().Lots);
+        Assert.Equal("0",Scalar(database.Path,$"SELECT COUNT(*) FROM Sales WHERE AuctionId={second.AuctionId};"));
+        Assert.Equal("0",Scalar(database.Path,$"SELECT CAST(TotalAmount AS REAL) FROM Invoices WHERE AuctionId={second.AuctionId};"));
+        Assert.Equal("1",Scalar(database.Path,$"SELECT COUNT(*) FROM Invoices WHERE AuctionId={second.AuctionId};"));
+    }
+
+    [Fact]
     public void CloseAuction_WritesAuditAndLocksOperationalChanges()
     {
         using var database = TemporaryDatabase.Create();

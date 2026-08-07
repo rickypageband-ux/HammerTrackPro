@@ -10,5 +10,6 @@ public interface IAuctionSetupService
     void SelectAuction(long auctionId);
     void CloseAuction(long auctionId);
     void CopyConsignorAssociations(long sourceAuctionId, long destinationAuctionId);
+    void CopyBidderRegistrations(long sourceAuctionId, long destinationAuctionId);
     void ReopenAuction(long auctionId);
 }

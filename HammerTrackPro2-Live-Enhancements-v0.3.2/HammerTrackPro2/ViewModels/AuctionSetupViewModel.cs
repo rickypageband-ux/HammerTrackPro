@@ -13,6 +13,7 @@ public sealed class AuctionSetupViewModel
     public IReadOnlyList<Auction> Auctions { get; private set; } = [];
     public Auction CurrentAuction { get; private set; } = new();
     public bool CopyConsignors { get; set; }
+    public bool CopyBidders { get; set; }
 
     public void Load()
     {
@@ -20,6 +21,7 @@ public sealed class AuctionSetupViewModel
         CurrentAuction = _service.GetCurrentAuction();
         _duplicateSourceAuctionId = null;
         CopyConsignors = false;
+        CopyBidders = false;
     }
 
     public void NewAuction()
@@ -27,6 +29,7 @@ public sealed class AuctionSetupViewModel
         CurrentAuction = new Auction { AuctionDate = DateTime.Today, Status = "Setup" };
         _duplicateSourceAuctionId = null;
         CopyConsignors = false;
+        CopyBidders = false;
     }
 
     public void LoadAuction(long auctionId)
@@ -40,6 +43,8 @@ public sealed class AuctionSetupViewModel
         var saved = _service.SaveAuction(CurrentAuction);
         if (_duplicateSourceAuctionId.HasValue && CopyConsignors)
             _service.CopyConsignorAssociations(_duplicateSourceAuctionId.Value, saved.AuctionId);
+        if (_duplicateSourceAuctionId.HasValue && CopyBidders)
+            _service.CopyBidderRegistrations(_duplicateSourceAuctionId.Value, saved.AuctionId);
         _service.SelectAuction(saved.AuctionId);
         Load();
         return CurrentAuction;
@@ -72,5 +77,6 @@ public sealed class AuctionSetupViewModel
             Status = "Setup"
         };
         CopyConsignors = false;
+        CopyBidders = false;
     }
 }

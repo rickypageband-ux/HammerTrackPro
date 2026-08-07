@@ -609,6 +609,47 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
         }
     }
 
+    public void CopyBidderRegistrations(long sourceAuctionId, long destinationAuctionId)
+    {
+        if (sourceAuctionId == destinationAuctionId) throw new InvalidOperationException("Choose a different auction to receive the copied bidders.");
+        lock (_sync)
+        {
+            using var connection = OpenConnection();
+            using var transaction = connection.BeginTransaction();
+            var now = DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture);
+            using (var registrations = connection.CreateCommand())
+            {
+                registrations.Transaction = transaction;
+                registrations.CommandText = """
+                    INSERT OR IGNORE INTO AuctionBidders(AuctionId,BuyerId,BidderNumber,Notes,RegisteredUtc,UpdatedUtc)
+                    SELECT $destination,BuyerId,BidderNumber,Notes,$now,$now
+                    FROM AuctionBidders WHERE AuctionId=$source;
+                    """;
+                registrations.Parameters.AddWithValue("$destination", destinationAuctionId);
+                registrations.Parameters.AddWithValue("$source", sourceAuctionId);
+                registrations.Parameters.AddWithValue("$now", now);
+                registrations.ExecuteNonQuery();
+            }
+            using (var invoices = connection.CreateCommand())
+            {
+                invoices.Transaction = transaction;
+                invoices.CommandText = """
+                    INSERT OR IGNORE INTO Invoices(AuctionId,AuctionBidderId,BuyerPremiumPercent,SalesTaxPercent,SalesTaxBasis,
+                        HammerSubtotal,BuyerPremiumAmount,SalesTaxAmount,CreditCardFeeAmount,TotalAmount,Status,CreatedUtc,UpdatedUtc)
+                    SELECT ab.AuctionId,ab.AuctionBidderId,a.BuyerPremiumPercent,a.SalesTaxPercent,a.SalesTaxBasis,
+                        '0','0','0','0','0','Unpaid',$now,$now
+                    FROM AuctionBidders ab JOIN Auctions a ON a.AuctionId=ab.AuctionId
+                    WHERE ab.AuctionId=$destination;
+                    """;
+                invoices.Parameters.AddWithValue("$destination", destinationAuctionId);
+                invoices.Parameters.AddWithValue("$now", now);
+                invoices.ExecuteNonQuery();
+            }
+            WriteAudit(connection, transaction, "AuctionBiddersCopied", $"Auction #{sourceAuctionId} to #{destinationAuctionId}; registrations only");
+            transaction.Commit();
+        }
+    }
+
     public IReadOnlyList<Consignor> GetConsignors()
     {
         lock (_sync)
