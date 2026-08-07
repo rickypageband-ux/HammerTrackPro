@@ -69,7 +69,8 @@ public sealed class MigrationTests
         Assert.Equal(consignor.ConsignorId, lot.ConsignorId);
         Assert.True(consignor.Require1099);
         Assert.NotEqual(default, consignor.CreatedDate);
-        Assert.Equal("15", Scalar(database.Path, "SELECT Value FROM Settings WHERE Key='DatabaseSchemaVersion';"));
+        Assert.Equal("16", Scalar(database.Path, "SELECT Value FROM Settings WHERE Key='DatabaseSchemaVersion';"));
+        Assert.Equal("1",Scalar(database.Path,"SELECT dflt_value FROM pragma_table_info('Sales') WHERE name='Quantity';"));
         Assert.Equal("CompanyName",Scalar(database.Path,"SELECT name FROM pragma_table_info('Auctions') WHERE name='CompanyName';"));
         Assert.Equal("IX_Consignors_ConsignorNumber", Scalar(database.Path, "SELECT name FROM sqlite_master WHERE type='index' AND name='IX_Consignors_ConsignorNumber';"));
         Assert.Equal("IX_AuctionLots_AuctionLotNumber", Scalar(database.Path, "SELECT name FROM sqlite_master WHERE type='index' AND name='IX_AuctionLots_AuctionLotNumber';"));
@@ -90,9 +91,10 @@ public sealed class MigrationTests
         Assert.Equal(7, lot.LotNumber);
         Assert.True(lot.AuctionId > 0);
         Assert.True(lot.ConsignorId > 0);
-        Assert.Equal("15", Scalar(database.Path, "SELECT Value FROM Settings WHERE Key='DatabaseSchemaVersion';"));
+        Assert.Equal("16", Scalar(database.Path, "SELECT Value FROM Settings WHERE Key='DatabaseSchemaVersion';"));
         Assert.Equal("7", Scalar(database.Path, "SELECT LotNumber FROM Lots WHERE LotNumber=7;"));
         Assert.Equal("7", Scalar(database.Path, "SELECT LotNumber FROM AuctionLots WHERE LotNumber=7;"));
+        Assert.Equal("1",Scalar(database.Path,"SELECT Quantity FROM Sales LIMIT 1;"));
     }
 
     [Fact]
@@ -168,6 +170,16 @@ public sealed class MigrationTests
         Assert.Equal("1", Scalar(database.Path, "SELECT COUNT(*) FROM Sales WHERE AuctionId=(SELECT AuctionId FROM Auctions WHERE AuctionNumber='SECOND-26');"));
     }
 
+    [Fact]
+    public void QuantityMigration_PersistsQuantityAndCalculatedSaleTotal()
+    {
+        using var database=TemporaryDatabase.Create();var store=new SqliteDataStore(database.Path);var auction=store.GetCurrentAuction();
+        var consignor=store.GetConsignors().First();store.SaveLot(new AuctionLot{AuctionId=auction.AuctionId,ConsignorId=consignor.ConsignorId,LotNumber=91,Description="Six cars"},null);
+        store.SaveBidder(new AuctionBidder{AuctionId=auction.AuctionId,BidderNumber=91,FirstName="Buyer"},null);
+        var sale=store.RecordSale(91,91,5m,false,6);
+        Assert.Equal(6,sale.Quantity);Assert.Equal(30m,sale.TotalPrice);Assert.Equal("6",Scalar(database.Path,"SELECT Quantity FROM Sales WHERE Id="+sale.Id));
+    }
+
     private static Auction NewAuction(string number, string name) => new()
     {
         AuctionNumber = number, AuctionName = name, AuctionDate = DateTime.Today, Status = "Setup"
@@ -202,6 +214,8 @@ public sealed class MigrationTests
             INSERT INTO Settings(Key, Value) VALUES ('DatabaseSchemaVersion','3'), ('AuctionName','Legacy Event'), ('AuctionDate','2026-07-01');
             INSERT INTO Lots(LotNumber, Description, Category, StartingBid, Status, CreatedUtc, UpdatedUtc)
             VALUES (7, 'Legacy clock', 'Antiques', '25', 'Available', $utc, $utc);
+            INSERT INTO Bidders(BidderNumber,FirstName,CreatedUtc,UpdatedUtc) VALUES(9,'Legacy Buyer',$utc,$utc);
+            INSERT INTO Sales(LotNumber,BidderNumber,HammerPrice,SaleUtc,Paid) VALUES(7,9,'25',$utc,0);
             """;
         command.Parameters.AddWithValue("$utc", DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture));
         command.ExecuteNonQuery();

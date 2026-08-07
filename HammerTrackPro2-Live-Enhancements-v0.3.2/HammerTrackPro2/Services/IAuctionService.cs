@@ -10,10 +10,11 @@ public interface IAuctionService : IAuctionSetupService
     void DeleteBidder(int bidderNumber);
     void SaveLot(AuctionLot lot, int? originalLotNumber);
     void DeleteLot(int lotNumber);
-    Sale RecordSale(int lotNumber, int bidderNumber, decimal hammerPrice, bool keepLotOpen = false);
+    Sale RecordSale(int lotNumber, int bidderNumber, decimal hammerPrice, bool keepLotOpen = false, int quantity = 1);
     void CloseLot(int lotNumber);
     void PassLot(int lotNumber);
     Sale? GetLastSale();
+    IReadOnlyList<Sale> GetSalesForLot(int lotNumber);
     void UndoLastSale(long saleId);
     int GetSaleCountForLot(int lotNumber);
     DashboardSnapshot GetDashboardSnapshot();

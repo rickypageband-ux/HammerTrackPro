@@ -26,12 +26,12 @@ public sealed class SettlementPrinter
         graphics.DrawString($"SELLER SETTLEMENT {settlement.FormattedSettlementNumber}",heading,Brushes.Black,bounds.Left,y); y+=24;
         graphics.DrawString($"Seller: #{settlement.ConsignorNumber}  {settlement.ConsignorName}",body,Brushes.Black,bounds.Left,y); y+=18;
         graphics.DrawString(settlement.ConsignorAddress,body,Brushes.Black,bounds.Left,y); y+=24; graphics.DrawLine(pen,bounds.Left,y,bounds.Right,y); y+=8;
-        graphics.DrawString("Lot",heading,Brushes.Black,bounds.Left,y); graphics.DrawString("Description",heading,Brushes.Black,bounds.Left+60,y); graphics.DrawString("Hammer",heading,Brushes.Black,bounds.Right-90,y); y+=20;
+        graphics.DrawString("Lot",heading,Brushes.Black,bounds.Left,y);graphics.DrawString("Description",heading,Brushes.Black,bounds.Left+60,y);graphics.DrawString("Qty x Price",heading,Brushes.Black,bounds.Right-165,y);graphics.DrawString("Total",heading,Brushes.Black,bounds.Right-80,y);y+=20;
         var availableRows=Math.Max(1,(bounds.Bottom-y-190)/18); var endLine=Math.Min(settlement.Lots.Count,startLine+availableRows);
         for(var index=startLine;index<endLine;index++)
         {
             var line=settlement.Lots[index];
-            graphics.DrawString(line.LotNumber.ToString(),body,Brushes.Black,bounds.Left,y); graphics.DrawString(line.Description,body,Brushes.Black,new RectangleF(bounds.Left+60,y,bounds.Width-170,18)); graphics.DrawString(line.HammerPrice.ToString("C2"),body,Brushes.Black,bounds.Right-90,y); y+=18;
+            graphics.DrawString(line.LotNumber.ToString(),body,Brushes.Black,bounds.Left,y); graphics.DrawString(line.Description,body,Brushes.Black,new RectangleF(bounds.Left+60,y,bounds.Width-250,18)); graphics.DrawString($"{line.Quantity} × {line.HammerPrice:C2}",body,Brushes.Black,bounds.Right-165,y);graphics.DrawString(line.LineTotal.ToString("C2"),body,Brushes.Black,bounds.Right-80,y); y+=18;
         }
         if(endLine<settlement.Lots.Count) { graphics.DrawString($"Continued — {settlement.Lots.Count-endLine} lot(s) remain",body,Brushes.Black,bounds.Left,y+12); return endLine; }
         y+=6; graphics.DrawLine(pen,bounds.Left,y,bounds.Right,y); y+=10;

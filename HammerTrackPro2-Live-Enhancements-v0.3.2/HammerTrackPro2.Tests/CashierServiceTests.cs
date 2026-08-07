@@ -153,6 +153,16 @@ public sealed class CashierServiceTests
         Assert.Equal("Paid",paid.Status); Assert.Equal(0,paid.BalanceDue);
     }
 
+    [Fact]
+    public void Quantity_MultipliesInvoicesSellerTotalsDashboardAndEndOfNight()
+    {
+        using var database=TemporaryDatabase.Create();var (store,cashier)=CreateAccount(database.Path,SalesTaxBasis.None);var auction=store.GetCurrentAuction();auction.BuyerPremiumPercent=0;store.SaveAuction(auction);var consignor=store.GetConsignors().First();
+        store.SaveLot(new AuctionLot{AuctionId=auction.AuctionId,ConsignorId=consignor.ConsignorId,LotNumber=2,Description="Car"},null);store.RecordSale(2,25,5m,false,6);
+        var invoice=cashier.LoadInvoice(25);var line=invoice.Purchases.Single(x=>x.LotNumber==2);
+        Assert.Equal(6,line.Quantity);Assert.Equal(5m,line.HammerPrice);Assert.Equal(30m,line.LineTotal);Assert.Equal(130m,invoice.HammerSubtotal);
+        Assert.Equal(130m,cashier.LoadConsignorSettlement(consignor.ConsignorNumber).HammerSubtotal);Assert.Equal(130m,store.GetDashboardSnapshot().GrossSales);Assert.Equal(130m,cashier.GetAuctionSettlementReport().HammerSales);
+    }
+
     private static (SqliteDataStore Store,CashierService Cashier) CreateAccount(string path,SalesTaxBasis basis)
     {
         var store=new SqliteDataStore(path); var auction=store.GetCurrentAuction();

@@ -1,6 +1,6 @@
 # HammerTrack Pro 2
 
-HammerTrack Pro 2 is a Windows desktop application for running auctions. It supports global buyer identities with auction-specific bidder-number registrations, global consignor management with per-auction participation, Auction Setup and selection, auction-owned lots, auction-scoped commercial terms, buyer cashier invoices/payments, closed-auction consignor settlements and payouts, dashboard totals, database backup, and a keyboard-oriented live-auction screen. Standard lots close after one sale; pass-out mode permits multiple buyer records against one lot until the operator closes it.
+HammerTrack Pro 2 is a Windows desktop application for running auctions. It supports global buyer identities with auction-specific bidder-number registrations, global consignor management with per-auction participation, Auction Setup and selection, auction-owned lots, auction-scoped commercial terms, buyer cashier invoices/payments, closed-auction consignor settlements and payouts, dashboard totals, database backup, and a keyboard-oriented live-auction screen. Each buyer sale records a positive quantity and per-item hammer price; invoices and settlements calculate quantity times price. Standard lots close after one sale; pass-out mode permits multiple buyer records against one lot until the operator closes it.
 
 ## Technology and structure
 
@@ -98,7 +98,7 @@ The operator interface uses **Seller** wording while retaining the existing `Con
 
 Lot entry lists sellers by seller number and name, refreshes after Seller Management closes, and retains inactive sellers for historical/controlled assignment with a visible inactive label.
 
-Live Auction also provides a focused quick-add row for an active Seller Number and lot description. It assigns the next current-auction lot number and makes the new lot immediately available for sale without replacing the full lot-entry workflow.
+Live Auction also provides a focused quick-add row for an active Seller Number and lot description. It closes the currently selected open lot, assigns the next current-auction lot number, and makes the new description immediately available for sale. Entry fields appear as Lot Number, Hammer Price (each), Bidder Number, and Quantity. A scrollable table directly below the action buttons shows every recorded buyer sale for the current lot with quantity, unit price, and total.
 
 End-of-Night uses the same branded full-screen workspace, with clear financial summary cards, organized staff-payment entry, a readable audit ledger, safer void guidance, refresh status, and print preview.
 

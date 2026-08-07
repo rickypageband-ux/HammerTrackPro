@@ -14,7 +14,7 @@ public sealed class LiveAuctionViewModel
         _consignorService=consignorService??throw new ArgumentNullException(nameof(consignorService));
     }
 
-    public AuctionLot QuickAddLot(int consignorNumber,string description)
+    public AuctionLot QuickAddLot(int consignorNumber,string description,int currentLotNumber=0)
     {
         description=description?.Trim()??string.Empty;
         if(description.Length==0)throw new InvalidOperationException("Enter a lot description.");
@@ -22,6 +22,9 @@ public sealed class LiveAuctionViewModel
         if(!consignor.Active)throw new InvalidOperationException($"Seller #{consignorNumber} is inactive. Reactivate the seller before adding a new lot.");
         var auction=_auctionService.GetCurrentAuction();
         var lots=_auctionService.Load().Lots;
+        var current=lots.FirstOrDefault(item=>item.LotNumber==currentLotNumber);
+        if(current is not null&&!string.Equals(current.Status,"Sold",StringComparison.OrdinalIgnoreCase)&&!string.Equals(current.Status,"Passed",StringComparison.OrdinalIgnoreCase))
+            _auctionService.CloseLot(currentLotNumber);
         var nextLotNumber=lots.Count==0?1:checked(lots.Max(item=>item.LotNumber)+1);
         var lot=new AuctionLot
         {

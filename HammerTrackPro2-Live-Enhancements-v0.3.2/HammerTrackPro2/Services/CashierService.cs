@@ -100,7 +100,7 @@ public sealed class CashierService : ICashierService
 
     internal static void Recalculate(Invoice invoice)
     {
-        invoice.HammerSubtotal = Money(invoice.Purchases.Sum(item => item.HammerPrice));
+        invoice.HammerSubtotal = Money(invoice.Purchases.Sum(item => item.LineTotal));
         invoice.BuyerPremiumAmount = Money(invoice.HammerSubtotal * invoice.BuyerPremiumPercent / 100m);
         var taxable = invoice.SalesTaxBasis switch
         {
@@ -119,7 +119,7 @@ public sealed class CashierService : ICashierService
 
     internal static void Recalculate(ConsignorSettlement settlement)
     {
-        settlement.HammerSubtotal=Money(settlement.Lots.Sum(item=>item.HammerPrice));
+        settlement.HammerSubtotal=Money(settlement.Lots.Sum(item=>item.LineTotal));
         settlement.CommissionAmount=Money(settlement.HammerSubtotal*settlement.CommissionPercent/100m);
         settlement.NetAmount=Math.Max(0,settlement.HammerSubtotal-settlement.CommissionAmount-settlement.BuyerPurchaseBalanceDeduction);
         settlement.AmountPaid=Money(settlement.Payouts.Sum(item=>item.Amount));

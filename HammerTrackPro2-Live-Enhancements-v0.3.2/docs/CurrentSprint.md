@@ -197,3 +197,14 @@ Status: Cashier and the approved closed-auction consignor payout extension are i
 - Package the collapsed-name boundary correction as upgrade version 0.7.34.
 - Package the slower-workstation scanner settling correction as upgrade version 0.7.35.
 - Replace the fixed long delay with adaptive incomplete-scan retention and package the cross-workstation correction as upgrade version 0.7.36.
+
+## Live Auction quantity and recorded-sales workflow
+
+- Record a positive quantity on each buyer sale without maintaining or enforcing a lot-level inventory limit.
+- Treat Hammer Price as the per-item price; buyer invoices, seller settlements, dashboards, and end-of-night totals use `Quantity * HammerPrice`.
+- Display live entry fields in the operator-requested order: Lot Number, Hammer Price, Bidder Number, Quantity.
+- Show a scrollable current-lot sales table directly beneath the action buttons with Lot, Bidder, Quantity, Price Each, and Total.
+- Creating a new lot description closes the currently selected open lot, assigns the next lot number, and moves directly into the new item workflow.
+- Invoice/receipt purchase rows display Item, Quantity, Price, and Total; seller settlement rows show quantity, unit price, and line total.
+- Migration 16 adds `Sales.Quantity` with a positive constraint and default of one, retaining all existing sale values and supporting version-3 database upgrades.
+- Package the quantity and faster next-description workflow as upgrade version 0.7.37.

@@ -13,6 +13,7 @@ public sealed class LiveAuctionForm : Form
     private readonly NumericUpDown _lotNumber = new();
     private readonly NumericUpDown _bidderNumber = new();
     private readonly NumericUpDown _hammerPrice = new();
+    private readonly NumericUpDown _quantity = new();
     private readonly NumericUpDown _queuedLot = new();
     private readonly CheckBox _passOutMode = new();
     private readonly Label _heroLot = new();
@@ -21,6 +22,7 @@ public sealed class LiveAuctionForm : Form
     private readonly Label _buyerCount = new();
     private readonly Label _status = new();
     private readonly Label _previousSale = new();
+    private readonly DataGridView _salesGrid = new();
     private readonly Label _modeLabel = new();
     private readonly TextBox _notes = new();
     private readonly Button _completeSale = new();
@@ -68,7 +70,7 @@ public sealed class LiveAuctionForm : Form
         root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 86));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 105));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 230));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 115));
         root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
 
@@ -94,7 +96,7 @@ public sealed class LiveAuctionForm : Form
 
         root.Controls.Add(BuildQuickAddPanel(), 0, 3);
         root.Controls.Add(BuildEntryCard(), 0, 4);
-        root.Controls.Add(BuildPreviousPanel(), 0, 5);
+        root.Controls.Add(BuildRecordedSalesPanel(), 0, 5);
         root.Controls.Add(BuildNotesAndQueuePanel(), 0, 6);
 
         var help = new Label
@@ -176,10 +178,11 @@ public sealed class LiveAuctionForm : Form
 
     private Control BuildEntryCard()
     {
-        var card = new Panel { Dock = DockStyle.Fill, BackColor = Color.White, Padding = new Padding(18), Margin = new Padding(0, 12, 0, 12),MinimumSize=new Size(0,340) };
-        var form = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 5 };
+        var card = new Panel { Dock = DockStyle.Fill, BackColor = Color.White, Padding = new Padding(18), Margin = new Padding(0, 12, 0, 12),MinimumSize=new Size(0,400) };
+        var form = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 6 };
         form.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 220));
         form.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        form.RowStyles.Add(new RowStyle(SizeType.Absolute, 62));
         form.RowStyles.Add(new RowStyle(SizeType.Absolute, 62));
         form.RowStyles.Add(new RowStyle(SizeType.Absolute, 62));
         form.RowStyles.Add(new RowStyle(SizeType.Absolute, 62));
@@ -189,19 +192,20 @@ public sealed class LiveAuctionForm : Form
         ConfigureNumber(_lotNumber, 999999, 0);
         ConfigureNumber(_bidderNumber, 999999, 0);
         ConfigureNumber(_hammerPrice, 100000000, 2);
+        ConfigureNumber(_quantity, 1000000, 0);_quantity.Minimum=1;_quantity.Value=1;
         _hammerPrice.ThousandsSeparator = true;
 
         _lotNumber.ValueChanged += (_, _) => UpdateLotDisplay(true);
-        _lotNumber.KeyDown += (_, e) => { if (e.KeyCode == Keys.Enter) { _bidderNumber.Focus(); _bidderNumber.Select(0, _bidderNumber.Text.Length); e.SuppressKeyPress = true; } };
+        _lotNumber.KeyDown += (_, e) => { if (e.KeyCode == Keys.Enter) { _hammerPrice.Focus(); _hammerPrice.Select(0, _hammerPrice.Text.Length); e.SuppressKeyPress = true; } };
+        _hammerPrice.ValueChanged += (_, _) => UpdateHeroPrice();
+        _hammerPrice.KeyDown += (_, e) => { if (e.KeyCode == Keys.Enter) { _bidderNumber.Focus();_bidderNumber.Select(0,_bidderNumber.Text.Length);e.SuppressKeyPress=true; } };
         _bidderNumber.KeyDown += (_, e) =>
         {
             if (e.KeyCode != Keys.Enter) return;
-            if (_passOutMode.Checked && _hammerPrice.Value > 0) CompleteSale();
-            else { _hammerPrice.Focus(); _hammerPrice.Select(0, _hammerPrice.Text.Length); }
+            _quantity.Focus();_quantity.Select(0,_quantity.Text.Length);
             e.SuppressKeyPress = true;
         };
-        _hammerPrice.ValueChanged += (_, _) => UpdateHeroPrice();
-        _hammerPrice.KeyDown += (_, e) => { if (e.KeyCode == Keys.Enter) { CompleteSale(); e.SuppressKeyPress = true; } };
+        _quantity.KeyDown+=(_,e)=>{if(e.KeyCode==Keys.Enter){CompleteSale();e.SuppressKeyPress=true;}};
 
         _passOutMode.Text = "PASS-OUT MODE — keep this lot and price open for more buyers";
         _passOutMode.AutoSize = true;
@@ -209,10 +213,11 @@ public sealed class LiveAuctionForm : Form
         _passOutMode.CheckedChanged += (_, _) => UpdateModeDisplay();
 
         AddEntryRow(form, 0, "Lot Number", _lotNumber);
-        AddEntryRow(form, 1, "Bidder Number", _bidderNumber);
-        AddEntryRow(form, 2, "Hammer Price", _hammerPrice);
-        form.Controls.Add(new Label(), 0, 3);
-        form.Controls.Add(_passOutMode, 1, 3);
+        AddEntryRow(form, 1, "Hammer Price (each)", _hammerPrice);
+        AddEntryRow(form, 2, "Bidder Number", _bidderNumber);
+        AddEntryRow(form, 3, "Quantity", _quantity);
+        form.Controls.Add(new Label(), 0, 4);
+        form.Controls.Add(_passOutMode, 1, 4);
 
         var buttons = new TableLayoutPanel { Dock=DockStyle.Top,Height=58,MaximumSize=new Size(0,58),ColumnCount=5,RowCount=1,Margin=new Padding(0,4,0,0) };
         for(var column=0;column<5;column++)buttons.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,20));
@@ -222,22 +227,22 @@ public sealed class LiveAuctionForm : Form
         ConfigureButton(_undoLastSale, "Undo Last Buyer  (F8)", (_, _) => UndoLastSale());
         ConfigureButton(_fullScreenButton, "Fullscreen  (F11)", (_, _) => ToggleFullScreen());
         buttons.Controls.Add(_completeSale,0,0);buttons.Controls.Add(_passLot,1,0);buttons.Controls.Add(_closeLot,2,0);buttons.Controls.Add(_undoLastSale,3,0);buttons.Controls.Add(_fullScreenButton,4,0);
-        form.SetColumnSpan(buttons,2);form.Controls.Add(buttons,0,4);
+        form.SetColumnSpan(buttons,2);form.Controls.Add(buttons,0,5);
         card.Controls.Add(form);
         return card;
     }
 
-    private Control BuildPreviousPanel()
+    private Control BuildRecordedSalesPanel()
     {
-        var panel = new Panel { Dock = DockStyle.Fill, BackColor = Color.White, Padding = new Padding(18) };
-        var caption = new Label { Text = "Previous Buyer", AutoSize = true, Font = new Font("Segoe UI", 10F, FontStyle.Bold), ForeColor = Color.DimGray, Left = 18, Top = 12 };
-        _previousSale.AutoSize = true;
-        _previousSale.Font = new Font("Segoe UI", 15F, FontStyle.Bold);
-        _previousSale.ForeColor = Color.FromArgb(24, 50, 74);
-        _previousSale.Left = 18;
-        _previousSale.Top = 42;
-        panel.Controls.Add(caption);
-        panel.Controls.Add(_previousSale);
+        var panel=new TableLayoutPanel{Dock=DockStyle.Fill,BackColor=Color.White,Padding=new Padding(14),RowCount=2,ColumnCount=1};panel.RowStyles.Add(new RowStyle(SizeType.Absolute,34));panel.RowStyles.Add(new RowStyle(SizeType.Percent,100));
+        var caption=new Label{Text="RECORDED SALES FOR CURRENT LOT — verify every bidder before moving on",Dock=DockStyle.Fill,Font=new Font("Segoe UI",11F,FontStyle.Bold),ForeColor=Color.FromArgb(24,50,74),TextAlign=ContentAlignment.MiddleLeft};panel.Controls.Add(caption,0,0);
+        _salesGrid.Dock=DockStyle.Fill;_salesGrid.ReadOnly=true;_salesGrid.AllowUserToAddRows=false;_salesGrid.AllowUserToDeleteRows=false;_salesGrid.AllowUserToResizeRows=false;_salesGrid.RowHeadersVisible=false;_salesGrid.AutoGenerateColumns=false;_salesGrid.SelectionMode=DataGridViewSelectionMode.FullRowSelect;_salesGrid.BackgroundColor=Color.White;_salesGrid.BorderStyle=BorderStyle.FixedSingle;_salesGrid.AutoSizeColumnsMode=DataGridViewAutoSizeColumnsMode.Fill;
+        _salesGrid.Columns.Add(new DataGridViewTextBoxColumn{Name="Lot",HeaderText="Lot",DataPropertyName=nameof(Sale.LotNumber),FillWeight=16});
+        _salesGrid.Columns.Add(new DataGridViewTextBoxColumn{Name="Bidder",HeaderText="Bidder",DataPropertyName=nameof(Sale.BidderNumber),FillWeight=20});
+        _salesGrid.Columns.Add(new DataGridViewTextBoxColumn{Name="Quantity",HeaderText="Quantity",DataPropertyName=nameof(Sale.Quantity),FillWeight=18});
+        _salesGrid.Columns.Add(new DataGridViewTextBoxColumn{Name="Price",HeaderText="Price Each",DataPropertyName=nameof(Sale.HammerPrice),DefaultCellStyle=new DataGridViewCellStyle{Format="C2"},FillWeight=23});
+        _salesGrid.Columns.Add(new DataGridViewTextBoxColumn{Name="Total",HeaderText="Total",DataPropertyName=nameof(Sale.TotalPrice),DefaultCellStyle=new DataGridViewCellStyle{Format="C2"},FillWeight=23});
+        panel.Controls.Add(_salesGrid,0,1);
         return panel;
     }
 
@@ -318,12 +323,13 @@ public sealed class LiveAuctionForm : Form
     {
         try
         {
-            var lot=_viewModel.QuickAddLot(Decimal.ToInt32(_quickConsignorNumber.Value),_quickDescription.Text);
+            var previousLot=Decimal.ToInt32(_lotNumber.Value);
+            var lot=_viewModel.QuickAddLot(Decimal.ToInt32(_quickConsignorNumber.Value),_quickDescription.Text,previousLot);
             _lotNumber.Value=lot.LotNumber;
+            _quickDescription.Clear();_passOutMode.Checked=false;_hammerPrice.Value=0;_bidderNumber.Value=0;_quantity.Value=1;
             UpdateLotDisplay(true);
-            ShowStatus($"Lot #{lot.LotNumber} created for Seller #{Decimal.ToInt32(_quickConsignorNumber.Value)} and ready to sell.",true);
-            _bidderNumber.Focus();
-            _bidderNumber.Select(0,_bidderNumber.Text.Length);
+            ShowStatus(previousLot>0?$"Lot #{previousLot} closed. Lot #{lot.LotNumber} created and ready to sell.":$"Lot #{lot.LotNumber} created for Seller #{Decimal.ToInt32(_quickConsignorNumber.Value)} and ready to sell.",true);
+            _hammerPrice.Focus();_hammerPrice.Select(0,_hammerPrice.Text.Length);
         }
         catch(Exception ex){ShowStatus(ex.Message,false);System.Media.SystemSounds.Hand.Play();}
     }
@@ -338,7 +344,7 @@ public sealed class LiveAuctionForm : Form
             SaveCurrentLotNotes();
             _viewModel.PassLot(lotNumber);
             ShowStatus($"Lot #{lotNumber} passed.",true);
-            _passOutMode.Checked=false; _bidderNumber.Value=0; _hammerPrice.Value=0;
+            _passOutMode.Checked=false; _bidderNumber.Value=0; _hammerPrice.Value=0;_quantity.Value=1;
             AdvanceToNextLot();
         }
         catch(Exception ex){ShowStatus(ex.Message,false);System.Media.SystemSounds.Hand.Play();}
@@ -351,16 +357,19 @@ public sealed class LiveAuctionForm : Form
             var lotNumber = Decimal.ToInt32(_lotNumber.Value);
             var bidderNumber = bidderOverride ?? Decimal.ToInt32(_bidderNumber.Value);
             var price = _hammerPrice.Value;
+            var quantity=Decimal.ToInt32(_quantity.Value);
             if (price >= 10000m && MessageBox.Show($"Verify the hammer price is {price:C2}.", "Verify Sale Price", MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2) != DialogResult.Yes) return;
 
-            var sale = _service.RecordSale(lotNumber, bidderNumber, price, _passOutMode.Checked);
+            var sale = _service.RecordSale(lotNumber, bidderNumber, price, _passOutMode.Checked,quantity);
             _lastSale = sale;
             _lastBidderNumber = sale.BidderNumber;
             _previousSale.Text = sale.DisplayText;
-            ShowStatus($"RECORDED — Lot #{sale.LotNumber} to Bidder #{sale.BidderNumber} for {sale.HammerPrice:C2}", true);
+            ShowStatus($"RECORDED — Lot #{sale.LotNumber}, Bidder #{sale.BidderNumber}, {sale.Quantity} × {sale.HammerPrice:C2} = {sale.TotalPrice:C2}", true);
             System.Media.SystemSounds.Asterisk.Play();
             _bidderNumber.Value = 0;
+            _quantity.Value=1;
             RefreshBuyerCount();
+            RefreshRecordedSales();
 
             if (_passOutMode.Checked)
             {
@@ -403,6 +412,7 @@ public sealed class LiveAuctionForm : Form
             _passOutMode.Checked = false;
             _bidderNumber.Value = 0;
             _hammerPrice.Value = 0;
+            _quantity.Value=1;
             AdvanceToNextLot();
         }
         catch (Exception ex) { ShowStatus(ex.Message, false); System.Media.SystemSounds.Hand.Play(); }
@@ -478,6 +488,7 @@ public sealed class LiveAuctionForm : Form
         _heroDescription.Text = lot is null ? "Lot not found" : $"{lot.Description}   [{lot.Status}]";
         if (loadNotes) _notes.Text = number > 0 ? _service.GetSetting($"LotNotes:{number}", string.Empty) : string.Empty;
         RefreshBuyerCount();
+        RefreshRecordedSales();
     }
 
     private void UpdateHeroPrice() => _heroPrice.Text = _hammerPrice.Value.ToString("C2");
@@ -487,6 +498,15 @@ public sealed class LiveAuctionForm : Form
         var lot = Decimal.ToInt32(_lotNumber.Value);
         var count = lot > 0 ? _service.GetSaleCountForLot(lot) : 0;
         _buyerCount.Text = $"{count}\nBUYER{(count == 1 ? string.Empty : "S")}";
+    }
+
+    private void RefreshRecordedSales()
+    {
+        var lot=Decimal.ToInt32(_lotNumber.Value);
+        _salesGrid.DataSource=null;
+        _salesGrid.DataSource=lot>0?_service.GetSalesForLot(lot).ToList():[];
+        _salesGrid.ClearSelection();
+        if(_salesGrid.Rows.Count>0)_salesGrid.FirstDisplayedScrollingRowIndex=_salesGrid.Rows.Count-1;
     }
 
     private void SaveCurrentLotNotes()

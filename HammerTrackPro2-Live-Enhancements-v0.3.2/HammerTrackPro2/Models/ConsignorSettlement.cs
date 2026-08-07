@@ -30,7 +30,9 @@ public sealed class ConsignorSettlementLine
     public long SaleId { get; set; }
     public int LotNumber { get; set; }
     public string Description { get; set; } = string.Empty;
+    public int Quantity { get; set; } = 1;
     public decimal HammerPrice { get; set; }
+    public decimal LineTotal => Quantity * HammerPrice;
 }
 
 public sealed class ConsignorPayout

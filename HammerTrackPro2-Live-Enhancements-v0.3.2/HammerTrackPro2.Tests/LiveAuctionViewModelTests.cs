@@ -25,6 +25,9 @@ public sealed class LiveAuctionViewModelTests
         Assert.All(buttons,x=>Assert.Same(actionLayout,x.Parent));
         var create=Assert.Single(controls.OfType<Button>(),x=>x.Text=="CREATE LOT");
         Assert.True(create.MinimumSize.Width>=150);
+        var grid=Assert.Single(controls.OfType<DataGridView>());Assert.Equal(new[]{"Lot","Bidder","Quantity","Price Each","Total"},grid.Columns.Cast<DataGridViewColumn>().Select(x=>x.HeaderText));
+        var entryLabels=controls.OfType<Label>().Where(x=>new[]{"Lot Number","Hammer Price (each)","Bidder Number","Quantity"}.Contains(x.Text)).ToList();Assert.Equal(4,entryLabels.Count);
+        var entryLayout=Assert.IsType<TableLayoutPanel>(entryLabels[0].Parent);Assert.Equal(0,entryLayout.GetRow(entryLabels.Single(x=>x.Text=="Lot Number")));Assert.Equal(1,entryLayout.GetRow(entryLabels.Single(x=>x.Text=="Hammer Price (each)")));Assert.Equal(2,entryLayout.GetRow(entryLabels.Single(x=>x.Text=="Bidder Number")));Assert.Equal(3,entryLayout.GetRow(entryLabels.Single(x=>x.Text=="Quantity")));
     }
 
     [Fact]
@@ -61,6 +64,15 @@ public sealed class LiveAuctionViewModelTests
         Assert.Throws<InvalidOperationException>(()=>viewModel.QuickAddLot(88,"Item"));
         Assert.Throws<InvalidOperationException>(()=>viewModel.QuickAddLot(999,"Item"));
         Assert.Empty(service.Load().Lots);
+    }
+
+    [Fact]
+    public void QuickAdd_ClosesCurrentLotAndMovesToNewDescription()
+    {
+        using var database=TemporaryDatabase.Create();var store=new SqliteDataStore(database.Path);var service=new AuctionService(store);var consignors=new ConsignorService(store);
+        consignors.SaveConsignor(new Consignor{ConsignorNumber=67,BusinessName="Seller",Active=true},null);var viewModel=new LiveAuctionViewModel(service,consignors);
+        var first=viewModel.QuickAddLot(67,"Cars");var second=viewModel.QuickAddLot(67,"Trucks",first.LotNumber);
+        Assert.Equal("Sold",service.Load().Lots.Single(x=>x.LotNumber==first.LotNumber).Status);Assert.Equal("Trucks",service.Load().Lots.Single(x=>x.LotNumber==second.LotNumber).Description);
     }
 
     [Fact]
