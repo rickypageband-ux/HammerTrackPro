@@ -216,3 +216,14 @@ Status: Cashier and the approved closed-auction consignor payout extension are i
 - Cash payments show a separate Cash Tendered entry and calculate Change Due before Add Payment, preventing manual subtraction mistakes.
 - Check and Card payments keep Cash Tendered disabled and show zero change.
 - Package the correction as upgrade version 0.7.38.
+
+## Audited buyer refunds and sale corrections
+
+- Add Cashier Refund and Correct Sale actions with required confirmation and reason.
+- Tie every refund to an original payment and limit it to the remaining purchase portion; card-processing fees are retained.
+- Require sufficient refund before reducing, removing, or moving a paid sale.
+- Preserve original sale rows as voided history and optionally create a linked replacement for a corrected bidder, quantity, or price.
+- Show Refund History on Cashier and include refunds on printed invoices.
+- Remove camera-scan buttons. Preserve Scan ID unchanged and add Scan New ID instructions for reflective polycarbonate cards and regular/inverse PDF417 scanner configuration.
+- Migrations 17 and 18 add correction metadata and the append-only Refunds ledger.
+- Package these approved corrections as upgrade version 0.7.39.
