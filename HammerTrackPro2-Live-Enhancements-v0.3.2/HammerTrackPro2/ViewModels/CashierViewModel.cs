@@ -27,6 +27,12 @@ public sealed class CashierViewModel
     }
     public decimal RemainingInvoiceAmount=>Math.Max(0m,(Invoice?.BalanceDue??0m)-PendingPayments.Sum(item=>item.Amount));
     public decimal SuggestedPaymentAmount(PaymentMethod method)=>RemainingInvoiceAmount;
+    public decimal CalculateCashChange(decimal invoiceAmount,decimal cashTendered)
+    {
+        if(invoiceAmount<0)throw new ArgumentOutOfRangeException(nameof(invoiceAmount));
+        if(cashTendered<0)throw new ArgumentOutOfRangeException(nameof(cashTendered));
+        return Math.Max(0m,cashTendered-invoiceAmount);
+    }
     public string CardFeeDescription
     {
         get{var auction=_service.GetCurrentAuction();return $"{auction.CreditCardFeePercent:0.##}% + {auction.CreditCardFeeFixedAmount:C2}";}

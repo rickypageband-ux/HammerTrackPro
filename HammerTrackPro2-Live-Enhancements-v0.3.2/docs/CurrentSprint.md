@@ -208,3 +208,11 @@ Status: Cashier and the approved closed-auction consignor payout extension are i
 - Invoice/receipt purchase rows display Item, Quantity, Price, and Total; seller settlement rows show quantity, unit price, and line total.
 - Migration 16 adds `Sales.Quantity` with a positive constraint and default of one, retaining all existing sale values and supporting version-3 database upgrades.
 - Package the quantity and faster next-description workflow as upgrade version 0.7.37.
+
+## Cashier tender and bidder-card correction
+
+- Fit complete four-, five-, and six-digit bidder numbers on the full-page landscape bidder card.
+- Looking up a buyer continues to fill Invoice Amount with the current unpaid balance.
+- Cash payments show a separate Cash Tendered entry and calculate Change Due before Add Payment, preventing manual subtraction mistakes.
+- Check and Card payments keep Cash Tendered disabled and show zero change.
+- Package the correction as upgrade version 0.7.38.

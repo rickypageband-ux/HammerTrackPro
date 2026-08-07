@@ -24,6 +24,8 @@ public sealed class CashierForm : Form
     private readonly DataGridView _pending=new() { Dock=DockStyle.Fill,ReadOnly=true,AutoGenerateColumns=true,AllowUserToAddRows=false };
     private readonly ComboBox _method=new() { DropDownStyle=ComboBoxStyle.DropDownList,DataSource=Enum.GetValues<PaymentMethod>() };
     private readonly NumericUpDown _amount=new() { DecimalPlaces=2,Maximum=100000000 };
+    private readonly NumericUpDown _cashTendered=new() { DecimalPlaces=2,Maximum=100000000 };
+    private readonly TextBox _changeDue=new() { ReadOnly=true,Text="$0.00",Width=110,BackColor=Color.White };
     private readonly TextBox _reference=new();
     private readonly Label _paymentPreview=new(){AutoSize=true,ForeColor=Color.DarkGreen,Font=new Font("Segoe UI",9F,FontStyle.Bold)};
     private readonly NumericUpDown _consignorNumber=new() { Minimum=1,Maximum=999999 };
@@ -47,6 +49,8 @@ public sealed class CashierForm : Form
         var paymentEntry=ActionFlow();
         paymentEntry.Controls.Add(new Label { Text="Method",AutoSize=true }); paymentEntry.Controls.Add(_method);
         paymentEntry.Controls.Add(new Label { Text="Invoice Amount (before card fee)",AutoSize=true }); paymentEntry.Controls.Add(_amount);
+        paymentEntry.Controls.Add(new Label { Text="Cash Tendered",AutoSize=true }); paymentEntry.Controls.Add(_cashTendered);
+        paymentEntry.Controls.Add(new Label { Text="Change Due",AutoSize=true }); paymentEntry.Controls.Add(_changeDue);
         paymentEntry.Controls.Add(new Label { Text="Check/Card Reference",AutoSize=true }); paymentEntry.Controls.Add(_reference);
         paymentEntry.Controls.Add(_paymentPreview);
         paymentEntry.Controls.Add(Button("Add Payment",AddPayment)); paymentEntry.Controls.Add(Button("Remove Selected",RemovePayment));
@@ -65,7 +69,7 @@ public sealed class CashierForm : Form
         layout.Controls.Add(header,0,0);layout.Controls.Add(Band("BUYER & INVOICE",lookup),0,1);layout.Controls.Add(summary,0,2);layout.Controls.Add(tabs,0,3);layout.Controls.Add(Band("PAYMENT",paymentEntry),0,4);layout.Controls.Add(sellerBand,0,5);
         Controls.Add(layout);
         StyleInputs();StyleGrid(_purchases);StyleGrid(_payments);StyleGrid(_pending);StyleGrid(_settlementLots);StyleGrid(_payouts);
-        _method.SelectedIndexChanged+=(_,_)=>PaymentMethodChanged();_amount.ValueChanged+=(_,_)=>RefreshPaymentPreview();
+        _method.SelectedIndexChanged+=(_,_)=>PaymentMethodChanged();_amount.ValueChanged+=(_,_)=>{RefreshPaymentPreview();RefreshCashChange();};_cashTendered.ValueChanged+=(_,_)=>RefreshCashChange();
         _fullScreenButton.Click+=(_,_)=>ToggleFullScreen();KeyDown+=(_,e)=>{if(e.KeyCode==Keys.F11){ToggleFullScreen();e.Handled=true;}else if(e.KeyCode==Keys.Escape&&_fullScreen){ToggleFullScreen();e.Handled=true;}};
         PrepareSelectedPaymentAmount();RefreshPaymentPreview();
         Shown+=async(_,_)=>await CheckConnection(); _connectionTimer.Tick+=async(_,_)=>await CheckConnection(); _connectionTimer.Start();
@@ -78,11 +82,11 @@ public sealed class CashierForm : Form
     private static TabPage Page(string name,Control content) { var page=new TabPage(name){BackColor=Color.White,Padding=new Padding(6)}; page.Controls.Add(content); return page; }
     private static Button Button(string text,Action action) { var button=new Button { Text=text };StyleButton(button);button.Click+=(_,_)=>Execute(action); return button; }
     private static void StyleButton(Button button,bool accent=false){button.AutoSize=false;button.Width=142;button.Height=42;button.Margin=new Padding(5);button.FlatStyle=FlatStyle.Flat;button.FlatAppearance.BorderSize=1;button.FlatAppearance.BorderColor=accent?Gold:Color.FromArgb(15,72,112);button.BackColor=accent?Gold:Blue;button.ForeColor=accent?Navy:Color.White;button.Font=new Font("Segoe UI",10F,FontStyle.Bold);button.Cursor=Cursors.Hand;}
-    private void StyleInputs(){foreach(var control in new Control[]{_bidderNumber,_method,_amount,_reference,_consignorNumber,_payoutMethod,_payoutAmount,_payoutReference}){control.Font=new Font("Segoe UI",11F);control.Height=34;control.Margin=new Padding(5,9,10,5);}foreach(var label in new[]{_paymentPreview})label.Margin=new Padding(8,13,8,5);}
+    private void StyleInputs(){foreach(var control in new Control[]{_bidderNumber,_method,_amount,_cashTendered,_changeDue,_reference,_consignorNumber,_payoutMethod,_payoutAmount,_payoutReference}){control.Font=new Font("Segoe UI",11F);control.Height=34;control.Margin=new Padding(5,9,10,5);}foreach(var label in new[]{_paymentPreview})label.Margin=new Padding(8,13,8,5);}
     private static void StyleGrid(DataGridView grid){grid.BackgroundColor=Color.White;grid.BorderStyle=BorderStyle.None;grid.RowHeadersVisible=false;grid.AutoSizeColumnsMode=DataGridViewAutoSizeColumnsMode.Fill;grid.SelectionMode=DataGridViewSelectionMode.FullRowSelect;grid.ColumnHeadersHeight=38;grid.RowTemplate.Height=32;grid.EnableHeadersVisualStyles=false;grid.ColumnHeadersDefaultCellStyle.BackColor=Navy;grid.ColumnHeadersDefaultCellStyle.ForeColor=Color.White;grid.ColumnHeadersDefaultCellStyle.Font=new Font("Segoe UI",10F,FontStyle.Bold);grid.DefaultCellStyle.SelectionBackColor=Color.FromArgb(214,232,245);grid.DefaultCellStyle.SelectionForeColor=Navy;grid.AlternatingRowsDefaultCellStyle.BackColor=Color.FromArgb(246,249,251);}
     private void ToggleFullScreen(){_fullScreen=!_fullScreen;FormBorderStyle=_fullScreen?FormBorderStyle.None:FormBorderStyle.Sizable;WindowState=_fullScreen?FormWindowState.Maximized:FormWindowState.Normal;_fullScreenButton.Text=_fullScreen?"Exit Full Screen":"Full Screen";}
     private void Lookup() { _viewModel.Lookup(Decimal.ToInt32(_bidderNumber.Value)); RefreshInvoice(); }
-    private void AddPayment() { _viewModel.AddPayment((PaymentMethod)_method.SelectedItem!,_amount.Value,_reference.Text); _amount.Value=0; _reference.Clear(); RefreshInvoice(); }
+    private void AddPayment() { var method=(PaymentMethod)_method.SelectedItem!;var paymentAmount=method==PaymentMethod.Cash?_cashTendered.Value:_amount.Value;if(method==PaymentMethod.Cash&&paymentAmount<=0)throw new InvalidOperationException("Enter the cash received in Cash Tendered.");_viewModel.AddPayment(method,paymentAmount,_reference.Text); _amount.Value=0;_cashTendered.Value=0; _reference.Clear(); RefreshInvoice(); }
     private void RemovePayment() { if (_pending.CurrentRow?.DataBoundItem is PaymentRequest payment) _viewModel.RemovePayment(payment); RefreshInvoice(); }
     private void RecordPayments() { _viewModel.RecordPayments(); RefreshInvoice(); }
     private void LookupConsignor() { _viewModel.LookupConsignor(Decimal.ToInt32(_consignorNumber.Value)); RefreshSettlement(); }
@@ -160,8 +164,10 @@ public sealed class CashierForm : Form
     {
         PrepareSelectedPaymentAmount();
         RefreshPaymentPreview();
+        RefreshCashChange();
     }
-    private void PrepareSelectedPaymentAmount(){if(_method.SelectedItem is not PaymentMethod method)return;var suggested=_viewModel.SuggestedPaymentAmount(method);if(suggested>=0&&suggested<=_amount.Maximum)_amount.Value=suggested;}
+    private void PrepareSelectedPaymentAmount(){if(_method.SelectedItem is not PaymentMethod method)return;var suggested=_viewModel.SuggestedPaymentAmount(method);if(suggested>=0&&suggested<=_amount.Maximum)_amount.Value=suggested;var isCash=method==PaymentMethod.Cash;_cashTendered.Enabled=isCash;_changeDue.Enabled=isCash;if(isCash&&suggested<=_cashTendered.Maximum)_cashTendered.Value=suggested;else if(!isCash)_cashTendered.Value=0;RefreshCashChange();}
+    private void RefreshCashChange(){var isCash=_method.SelectedItem is PaymentMethod.Cash;var change=isCash?_viewModel.CalculateCashChange(_amount.Value,_cashTendered.Value):0m;_changeDue.Text=change.ToString("C2");_changeDue.ForeColor=change>0?Color.DarkGreen:Navy;}
     private void RefreshSettlement()
     {
         var settlement=_viewModel.Settlement; if(settlement is null)return;
