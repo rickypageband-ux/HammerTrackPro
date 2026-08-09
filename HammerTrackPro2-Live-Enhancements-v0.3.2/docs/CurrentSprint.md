@@ -1,5 +1,14 @@
 # Current Sprint
 
+## Buyer tax exemption and seller bidder traceability
+
+- Buyer registration provides optional Resale License / Tax Exemption Number, State, and Tax Exempt fields on both registration entry points.
+- Tax-exempt status remains on the durable global Buyer and automatically suppresses sales tax when invoices are recalculated or checked out.
+- Migration 19 adds the three backward-compatible Buyer fields with safe blank/false defaults and an exemption lookup index.
+- Seller settlement lines show Lot #, Description, Bidder #, Hammer Price, Quantity, and Total on screen and in both seller print formats.
+- Bidder traceability uses the bidder number already retained on each completed Sale; no sale history is rewritten.
+- Package these changes as upgrade version 0.7.44.
+
 ## Cashier module
 
 Status: Cashier and the approved closed-auction consignor payout extension are implemented.

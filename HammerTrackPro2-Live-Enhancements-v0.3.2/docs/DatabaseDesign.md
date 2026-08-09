@@ -32,13 +32,15 @@ Indexes cover `LotNumber`, `AuctionId`, `ConsignorId`, `(AuctionId, LotNumber)`,
 
 ### `Buyers`, `AuctionBidders`, and `Sales`
 
-`Buyers` is the global person/contact identity keyed by `BuyerId`; it has no bidder number. `AuctionBidders` is the registration junction containing `AuctionBidderId`, `AuctionId`, `BuyerId`, `BidderNumber`, registration notes, and timestamps. Both `(AuctionId, BidderNumber)` and `(AuctionId, BuyerId)` are unique. This allows bidder number 25 in many auctions while keeping one buyer history.
+`Buyers` is the global person/contact identity keyed by `BuyerId`; it has no bidder number. It also retains optional `ResaleLicenseNumber`, `ResaleLicenseState`, and `TaxExempt` values so checkout consistently applies the durable buyer's exemption. `AuctionBidders` is the registration junction containing `AuctionBidderId`, `AuctionId`, `BuyerId`, `BidderNumber`, registration notes, and timestamps. Both `(AuctionId, BidderNumber)` and `(AuctionId, BuyerId)` are unique. This allows bidder number 25 in many auctions while keeping one buyer history.
 
 Buyer first/last name, address, city, state, ZIP, phone, email, and driver's license number are optional global identity fields. Both the main Bidders screen and Cashier Add Buyer workflow can populate them; only the auction-specific Bidder Number is required. These columns have existed since migration 8, so exposing them in Cashier requires no new schema migration.
 
 `Sales` stores `AuctionId`, `AuctionLotId`, `AuctionBidderId`, retained `LotNumber`, retained `BidderNumber`, unit hammer price, quantity, sale UTC, and paid state. Quantity defaults to one for backward compatibility, and financial totals use `Quantity * HammerPrice`. Foreign keys connect sales to the auction, auction lot, and exact auction registration; indexes cover all join paths.
 
 Migration 16 adds the positive integer `Sales.Quantity` column with a default of `1`, preserving every existing sale and its historical total. Rollback uses the pre-migration database backup; the migration is ordered, transactional, and skipped once `DatabaseSchemaVersion` is 16.
+
+Migration 19 additively adds the Buyer resale-license number, issuing state, and tax-exempt flag with blank/false defaults plus an exemption index. It is ordered, transactional, idempotent, preserves version-3 upgrades, and never changes existing Sale rows. Seller reports obtain bidder traceability from the `Sales.BidderNumber` value already retained with each transaction. Rollback is restoration of the automatic pre-upgrade database backup.
 
 Multiple sale rows per auction lot preserve pass-out behavior. Sale lookup, latest-sale undo, dashboard totals, activity, and lot counts filter by the current Auction.
 

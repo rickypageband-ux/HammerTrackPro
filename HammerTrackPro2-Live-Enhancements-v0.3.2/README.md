@@ -2,6 +2,8 @@
 
 HammerTrack Pro 2 is a Windows desktop application for running auctions. It supports global buyer identities with auction-specific bidder-number registrations, global consignor management with per-auction participation, Auction Setup and selection, auction-owned lots, auction-scoped commercial terms, buyer cashier invoices/payments, closed-auction consignor settlements and payouts, dashboard totals, database backup, and a keyboard-oriented live-auction screen. Each buyer sale records a positive quantity and per-item hammer price; invoices and settlements calculate quantity times price. Standard lots close after one sale; pass-out mode permits multiple buyer records against one lot until the operator closes it.
 
+Buyer registration stores optional resale-license number/state and a durable tax-exempt status. Tax-exempt buyers automatically receive zero sales tax at checkout. Seller settlement screens, standard statements, and item-summary prints show the purchasing bidder number for every sold line.
+
 ## Technology and structure
 
 - .NET 8 Windows Forms (`net8.0-windows`)

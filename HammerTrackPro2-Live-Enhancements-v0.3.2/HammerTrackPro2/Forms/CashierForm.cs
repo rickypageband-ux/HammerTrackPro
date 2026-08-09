@@ -31,7 +31,7 @@ public sealed class CashierForm : Form
     private readonly Label _paymentPreview=new(){AutoSize=true,ForeColor=Color.DarkGreen,Font=new Font("Segoe UI",9F,FontStyle.Bold)};
     private readonly NumericUpDown _consignorNumber=new() { Minimum=1,Maximum=999999 };
     private readonly Label _settlementHeading=new() { AutoSize=true };
-    private readonly DataGridView _settlementLots=new() { Dock=DockStyle.Fill,ReadOnly=true,AutoGenerateColumns=true,AllowUserToAddRows=false };
+    private readonly DataGridView _settlementLots=new() { Dock=DockStyle.Fill,ReadOnly=true,AutoGenerateColumns=false,AllowUserToAddRows=false };
     private readonly DataGridView _payouts=new() { Dock=DockStyle.Fill,ReadOnly=true,AutoGenerateColumns=true,AllowUserToAddRows=false };
     private readonly ComboBox _payoutMethod=new() { DropDownStyle=ComboBoxStyle.DropDownList,DataSource=Enum.GetValues<ConsignorPayoutMethod>() };
     private readonly NumericUpDown _payoutAmount=new() { DecimalPlaces=2,Maximum=100000000 };
@@ -62,12 +62,23 @@ public sealed class CashierForm : Form
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute,78));layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));layout.RowStyles.Add(new RowStyle(SizeType.Absolute,72));layout.RowStyles.Add(new RowStyle(SizeType.Percent,100));layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         layout.Controls.Add(header,0,0);layout.Controls.Add(Band("BUYER & INVOICE",lookup),0,1);layout.Controls.Add(summary,0,2);layout.Controls.Add(tabs,0,3);layout.Controls.Add(Band("PAYMENT",paymentEntry),0,4);layout.Controls.Add(sellerBand,0,5);
         Controls.Add(layout);
+        ConfigureSettlementLotsGrid();
         StyleInputs();StyleGrid(_purchases);StyleGrid(_payments);StyleGrid(_pending);StyleGrid(_refunds);StyleGrid(_settlementLots);StyleGrid(_payouts);
         _method.SelectedIndexChanged+=(_,_)=>PaymentMethodChanged();_amount.ValueChanged+=(_,_)=>{RefreshPaymentPreview();RefreshCashChange();};_cashTendered.ValueChanged+=(_,_)=>RefreshCashChange();
         _fullScreenButton.Click+=(_,_)=>ToggleFullScreen();KeyDown+=(_,e)=>{if(e.KeyCode==Keys.F11){ToggleFullScreen();e.Handled=true;}else if(e.KeyCode==Keys.Escape&&_fullScreen){ToggleFullScreen();e.Handled=true;}};
         PrepareSelectedPaymentAmount();RefreshPaymentPreview();
         Shown+=async(_,_)=>await CheckConnection(); _connectionTimer.Tick+=async(_,_)=>await CheckConnection(); _connectionTimer.Start();
         FormClosed+=(_,_)=>{_connectionTimer.Stop();_connectionTimer.Dispose();};
+    }
+
+    private void ConfigureSettlementLotsGrid()
+    {
+        _settlementLots.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName="LotNumber", HeaderText="Lot #", FillWeight=60 });
+        _settlementLots.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName="Description", HeaderText="Description", FillWeight=180 });
+        _settlementLots.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName="BidderNumber", HeaderText="Bidder #", FillWeight=75 });
+        _settlementLots.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName="HammerPrice", HeaderText="Hammer Price", FillWeight=85, DefaultCellStyle=new DataGridViewCellStyle { Format="C2" } });
+        _settlementLots.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName="Quantity", HeaderText="Quantity", FillWeight=65 });
+        _settlementLots.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName="LineTotal", HeaderText="Total", FillWeight=85, DefaultCellStyle=new DataGridViewCellStyle { Format="C2" } });
     }
 
     private Control BuildHeader(){var panel=new Panel{Dock=DockStyle.Fill,BackColor=Navy,Padding=new Padding(20,10,16,10)};var brand=new Label{Text="HAMMERTRACK PRO",Dock=DockStyle.Left,Width=290,TextAlign=ContentAlignment.MiddleLeft,Font=new Font("Segoe UI",20F,FontStyle.Bold),ForeColor=Color.White};var subtitle=new Label{Text="AUCTION CASHIER",Dock=DockStyle.Left,Width=210,TextAlign=ContentAlignment.MiddleLeft,Font=new Font("Segoe UI",11F,FontStyle.Bold),ForeColor=Gold};StyleButton(_fullScreenButton,true);_fullScreenButton.Dock=DockStyle.Right;_connection.Dock=DockStyle.Right;_connection.Width=220;_connection.TextAlign=ContentAlignment.MiddleCenter;_connection.Font=new Font("Segoe UI",10F,FontStyle.Bold);panel.Controls.Add(_fullScreenButton);panel.Controls.Add(_connection);panel.Controls.Add(subtitle);panel.Controls.Add(brand);return panel;}
