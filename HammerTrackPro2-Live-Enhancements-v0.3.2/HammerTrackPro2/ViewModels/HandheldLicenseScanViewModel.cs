@@ -40,5 +40,7 @@ public sealed class HandheldLicenseScanViewModel
         }
     }
 
+    public void ReportNoInputReceived()=>Status="No barcode characters reached HammerTrack. If the scanner did not beep, configure PDF417 Decode Both and tilt the reflective card. If it beeped, confirm Normal Mode and USB HID keyboard mode.";
+
     public void Reset(){_buffer.Clear();Result=null;Status="Ready — pull the scanner trigger";}
 }

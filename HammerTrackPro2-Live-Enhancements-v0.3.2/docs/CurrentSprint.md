@@ -247,3 +247,9 @@ Status: Cashier and the approved closed-auction consignor payout extension are i
 ## Cashier payment visibility
 
 - Keep Add Payment, Remove Selected, and Record Payments together in a reserved non-wrapping cashier row after buyer lookup.
+
+## New-ID scanner diagnostics
+
+- Preserve the proven Scan ID behavior for older licenses.
+- On Scan New ID, detect when the NETUM scanner delivered no barcode characters and provide an audible, actionable PDF417/Normal Mode/USB HID diagnostic.
+- Package the cashier and scanner corrections as version 0.7.42.

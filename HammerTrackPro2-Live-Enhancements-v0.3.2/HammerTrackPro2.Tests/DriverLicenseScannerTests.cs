@@ -12,6 +12,15 @@ namespace HammerTrackPro2.Tests;
 
 public sealed class DriverLicenseScannerTests
 {
+    [Fact]
+    public void NewIdScanner_ExplainsWhenHardwareSendsNoBarcodeCharacters()
+    {
+        var viewModel=new HandheldLicenseScanViewModel();
+        viewModel.ReportNoInputReceived();
+        Assert.Contains("No barcode characters reached HammerTrack",viewModel.Status);
+        Assert.Contains("Decode Both",viewModel.Status);
+        Assert.Equal(0,viewModel.CharacterCount);
+    }
     private const string Sample="@\nANSI 636026080102DL00410288ZA03290015DLDAQPA12345678\nDCSDOE\nDACJANE\nDADMARIE\nDAG123 MAIN STREET\nDAIYORK\nDAJPA\nDAK174010000\n";
 
     [Fact]
