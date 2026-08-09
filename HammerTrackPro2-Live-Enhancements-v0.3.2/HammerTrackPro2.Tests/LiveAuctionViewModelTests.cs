@@ -28,6 +28,27 @@ public sealed class LiveAuctionViewModelTests
         var grid=Assert.Single(controls.OfType<DataGridView>());Assert.Equal(new[]{"Lot","Bidder","Quantity","Price Each","Total"},grid.Columns.Cast<DataGridViewColumn>().Select(x=>x.HeaderText));
         var entryLabels=controls.OfType<Label>().Where(x=>new[]{"Lot Number","Hammer Price (each)","Bidder Number","Quantity"}.Contains(x.Text)).ToList();Assert.Equal(4,entryLabels.Count);
         var entryLayout=Assert.IsType<TableLayoutPanel>(entryLabels[0].Parent);Assert.Equal(0,entryLayout.GetRow(entryLabels.Single(x=>x.Text=="Lot Number")));Assert.Equal(1,entryLayout.GetRow(entryLabels.Single(x=>x.Text=="Hammer Price (each)")));Assert.Equal(2,entryLayout.GetRow(entryLabels.Single(x=>x.Text=="Bidder Number")));Assert.Equal(3,entryLayout.GetRow(entryLabels.Single(x=>x.Text=="Quantity")));
+        var numberFor=entryLabels.ToDictionary(label=>label.Text,label=>Assert.IsType<NumericUpDown>(entryLayout.GetControlFromPosition(1,entryLayout.GetRow(label))));
+        Assert.False(numberFor["Lot Number"].TabStop);Assert.Equal(0,numberFor["Hammer Price (each)"].TabIndex);Assert.Equal(1,numberFor["Bidder Number"].TabIndex);Assert.Equal(2,numberFor["Quantity"].TabIndex);
+        Assert.All(buttons,button=>Assert.False(button.TabStop));Assert.True(grid.ColumnHeadersHeight>=42);Assert.True(grid.RowTemplate.Height>=38);
+        var quickLayout=Assert.IsType<TableLayoutPanel>(create.Parent);var seller=Assert.IsType<NumericUpDown>(quickLayout.GetControlFromPosition(1,0));var description=Assert.IsType<TextBox>(quickLayout.GetControlFromPosition(3,0));Assert.Equal(0,seller.TabIndex);Assert.Equal(1,description.TabIndex);Assert.False(create.TabStop);
+    }
+
+    [Fact]
+    public void LiveAuction_KeyboardEntryFieldsSelectTheirCompleteDefaultValueOnFocus()
+    {
+        using var database=TemporaryDatabase.Create();var store=new SqliteDataStore(database.Path);var service=new AuctionService(store);
+        using var form=new LiveAuctionForm(service,new LiveAuctionViewModel(service,new ConsignorService(store)));
+        var controls=form.Controls.Cast<Control>().SelectMany(Descendants).ToList();
+        var labels=controls.OfType<Label>().Where(x=>new[]{"Hammer Price (each)","Bidder Number","Quantity"}.Contains(x.Text)).ToList();
+        form.Show();
+        foreach(var label in labels)
+        {
+            var layout=Assert.IsType<TableLayoutPanel>(label.Parent);var input=Assert.IsType<NumericUpDown>(layout.GetControlFromPosition(1,layout.GetRow(label)));
+            input.Focus();Application.DoEvents();
+            var editor=Assert.Single(input.Controls.OfType<TextBoxBase>());
+            Assert.Equal(editor.TextLength,editor.SelectionLength);
+        }
     }
 
     [Fact]

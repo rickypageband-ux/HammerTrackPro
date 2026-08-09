@@ -253,3 +253,11 @@ Status: Cashier and the approved closed-auction consignor payout extension are i
 - Preserve the proven Scan ID behavior for older licenses.
 - On Scan New ID, detect when the NETUM scanner delivered no barcode characters and provide an audible, actionable PDF417/Normal Mode/USB HID diagnostic.
 - Package the cashier and scanner corrections as version 0.7.42.
+
+## Live-auction keyboard entry speed
+
+- Use Seller Number, Lot Description, Hammer Price, Bidder Number, and Quantity as the rapid keyboard entry sequence; Enter in Lot Description creates the lot and Enter in Quantity records the sale.
+- Skip Lot Number and action buttons during the normal Tab sequence.
+- Select the complete Hammer Price, Bidder Number, and Quantity values whenever each field receives focus, allowing immediate replacement of 0.00, 0, and 1.
+- Increase recorded-current-lot grid header and row heights and padding so cells are not clipped.
+- Package the correction as version 0.7.43.

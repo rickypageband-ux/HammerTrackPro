@@ -120,12 +120,14 @@ public sealed class LiveAuctionForm : Form
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
         panel.Controls.Add(new Label { Text="Quick Add Seller Number",AutoSize=true,Anchor=AnchorStyles.Left,Font=new Font("Segoe UI",11F,FontStyle.Bold) },0,0);
         _quickConsignorNumber.Minimum=0; _quickConsignorNumber.Maximum=999999; _quickConsignorNumber.Dock=DockStyle.Fill;
+        _quickConsignorNumber.TabIndex=0;
         panel.Controls.Add(_quickConsignorNumber,1,0);
         panel.Controls.Add(new Label { Text="Lot Description / Name",AutoSize=true,Anchor=AnchorStyles.Left,Margin=new Padding(16,3,3,3),Font=new Font("Segoe UI",11F,FontStyle.Bold) },2,0);
         _quickDescription.Dock=DockStyle.Fill;
+        _quickDescription.TabIndex=1;
         _quickDescription.KeyDown+=(_,e)=>{if(e.KeyCode==Keys.Enter){QuickAddLot();e.SuppressKeyPress=true;}};
         panel.Controls.Add(_quickDescription,3,0);
-        var add=new Button(); ConfigureButton(add,"CREATE LOT",(_,_)=>QuickAddLot(),true);add.MinimumSize=new Size(150,48);add.Width=150;panel.Controls.Add(add,4,0);
+        var add=new Button(); ConfigureButton(add,"CREATE LOT",(_,_)=>QuickAddLot(),true);add.MinimumSize=new Size(150,48);add.Width=150;add.TabStop=false;panel.Controls.Add(add,4,0);
         return panel;
     }
 
@@ -194,6 +196,9 @@ public sealed class LiveAuctionForm : Form
         ConfigureNumber(_hammerPrice, 100000000, 2);
         ConfigureNumber(_quantity, 1000000, 0);_quantity.Minimum=1;_quantity.Value=1;
         _hammerPrice.ThousandsSeparator = true;
+        _lotNumber.TabStop=false;
+        _hammerPrice.TabIndex=0;_bidderNumber.TabIndex=1;_quantity.TabIndex=2;
+        SelectAllOnFocus(_hammerPrice);SelectAllOnFocus(_bidderNumber);SelectAllOnFocus(_quantity);
 
         _lotNumber.ValueChanged += (_, _) => UpdateLotDisplay(true);
         _lotNumber.KeyDown += (_, e) => { if (e.KeyCode == Keys.Enter) { _hammerPrice.Focus(); _hammerPrice.Select(0, _hammerPrice.Text.Length); e.SuppressKeyPress = true; } };
@@ -209,6 +214,7 @@ public sealed class LiveAuctionForm : Form
 
         _passOutMode.Text = "PASS-OUT MODE — keep this lot and price open for more buyers";
         _passOutMode.AutoSize = true;
+        _passOutMode.TabStop=false;
         _passOutMode.Font = new Font("Segoe UI", 12F, FontStyle.Bold);
         _passOutMode.CheckedChanged += (_, _) => UpdateModeDisplay();
 
@@ -226,6 +232,7 @@ public sealed class LiveAuctionForm : Form
         ConfigureButton(_passLot, "Pass Item / Next  (F4)", (_, _) => PassCurrentLot());
         ConfigureButton(_undoLastSale, "Undo Last Buyer  (F8)", (_, _) => UndoLastSale());
         ConfigureButton(_fullScreenButton, "Fullscreen  (F11)", (_, _) => ToggleFullScreen());
+        foreach(var button in new[]{_completeSale,_passLot,_closeLot,_undoLastSale,_fullScreenButton})button.TabStop=false;
         buttons.Controls.Add(_completeSale,0,0);buttons.Controls.Add(_passLot,1,0);buttons.Controls.Add(_closeLot,2,0);buttons.Controls.Add(_undoLastSale,3,0);buttons.Controls.Add(_fullScreenButton,4,0);
         form.SetColumnSpan(buttons,2);form.Controls.Add(buttons,0,5);
         card.Controls.Add(form);
@@ -237,6 +244,7 @@ public sealed class LiveAuctionForm : Form
         var panel=new TableLayoutPanel{Dock=DockStyle.Fill,BackColor=Color.White,Padding=new Padding(14),RowCount=2,ColumnCount=1};panel.RowStyles.Add(new RowStyle(SizeType.Absolute,34));panel.RowStyles.Add(new RowStyle(SizeType.Percent,100));
         var caption=new Label{Text="RECORDED SALES FOR CURRENT LOT — verify every bidder before moving on",Dock=DockStyle.Fill,Font=new Font("Segoe UI",11F,FontStyle.Bold),ForeColor=Color.FromArgb(24,50,74),TextAlign=ContentAlignment.MiddleLeft};panel.Controls.Add(caption,0,0);
         _salesGrid.Dock=DockStyle.Fill;_salesGrid.ReadOnly=true;_salesGrid.AllowUserToAddRows=false;_salesGrid.AllowUserToDeleteRows=false;_salesGrid.AllowUserToResizeRows=false;_salesGrid.RowHeadersVisible=false;_salesGrid.AutoGenerateColumns=false;_salesGrid.SelectionMode=DataGridViewSelectionMode.FullRowSelect;_salesGrid.BackgroundColor=Color.White;_salesGrid.BorderStyle=BorderStyle.FixedSingle;_salesGrid.AutoSizeColumnsMode=DataGridViewAutoSizeColumnsMode.Fill;
+        _salesGrid.ColumnHeadersHeightSizeMode=DataGridViewColumnHeadersHeightSizeMode.DisableResizing;_salesGrid.ColumnHeadersHeight=42;_salesGrid.RowTemplate.Height=38;_salesGrid.AutoSizeRowsMode=DataGridViewAutoSizeRowsMode.None;_salesGrid.ColumnHeadersDefaultCellStyle.WrapMode=DataGridViewTriState.False;_salesGrid.ColumnHeadersDefaultCellStyle.Padding=new Padding(6);_salesGrid.DefaultCellStyle.Padding=new Padding(6,3,6,3);
         _salesGrid.Columns.Add(new DataGridViewTextBoxColumn{Name="Lot",HeaderText="Lot",DataPropertyName=nameof(Sale.LotNumber),FillWeight=16});
         _salesGrid.Columns.Add(new DataGridViewTextBoxColumn{Name="Bidder",HeaderText="Bidder",DataPropertyName=nameof(Sale.BidderNumber),FillWeight=20});
         _salesGrid.Columns.Add(new DataGridViewTextBoxColumn{Name="Quantity",HeaderText="Quantity",DataPropertyName=nameof(Sale.Quantity),FillWeight=18});
@@ -296,6 +304,8 @@ public sealed class LiveAuctionForm : Form
         control.Font = new Font("Segoe UI", 20F, FontStyle.Bold);
         control.TextAlign = HorizontalAlignment.Center;
     }
+
+    private static void SelectAllOnFocus(NumericUpDown control)=>control.Enter+=(_,_)=>control.BeginInvoke(()=>control.Select(0,control.Text.Length));
 
     private static void AddEntryRow(TableLayoutPanel form, int row, string caption, Control control)
     {

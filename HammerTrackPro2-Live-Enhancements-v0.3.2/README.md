@@ -106,6 +106,7 @@ The operator interface uses **Seller** wording while retaining the existing `Con
 Lot entry lists sellers by seller number and name, refreshes after Seller Management closes, and retains inactive sellers for historical/controlled assignment with a visible inactive label.
 
 Live Auction also provides a focused quick-add row for an active Seller Number and lot description. It closes the currently selected open lot, assigns the next current-auction lot number, and makes the new description immediately available for sale. Entry fields appear as Lot Number, Hammer Price (each), Bidder Number, and Quantity. A scrollable table directly below the action buttons shows every recorded buyer sale for the current lot with quantity, unit price, and total.
+Live Auction supports the rapid keyboard path Seller Number, Tab, Lot Description, Enter/Create Lot, Hammer Price, Tab, Bidder Number, Tab, Quantity, Enter. Hammer Price, Bidder Number, and Quantity select their complete existing values on focus so typing replaces 0.00, 0, or 1 immediately. The current-lot sales grid uses explicit readable header and row heights to prevent clipped boxes.
 
 End-of-Night uses the same branded full-screen workspace, with clear financial summary cards, organized staff-payment entry, a readable audit ledger, safer void guidance, refresh status, and print preview.
 
