@@ -7,7 +7,8 @@ public sealed class CashierRegistrationForm : Form
 {
     private readonly CashierRegistrationViewModel _viewModel;
     private readonly NumericUpDown _number=new(){Minimum=1,Maximum=999999};
-    private readonly TextBox _business=new(),_first=new(),_last=new(),_address=new(),_city=new(),_state=new(),_zip=new(),_phone=new(),_email=new(),_driversLicense=new();
+    private readonly TextBox _business=new(),_first=new(),_last=new(),_address=new(),_city=new(),_state=new(),_zip=new(),_phone=new(),_email=new(),_driversLicense=new(),_resaleLicenseNumber=new(),_resaleLicenseState=new();
+    private readonly CheckBox _taxExempt=new(){Text="Buyer is tax exempt",AutoSize=true};
 
     public AuctionBidder? Buyer=>_viewModel.Buyer;
     public Consignor? Consignor=>_viewModel.Seller;
@@ -54,7 +55,7 @@ public sealed class CashierRegistrationForm : Form
             var scanners=new FlowLayoutPanel{AutoSize=true,Dock=DockStyle.Fill};var handheld=ScanButton("Scan ID");handheld.Click+=(_,_)=>ScanHandheldLicense(false);var newId=ScanButton("Scan New ID");newId.Click+=(_,_)=>ScanHandheldLicense(true);scanners.Controls.Add(handheld);scanners.Controls.Add(newId);table.Controls.Add(scanners,1,table.RowCount++);
         }
         Add(table,"First Name (optional)",_first);Add(table,"Last Name (optional)",_last);
-        if(!_viewModel.IsSeller){Add(table,"Address (optional)",_address);Add(table,"City (optional)",_city);Add(table,"State (optional)",_state);Add(table,"ZIP (optional)",_zip);Add(table,"Phone Number (optional)",_phone);Add(table,"Email (optional)",_email);Add(table,"Driver's License Number (optional)",_driversLicense);}
+        if(!_viewModel.IsSeller){Add(table,"Address (optional)",_address);Add(table,"City (optional)",_city);Add(table,"State (optional)",_state);Add(table,"ZIP (optional)",_zip);Add(table,"Phone Number (optional)",_phone);Add(table,"Email (optional)",_email);Add(table,"Driver's License Number (optional)",_driversLicense);Add(table,"Resale / Tax Exemption Number",_resaleLicenseNumber);Add(table,"Exemption State",_resaleLicenseState);Add(table,"Tax-Exempt Status",_taxExempt);}
         else{Add(table,"Phone",_phone);Add(table,"Email",_email);}
         var button=new Button{Text="Register and Select",AutoSize=true,Padding=new Padding(10,5,10,5)};button.Click+=(_,_)=>Save();
         table.Controls.Add(button,1,table.RowCount);return table;
@@ -70,7 +71,7 @@ public sealed class CashierRegistrationForm : Form
     {
         try
         {
-            _viewModel.Create(Decimal.ToInt32(_number.Value),_business.Text,_first.Text,_last.Text,_phone.Text,_email.Text,_address.Text,_city.Text,_state.Text,_zip.Text,_driversLicense.Text);
+            _viewModel.Create(Decimal.ToInt32(_number.Value),_business.Text,_first.Text,_last.Text,_phone.Text,_email.Text,_address.Text,_city.Text,_state.Text,_zip.Text,_driversLicense.Text,_resaleLicenseNumber.Text,_resaleLicenseState.Text,_taxExempt.Checked);
             DialogResult=DialogResult.OK;Close();
         }
         catch(InvalidOperationException exception){MessageBox.Show(this,exception.Message,"Registration",MessageBoxButtons.OK,MessageBoxIcon.Warning);}

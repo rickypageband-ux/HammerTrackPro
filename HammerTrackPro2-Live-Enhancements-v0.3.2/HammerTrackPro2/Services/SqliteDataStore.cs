@@ -60,7 +60,7 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
             using var connection = OpenConnection();
             using var command = connection.CreateCommand();
             command.CommandText = """
-                SELECT BuyerId,FirstName,LastName,DriversLicense,Address,City,State,Zip,Phone,Email
+                SELECT BuyerId,FirstName,LastName,DriversLicense,Address,City,State,Zip,Phone,Email,ResaleLicenseNumber,ResaleLicenseState,TaxExempt
                 FROM Buyers ORDER BY LastName,FirstName,BuyerId;
                 """;
             using var reader = command.ExecuteReader();
@@ -68,7 +68,8 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
             while (reader.Read()) buyers.Add(new Buyer
             {
                 BuyerId=reader.GetInt64(0),FirstName=reader.GetString(1),LastName=reader.GetString(2),DriversLicense=reader.GetString(3),
-                Address=reader.GetString(4),City=reader.GetString(5),State=reader.GetString(6),Zip=reader.GetString(7),Phone=reader.GetString(8),Email=reader.GetString(9)
+                Address=reader.GetString(4),City=reader.GetString(5),State=reader.GetString(6),Zip=reader.GetString(7),Phone=reader.GetString(8),Email=reader.GetString(9),
+                ResaleLicenseNumber=reader.GetString(10),ResaleLicenseState=reader.GetString(11),TaxExempt=reader.GetInt32(12)!=0
             });
             return buyers;
         }
@@ -118,7 +119,7 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
                     SELECT i.InvoiceId,i.AuctionId,i.AuctionBidderId,a.AuctionNumber,ab.BidderNumber,
                            trim(b.FirstName || ' ' || b.LastName),trim(b.Address || ' ' || b.City || ' ' || b.State || ' ' || b.Zip),b.Phone,b.Email,
                            i.BuyerPremiumPercent,i.SalesTaxPercent,i.SalesTaxBasis,i.HammerSubtotal,i.BuyerPremiumAmount,
-                           i.SalesTaxAmount,i.TotalAmount,i.Status,i.CreatedUtc,i.UpdatedUtc,i.CreditCardFeeAmount
+                           i.SalesTaxAmount,i.TotalAmount,i.Status,i.CreatedUtc,i.UpdatedUtc,i.CreditCardFeeAmount,b.TaxExempt,b.ResaleLicenseNumber,b.ResaleLicenseState
                     FROM Invoices i JOIN Auctions a ON a.AuctionId=i.AuctionId
                     JOIN AuctionBidders ab ON ab.AuctionBidderId=i.AuctionBidderId JOIN Buyers b ON b.BuyerId=ab.BuyerId
                     WHERE i.AuctionBidderId=$registration LIMIT 1;
@@ -134,7 +135,8 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
                     BuyerPremiumAmount=decimal.Parse(reader.GetString(13),CultureInfo.InvariantCulture),SalesTaxAmount=decimal.Parse(reader.GetString(14),CultureInfo.InvariantCulture),
                     TotalAmount=decimal.Parse(reader.GetString(15),CultureInfo.InvariantCulture),Status=reader.GetString(16),
                     CreatedUtc=DateTime.Parse(reader.GetString(17),CultureInfo.InvariantCulture,DateTimeStyles.RoundtripKind),
-                    UpdatedUtc=DateTime.Parse(reader.GetString(18),CultureInfo.InvariantCulture,DateTimeStyles.RoundtripKind),CreditCardFeeAmount=decimal.Parse(reader.GetString(19),CultureInfo.InvariantCulture)
+                    UpdatedUtc=DateTime.Parse(reader.GetString(18),CultureInfo.InvariantCulture,DateTimeStyles.RoundtripKind),CreditCardFeeAmount=decimal.Parse(reader.GetString(19),CultureInfo.InvariantCulture),
+                    BuyerTaxExempt=reader.GetInt32(20)!=0,BuyerResaleLicenseNumber=reader.GetString(21),BuyerResaleLicenseState=reader.GetString(22)
                 };
             }
             using (var purchases = connection.CreateCommand())
@@ -297,13 +299,13 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
             using(var lines=connection.CreateCommand())
             {
                 lines.CommandText="""
-                    SELECT s.Id,al.LotNumber,al.Description,s.Quantity,s.HammerPrice FROM Sales s
+                    SELECT s.Id,al.LotNumber,al.Description,s.Quantity,s.HammerPrice,s.BidderNumber FROM Sales s
                     JOIN AuctionLots al ON al.AuctionLotId=s.AuctionLotId
                     WHERE s.AuctionId=$auction AND al.ConsignorId=$consignor AND s.IsVoided=0 ORDER BY al.LotNumber,s.Id;
                     """;
                 lines.Parameters.AddWithValue("$auction",auctionId); lines.Parameters.AddWithValue("$consignor",consignorId);
                 using var reader=lines.ExecuteReader(); while(reader.Read()) result.Lots.Add(new ConsignorSettlementLine
-                { SaleId=reader.GetInt64(0),LotNumber=reader.GetInt32(1),Description=reader.GetString(2),Quantity=reader.GetInt32(3),HammerPrice=decimal.Parse(reader.GetString(4),CultureInfo.InvariantCulture) });
+                { SaleId=reader.GetInt64(0),LotNumber=reader.GetInt32(1),Description=reader.GetString(2),Quantity=reader.GetInt32(3),HammerPrice=decimal.Parse(reader.GetString(4),CultureInfo.InvariantCulture),BidderNumber=reader.GetInt32(5) });
             }
             using(var payouts=connection.CreateCommand())
             {
@@ -369,13 +371,13 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
                 buyer.Transaction = transaction;
                 buyer.CommandText = buyerId == 0
                     ? """
-                        INSERT INTO Buyers(FirstName,LastName,DriversLicense,Address,City,State,Zip,Phone,Email,CreatedUtc,UpdatedUtc)
-                        VALUES($first,$last,$license,$address,$city,$state,$zip,$phone,$email,$created,$updated);
+                        INSERT INTO Buyers(FirstName,LastName,DriversLicense,Address,City,State,Zip,Phone,Email,ResaleLicenseNumber,ResaleLicenseState,TaxExempt,CreatedUtc,UpdatedUtc)
+                        VALUES($first,$last,$license,$address,$city,$state,$zip,$phone,$email,$resaleLicense,$resaleState,$buyerTaxExempt,$created,$updated);
                         SELECT last_insert_rowid();
                         """
                     : """
                         UPDATE Buyers SET FirstName=$first,LastName=$last,DriversLicense=$license,Address=$address,City=$city,State=$state,
-                            Zip=$zip,Phone=$phone,Email=$email,UpdatedUtc=$updated WHERE BuyerId=$buyerId;
+                            Zip=$zip,Phone=$phone,Email=$email,ResaleLicenseNumber=$resaleLicense,ResaleLicenseState=$resaleState,TaxExempt=$buyerTaxExempt,UpdatedUtc=$updated WHERE BuyerId=$buyerId;
                         SELECT $buyerId;
                         """;
                 AddBuyerParameters(buyer, bidder);
@@ -415,6 +417,7 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
             invoice.Parameters.AddWithValue("$created", DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture));
             invoice.Parameters.AddWithValue("$updated", DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture));
             invoice.ExecuteNonQuery();
+            using(var registrationId=connection.CreateCommand()){registrationId.Transaction=transaction;registrationId.CommandText="SELECT AuctionBidderId FROM AuctionBidders WHERE AuctionId=$auctionId AND BidderNumber=$number;";registrationId.Parameters.AddWithValue("$auctionId",auctionId);registrationId.Parameters.AddWithValue("$number",bidder.BidderNumber);RefreshInvoiceTotals(connection,transaction,Convert.ToInt64(registrationId.ExecuteScalar(),CultureInfo.InvariantCulture));}
             WriteAudit(connection, transaction, "BidderSaved", $"Bidder #{bidder.BidderNumber}: {bidder.FirstName} {bidder.LastName}".Trim());
             transaction.Commit();
         }
@@ -1608,6 +1611,15 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
         {
             using var transaction=connection.BeginTransaction();using var migration=connection.CreateCommand();migration.Transaction=transaction;migration.CommandText="CREATE TABLE IF NOT EXISTS Refunds(RefundId INTEGER PRIMARY KEY AUTOINCREMENT,InvoiceId INTEGER NOT NULL,PaymentId INTEGER NOT NULL,Method TEXT NOT NULL,Amount TEXT NOT NULL,Reason TEXT NOT NULL,Reference TEXT NOT NULL DEFAULT '',CreatedUtc TEXT NOT NULL,FOREIGN KEY(InvoiceId) REFERENCES Invoices(InvoiceId) ON DELETE RESTRICT,FOREIGN KEY(PaymentId) REFERENCES Payments(PaymentId) ON DELETE RESTRICT); CREATE INDEX IF NOT EXISTS IX_Refunds_InvoiceId ON Refunds(InvoiceId); CREATE INDEX IF NOT EXISTS IX_Refunds_PaymentId ON Refunds(PaymentId); INSERT INTO Settings(Key,Value) VALUES('DatabaseSchemaVersion','18') ON CONFLICT(Key) DO UPDATE SET Value='18';";migration.ExecuteNonQuery();transaction.Commit();
         }
+        if(version<19)
+        {
+            using var transaction=connection.BeginTransaction();
+            if(!ColumnExists(connection,transaction,"Buyers","ResaleLicenseNumber")){using var alter=connection.CreateCommand();alter.Transaction=transaction;alter.CommandText="ALTER TABLE Buyers ADD COLUMN ResaleLicenseNumber TEXT NOT NULL DEFAULT '';";alter.ExecuteNonQuery();}
+            if(!ColumnExists(connection,transaction,"Buyers","ResaleLicenseState")){using var alter=connection.CreateCommand();alter.Transaction=transaction;alter.CommandText="ALTER TABLE Buyers ADD COLUMN ResaleLicenseState TEXT NOT NULL DEFAULT '';";alter.ExecuteNonQuery();}
+            if(!ColumnExists(connection,transaction,"Buyers","TaxExempt")){using var alter=connection.CreateCommand();alter.Transaction=transaction;alter.CommandText="ALTER TABLE Buyers ADD COLUMN TaxExempt INTEGER NOT NULL DEFAULT 0;";alter.ExecuteNonQuery();}
+            using(var index=connection.CreateCommand()){index.Transaction=transaction;index.CommandText="CREATE INDEX IF NOT EXISTS IX_Buyers_TaxExempt ON Buyers(TaxExempt);";index.ExecuteNonQuery();}
+            using var migration=connection.CreateCommand();migration.Transaction=transaction;migration.CommandText="INSERT INTO Settings(Key,Value) VALUES('DatabaseSchemaVersion','19') ON CONFLICT(Key) DO UPDATE SET Value='19';";migration.ExecuteNonQuery();transaction.Commit();
+        }
     }
 
     private static bool ColumnExists(SqliteConnection connection,SqliteTransaction transaction,string table,string column)
@@ -1651,14 +1663,14 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
 
     private static void RefreshInvoiceTotals(SqliteConnection connection,SqliteTransaction transaction,long auctionBidderId)
     {
-        decimal premiumRate; decimal taxRate; decimal cardFee; SalesTaxBasis taxBasis; long invoiceId;
+        decimal premiumRate; decimal taxRate; decimal cardFee; SalesTaxBasis taxBasis; long invoiceId;bool taxExempt;
         using (var command=connection.CreateCommand())
         {
-            command.Transaction=transaction; command.CommandText="SELECT InvoiceId,BuyerPremiumPercent,SalesTaxPercent,SalesTaxBasis,CreditCardFeeAmount FROM Invoices WHERE AuctionBidderId=$registration;";
+            command.Transaction=transaction; command.CommandText="SELECT i.InvoiceId,i.BuyerPremiumPercent,i.SalesTaxPercent,i.SalesTaxBasis,i.CreditCardFeeAmount,b.TaxExempt FROM Invoices i JOIN AuctionBidders ab ON ab.AuctionBidderId=i.AuctionBidderId JOIN Buyers b ON b.BuyerId=ab.BuyerId WHERE i.AuctionBidderId=$registration;";
             command.Parameters.AddWithValue("$registration",auctionBidderId); using var reader=command.ExecuteReader();
             if(!reader.Read()) return;
             invoiceId=reader.GetInt64(0); premiumRate=decimal.Parse(reader.GetString(1),CultureInfo.InvariantCulture);
-            taxRate=decimal.Parse(reader.GetString(2),CultureInfo.InvariantCulture); taxBasis=Enum.Parse<SalesTaxBasis>(reader.GetString(3));cardFee=decimal.Parse(reader.GetString(4),CultureInfo.InvariantCulture);
+            taxRate=decimal.Parse(reader.GetString(2),CultureInfo.InvariantCulture); taxBasis=Enum.Parse<SalesTaxBasis>(reader.GetString(3));cardFee=decimal.Parse(reader.GetString(4),CultureInfo.InvariantCulture);taxExempt=reader.GetInt32(5)!=0;
         }
         decimal hammer; decimal paid;
         using (var command=connection.CreateCommand())
@@ -1674,7 +1686,7 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
         hammer=decimal.Round(hammer,2,MidpointRounding.AwayFromZero);
         var premium=decimal.Round(hammer*premiumRate/100m,2,MidpointRounding.AwayFromZero);
         var taxable=taxBasis switch { SalesTaxBasis.None=>0m,SalesTaxBasis.HammerOnly=>hammer,SalesTaxBasis.HammerPlusBuyerPremium=>hammer+premium,_=>throw new InvalidOperationException("Invalid sales-tax basis.") };
-        var tax=decimal.Round(taxable*taxRate/100m,2,MidpointRounding.AwayFromZero); var total=hammer+premium+tax+cardFee;
+        var tax=taxExempt?0m:decimal.Round(taxable*taxRate/100m,2,MidpointRounding.AwayFromZero); var total=hammer+premium+tax+cardFee;
         var status=paid>=total && total>0 ? "Paid" : paid>0 ? "Partially Paid" : "Unpaid";
         using (var command=connection.CreateCommand())
         {
@@ -1807,7 +1819,7 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
         using var command = connection.CreateCommand();
         command.CommandText = """
             SELECT ab.AuctionBidderId,ab.AuctionId,ab.BuyerId,ab.BidderNumber,b.FirstName,b.LastName,b.DriversLicense,
-                   b.Address,b.City,b.State,b.Zip,b.Phone,b.Email,ab.Notes
+                   b.Address,b.City,b.State,b.Zip,b.Phone,b.Email,ab.Notes,b.ResaleLicenseNumber,b.ResaleLicenseState,b.TaxExempt
             FROM AuctionBidders ab JOIN Buyers b ON b.BuyerId=ab.BuyerId
             WHERE ab.AuctionId=$auctionId ORDER BY ab.BidderNumber;
             """;
@@ -1819,7 +1831,8 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
             {
                 AuctionBidderId=reader.GetInt64(0),AuctionId=reader.GetInt64(1),BuyerId=reader.GetInt64(2),BidderNumber=reader.GetInt32(3),
                 FirstName=reader.GetString(4),LastName=reader.GetString(5),DriversLicense=reader.GetString(6),Address=reader.GetString(7),
-                City=reader.GetString(8),State=reader.GetString(9),Zip=reader.GetString(10),Phone=reader.GetString(11),Email=reader.GetString(12),Notes=reader.GetString(13)
+                City=reader.GetString(8),State=reader.GetString(9),Zip=reader.GetString(10),Phone=reader.GetString(11),Email=reader.GetString(12),Notes=reader.GetString(13),
+                ResaleLicenseNumber=reader.GetString(14),ResaleLicenseState=reader.GetString(15),TaxExempt=reader.GetInt32(16)!=0
             });
         }
         return bidders;
@@ -1871,6 +1884,9 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
         command.Parameters.AddWithValue("$zip", bidder.Zip ?? string.Empty);
         command.Parameters.AddWithValue("$phone", bidder.Phone ?? string.Empty);
         command.Parameters.AddWithValue("$email", bidder.Email ?? string.Empty);
+        command.Parameters.AddWithValue("$resaleLicense",bidder.ResaleLicenseNumber??string.Empty);
+        command.Parameters.AddWithValue("$resaleState",bidder.ResaleLicenseState??string.Empty);
+        command.Parameters.AddWithValue("$buyerTaxExempt",bidder.TaxExempt?1:0);
         command.Parameters.AddWithValue("$created", now);
         command.Parameters.AddWithValue("$updated", now);
     }

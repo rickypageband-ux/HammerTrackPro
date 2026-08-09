@@ -15,6 +15,9 @@ public sealed class AuctionBidder
     public string Zip { get; set; } = string.Empty;
     public string Phone { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
+    public string ResaleLicenseNumber { get; set; } = string.Empty;
+    public string ResaleLicenseState { get; set; } = string.Empty;
+    public bool TaxExempt { get; set; }
     public string Notes { get; set; } = string.Empty;
     public string FullName => $"{FirstName} {LastName}".Trim();
 }

@@ -59,8 +59,17 @@ public sealed class CashierRegistrationViewModelTests
         using var form=new CashierRegistrationForm(new CashierRegistrationViewModel(false));
         var labels=form.Controls.Cast<Control>().SelectMany(Descendants).OfType<Label>().Select(x=>x.Text).ToList();
         Assert.Contains("Address (optional)",labels);Assert.Contains("Phone Number (optional)",labels);Assert.Contains("Email (optional)",labels);Assert.Contains("Driver's License Number (optional)",labels);
+        Assert.Contains("Resale / Tax Exemption Number",labels);Assert.Contains("Exemption State",labels);Assert.Contains("Tax-Exempt Status",labels);
         var buttons=form.Controls.Cast<Control>().SelectMany(Descendants).OfType<Button>().Select(button=>button.Text).ToList();
         Assert.DoesNotContain("Scan with Camera",buttons);Assert.Contains("Scan ID",buttons);Assert.Contains("Scan New ID",buttons);
+    }
+
+    [Fact]
+    public void BuyerRegistration_CarriesTaxExemptionInformation()
+    {
+        var viewModel=new CashierRegistrationViewModel(false);
+        viewModel.Create(88,"","Tax","Buyer","","",resaleLicenseNumber:"SC-88",resaleLicenseState:"SC",taxExempt:true);
+        Assert.True(viewModel.Buyer!.TaxExempt);Assert.Equal("SC-88",viewModel.Buyer.ResaleLicenseNumber);Assert.Equal("SC",viewModel.Buyer.ResaleLicenseState);
     }
 
     [Fact]

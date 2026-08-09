@@ -115,7 +115,7 @@ public sealed class CashierService : ICashierService
         ArgumentNullException.ThrowIfNull(correction);if(string.IsNullOrWhiteSpace(correction.Reason))throw new InvalidOperationException("A sale correction reason is required.");
         if(correction.BidderNumber is not null&&(correction.Quantity<=0||correction.HammerPrice<0))throw new InvalidOperationException("Replacement quantity must be positive and price cannot be negative.");
         var invoice=LoadInvoice(bidderNumber);var line=invoice.Purchases.SingleOrDefault(x=>x.SaleId==correction.SaleId)??throw new InvalidOperationException("Select a sale from this buyer's invoice.");
-        var staysWithBuyer=correction.BidderNumber==bidderNumber;var projectedHammer=invoice.HammerSubtotal-line.LineTotal+(staysWithBuyer?correction.Quantity*correction.HammerPrice:0m);var projectedPremium=Money(projectedHammer*invoice.BuyerPremiumPercent/100m);var projectedTaxable=invoice.SalesTaxBasis switch{SalesTaxBasis.None=>0m,SalesTaxBasis.HammerOnly=>projectedHammer,SalesTaxBasis.HammerPlusBuyerPremium=>projectedHammer+projectedPremium,_=>throw new InvalidOperationException("The auction sales-tax basis is invalid.")};var projectedTotal=projectedHammer+projectedPremium+Money(projectedTaxable*invoice.SalesTaxPercent/100m)+invoice.CreditCardFeeAmount;
+        var staysWithBuyer=correction.BidderNumber==bidderNumber;var projectedHammer=invoice.HammerSubtotal-line.LineTotal+(staysWithBuyer?correction.Quantity*correction.HammerPrice:0m);var projectedPremium=Money(projectedHammer*invoice.BuyerPremiumPercent/100m);var projectedTaxable=invoice.SalesTaxBasis switch{SalesTaxBasis.None=>0m,SalesTaxBasis.HammerOnly=>projectedHammer,SalesTaxBasis.HammerPlusBuyerPremium=>projectedHammer+projectedPremium,_=>throw new InvalidOperationException("The auction sales-tax basis is invalid.")};var projectedTotal=projectedHammer+projectedPremium+(invoice.BuyerTaxExempt?0m:Money(projectedTaxable*invoice.SalesTaxPercent/100m))+invoice.CreditCardFeeAmount;
         if(invoice.AmountPaid>projectedTotal)throw new InvalidOperationException($"Record a refund of at least {invoice.AmountPaid-projectedTotal:C2} before reducing, removing, or moving this paid sale.");
         var updated=_dataStore.CorrectInvoiceSale(bidderNumber,correction);Recalculate(updated);return updated;
     }
@@ -131,7 +131,7 @@ public sealed class CashierService : ICashierService
             SalesTaxBasis.HammerPlusBuyerPremium => invoice.HammerSubtotal + invoice.BuyerPremiumAmount,
             _ => throw new InvalidOperationException("The auction sales-tax basis is invalid.")
         };
-        invoice.SalesTaxAmount = Money(taxable * invoice.SalesTaxPercent / 100m);
+        invoice.SalesTaxAmount = invoice.BuyerTaxExempt?0m:Money(taxable * invoice.SalesTaxPercent / 100m);
         invoice.CreditCardFeeAmount=Money(invoice.Payments.Sum(item=>item.ProcessingFee));
         invoice.TotalAmount = invoice.HammerSubtotal + invoice.BuyerPremiumAmount + invoice.SalesTaxAmount+invoice.CreditCardFeeAmount;
         invoice.AmountPaid = Money(invoice.Payments.Sum(item => item.AppliedAmount)-invoice.Refunds.Sum(item=>item.Amount));

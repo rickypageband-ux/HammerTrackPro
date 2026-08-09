@@ -50,7 +50,7 @@ public sealed class CashierViewModel
             HammerSubtotal=invoice.HammerSubtotal,BuyerPremiumAmount=invoice.BuyerPremiumAmount,SalesTaxAmount=invoice.SalesTaxAmount,
             CreditCardFeeAmount=invoice.CreditCardFeeAmount+previewFee,TotalAmount=invoice.TotalAmount+previewFee,
             AmountPaid=invoice.AmountPaid,BalanceDue=invoice.BalanceDue+previewFee,Status=invoice.Status,
-            CreatedUtc=invoice.CreatedUtc,UpdatedUtc=invoice.UpdatedUtc,Purchases=invoice.Purchases.ToList(),Payments=invoice.Payments.ToList()
+            CreatedUtc=invoice.CreatedUtc,UpdatedUtc=invoice.UpdatedUtc,BuyerTaxExempt=invoice.BuyerTaxExempt,BuyerResaleLicenseNumber=invoice.BuyerResaleLicenseNumber,BuyerResaleLicenseState=invoice.BuyerResaleLicenseState,Purchases=invoice.Purchases.ToList(),Payments=invoice.Payments.ToList()
         };
     }
     public void RemovePayment(PaymentRequest payment) => PendingPayments.Remove(payment);

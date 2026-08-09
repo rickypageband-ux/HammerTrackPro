@@ -46,6 +46,9 @@ public sealed class MainForm : Form
     private readonly TextBox _zip = new();
     private readonly TextBox _phone = new();
     private readonly TextBox _email = new();
+    private readonly TextBox _resaleLicenseNumber = new();
+    private readonly TextBox _resaleLicenseState = new();
+    private readonly CheckBox _buyerTaxExempt = new() { Text="Tax exempt",AutoSize=true };
     private readonly TextBox _notes = new();
 
     private readonly NumericUpDown _lotNumber = new();
@@ -331,6 +334,9 @@ public sealed class MainForm : Form
         AddRow(form, "ZIP", _zip);
         AddRow(form, "Phone", _phone);
         AddRow(form, "Email", _email);
+        AddRow(form, "Resale / Tax ID", _resaleLicenseNumber);
+        AddRow(form, "Exemption State", _resaleLicenseState);
+        AddRow(form, "Tax-Exempt Status", _buyerTaxExempt);
         _notes.Multiline = true;
         _notes.Height = 80;
         AddRow(form, "Notes", _notes);
@@ -590,7 +596,7 @@ public sealed class MainForm : Form
         _existingBuyer.SelectedIndex = 0;
         _bidderNumber.Value = _data.Bidders.Count == 0 ? 1 : _data.Bidders.Max(b => b.BidderNumber) + 1;
         _firstName.Clear(); _lastName.Clear(); _driversLicense.Clear(); _address.Clear(); _city.Clear();
-        _state.Clear(); _zip.Clear(); _phone.Clear(); _email.Clear(); _notes.Clear();
+        _state.Clear(); _zip.Clear(); _phone.Clear(); _email.Clear();_resaleLicenseNumber.Clear();_resaleLicenseState.Clear();_buyerTaxExempt.Checked=false; _notes.Clear();
         _firstName.Focus();
     }
 
@@ -618,6 +624,9 @@ public sealed class MainForm : Form
         bidder.Zip = _zip.Text.Trim();
         bidder.Phone = _phone.Text.Trim();
         bidder.Email = _email.Text.Trim();
+        bidder.ResaleLicenseNumber = _resaleLicenseNumber.Text.Trim();
+        bidder.ResaleLicenseState = _resaleLicenseState.Text.Trim();
+        bidder.TaxExempt = _buyerTaxExempt.Checked;
         bidder.Notes = _notes.Text.Trim();
 
         _service.SaveBidder(bidder, _editingBidderNumber);
@@ -671,6 +680,9 @@ public sealed class MainForm : Form
         _zip.Text = bidder.Zip;
         _phone.Text = bidder.Phone;
         _email.Text = bidder.Email;
+        _resaleLicenseNumber.Text=bidder.ResaleLicenseNumber;
+        _resaleLicenseState.Text=bidder.ResaleLicenseState;
+        _buyerTaxExempt.Checked=bidder.TaxExempt;
         _notes.Text = bidder.Notes;
     }
 
@@ -679,7 +691,7 @@ public sealed class MainForm : Form
         if (_existingBuyer.SelectedItem is not Buyer buyer || buyer.BuyerId == 0) return;
         _firstName.Text=buyer.FirstName; _lastName.Text=buyer.LastName; _driversLicense.Text=buyer.DriversLicense;
         _address.Text=buyer.Address; _city.Text=buyer.City; _state.Text=buyer.State; _zip.Text=buyer.Zip;
-        _phone.Text=buyer.Phone; _email.Text=buyer.Email;
+        _phone.Text=buyer.Phone; _email.Text=buyer.Email;_resaleLicenseNumber.Text=buyer.ResaleLicenseNumber;_resaleLicenseState.Text=buyer.ResaleLicenseState;_buyerTaxExempt.Checked=buyer.TaxExempt;
     }
 
     private void NewLot()

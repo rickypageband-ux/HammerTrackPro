@@ -11,6 +11,9 @@ public sealed class Invoice
     public string BuyerAddress { get; set; } = string.Empty;
     public string BuyerPhone { get; set; } = string.Empty;
     public string BuyerEmail { get; set; } = string.Empty;
+    public bool BuyerTaxExempt { get; set; }
+    public string BuyerResaleLicenseNumber { get; set; } = string.Empty;
+    public string BuyerResaleLicenseState { get; set; } = string.Empty;
     public decimal BuyerPremiumPercent { get; set; }
     public decimal SalesTaxPercent { get; set; }
     public SalesTaxBasis SalesTaxBasis { get; set; }
