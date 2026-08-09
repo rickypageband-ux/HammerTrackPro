@@ -47,15 +47,7 @@ public sealed class CashierForm : Form
         lookup.Controls.Add(new Label { Text="Auction Bidder Number",AutoSize=true }); lookup.Controls.Add(_bidderNumber);
         lookup.Controls.Add(Button("Lookup Buyer",Lookup)); lookup.Controls.Add(Button("Add Buyer",RegisterBuyer)); lookup.Controls.Add(Button("Add Seller",RegisterConsignor)); lookup.Controls.Add(Button("Bidder Cards",ShowBidderCards)); lookup.Controls.Add(Button("Correct Sale",CorrectSale)); lookup.Controls.Add(Button("Refund",RecordRefund)); lookup.Controls.Add(Button("Unpaid Buyers",ShowUnpaid)); lookup.Controls.Add(Button("End-of-Night",()=>{using var f=new AuctionSettlementForm(_cashierService);f.ShowDialog(this);})); lookup.Controls.Add(Button("Print Invoice",PrintInvoice));
         if(configuration is not null) lookup.Controls.Add(Button("Network Setup",OpenNetworkSetup));
-        var paymentEntry=ActionFlow();
-        paymentEntry.Controls.Add(new Label { Text="Method",AutoSize=true }); paymentEntry.Controls.Add(_method);
-        paymentEntry.Controls.Add(new Label { Text="Invoice Amount (before card fee)",AutoSize=true }); paymentEntry.Controls.Add(_amount);
-        paymentEntry.Controls.Add(new Label { Text="Cash Tendered",AutoSize=true }); paymentEntry.Controls.Add(_cashTendered);
-        paymentEntry.Controls.Add(new Label { Text="Change Due",AutoSize=true }); paymentEntry.Controls.Add(_changeDue);
-        paymentEntry.Controls.Add(new Label { Text="Check/Card Reference",AutoSize=true }); paymentEntry.Controls.Add(_reference);
-        paymentEntry.Controls.Add(_paymentPreview);
-        paymentEntry.Controls.Add(Button("Add Payment",AddPayment)); paymentEntry.Controls.Add(Button("Remove Selected",RemovePayment));
-        paymentEntry.Controls.Add(Button("Record Payments",RecordPayments));
+        var paymentEntry=BuildPaymentEntry();
         var tabs=new TabControl { Dock=DockStyle.Fill,Font=new Font("Segoe UI",10F,FontStyle.Bold),Padding=new Point(18,8) };
         tabs.TabPages.Add(Page("Purchases",_purchases)); tabs.TabPages.Add(Page("Payment History",_payments)); tabs.TabPages.Add(Page("Pending Split Payments",_pending));
         tabs.TabPages.Add(Page("Refund History",_refunds));
@@ -80,6 +72,22 @@ public sealed class CashierForm : Form
 
     private Control BuildHeader(){var panel=new Panel{Dock=DockStyle.Fill,BackColor=Navy,Padding=new Padding(20,10,16,10)};var brand=new Label{Text="HAMMERTRACK PRO",Dock=DockStyle.Left,Width=290,TextAlign=ContentAlignment.MiddleLeft,Font=new Font("Segoe UI",20F,FontStyle.Bold),ForeColor=Color.White};var subtitle=new Label{Text="AUCTION CASHIER",Dock=DockStyle.Left,Width=210,TextAlign=ContentAlignment.MiddleLeft,Font=new Font("Segoe UI",11F,FontStyle.Bold),ForeColor=Gold};StyleButton(_fullScreenButton,true);_fullScreenButton.Dock=DockStyle.Right;_connection.Dock=DockStyle.Right;_connection.Width=220;_connection.TextAlign=ContentAlignment.MiddleCenter;_connection.Font=new Font("Segoe UI",10F,FontStyle.Bold);panel.Controls.Add(_fullScreenButton);panel.Controls.Add(_connection);panel.Controls.Add(subtitle);panel.Controls.Add(brand);return panel;}
     private static FlowLayoutPanel ActionFlow()=>new(){Dock=DockStyle.Fill,AutoSize=true,WrapContents=true,Padding=new Padding(6),BackColor=Color.White};
+    private Control BuildPaymentEntry()
+    {
+        var fields=ActionFlow();
+        fields.Controls.Add(new Label { Text="Method",AutoSize=true });fields.Controls.Add(_method);
+        fields.Controls.Add(new Label { Text="Invoice Amount (before card fee)",AutoSize=true });fields.Controls.Add(_amount);
+        fields.Controls.Add(new Label { Text="Cash Tendered",AutoSize=true });fields.Controls.Add(_cashTendered);
+        fields.Controls.Add(new Label { Text="Change Due",AutoSize=true });fields.Controls.Add(_changeDue);
+        fields.Controls.Add(new Label { Text="Check/Card Reference",AutoSize=true });fields.Controls.Add(_reference);
+        var actions=new FlowLayoutPanel{Dock=DockStyle.Right,Width=466,WrapContents=false,FlowDirection=FlowDirection.LeftToRight,Padding=new Padding(0,1,0,1),BackColor=Color.White};
+        actions.Controls.Add(Button("Add Payment",AddPayment));actions.Controls.Add(Button("Remove Selected",RemovePayment));actions.Controls.Add(Button("Record Payments",RecordPayments));
+        var actionBand=new Panel{Dock=DockStyle.Fill,Height=54,BackColor=Color.White,Padding=new Padding(6,0,0,0)};
+        _paymentPreview.Dock=DockStyle.Fill;_paymentPreview.TextAlign=ContentAlignment.MiddleLeft;_paymentPreview.AutoEllipsis=true;
+        actionBand.Controls.Add(_paymentPreview);actionBand.Controls.Add(actions);
+        var layout=new TableLayoutPanel{Dock=DockStyle.Fill,AutoSize=true,RowCount=2,ColumnCount=1,BackColor=Color.White};
+        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));layout.RowStyles.Add(new RowStyle(SizeType.Absolute,54));layout.Controls.Add(fields,0,0);layout.Controls.Add(actionBand,0,1);return layout;
+    }
     private static Control Band(string title,Control content){var panel=new Panel{Dock=DockStyle.Fill,AutoSize=true,BackColor=Color.White,Padding=new Padding(6,4,6,4),Margin=new Padding(0,8,0,0)};panel.Controls.Add(content);panel.Controls.Add(new Label{Text=title,Dock=DockStyle.Left,Width=120,TextAlign=ContentAlignment.MiddleLeft,Font=new Font("Segoe UI",10F,FontStyle.Bold),ForeColor=Navy});return panel;}
     private static TabPage Page(string name,Control content) { var page=new TabPage(name){BackColor=Color.White,Padding=new Padding(6)}; page.Controls.Add(content); return page; }
     private static Button Button(string text,Action action) { var button=new Button { Text=text };StyleButton(button);button.Click+=(_,_)=>Execute(action); return button; }

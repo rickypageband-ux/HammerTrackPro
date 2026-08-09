@@ -243,3 +243,7 @@ Status: Cashier and the approved closed-auction consignor payout extension are i
 - Start duplicated auctions without lots, sales, payments, refunds, or prior invoice balances; copied registrations receive fresh zero-dollar invoices.
 - Keep seller copying as an independent option.
 - Package the update as version 0.7.41.
+
+## Cashier payment visibility
+
+- Keep Add Payment, Remove Selected, and Record Payments together in a reserved non-wrapping cashier row after buyer lookup.

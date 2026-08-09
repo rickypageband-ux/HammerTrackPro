@@ -1,6 +1,7 @@
 using HammerTrackPro2.Models;
 using HammerTrackPro2.Forms;
 using HammerTrackPro2.ViewModels;
+using HammerTrackPro2.Services;
 using System.Windows.Forms;
 
 namespace HammerTrackPro2.Tests;
@@ -62,10 +63,39 @@ public sealed class CashierRegistrationViewModelTests
         Assert.DoesNotContain("Scan with Camera",buttons);Assert.Contains("Scan ID",buttons);Assert.Contains("Scan New ID",buttons);
     }
 
+    [Fact]
+    public void CashierPaymentActions_StayTogetherInAReservedNonWrappingRow()
+    {
+        var service=new CashierFormService();
+        using var form=new CashierForm(new CashierViewModel(service),service);
+        var record=form.Controls.Cast<Control>().SelectMany(Descendants).OfType<Button>().Single(x=>x.Text=="Record Payments");
+        var actions=Assert.IsType<FlowLayoutPanel>(record.Parent);
+        Assert.False(actions.WrapContents);
+        Assert.Equal(3,actions.Controls.OfType<Button>().Count());
+        Assert.True(actions.Width>=450);
+    }
+
     private static IEnumerable<Control> Descendants(Control control)
     {
         yield return control;
         foreach(Control child in control.Controls)
             foreach(var descendant in Descendants(child))yield return descendant;
+    }
+
+    private sealed class CashierFormService : ICashierService
+    {
+        public Auction GetCurrentAuction()=>new(){AuctionNumber="1",AuctionName="Test"};
+        public Invoice LoadInvoice(int bidderNumber)=>throw new NotSupportedException();
+        public Invoice RecordPayments(int bidderNumber,IReadOnlyList<PaymentRequest> payments)=>throw new NotSupportedException();
+        public Invoice RegisterBuyer(AuctionBidder bidder)=>throw new NotSupportedException();
+        public IReadOnlyList<RegisteredBidderSummary> GetRegisteredBidders()=>[];
+        public ConsignorSettlement LoadConsignorSettlement(int consignorNumber)=>throw new NotSupportedException();
+        public ConsignorSettlement RecordConsignorPayout(int consignorNumber,ConsignorPayoutRequest payout)=>throw new NotSupportedException();
+        public ConsignorSettlement RegisterConsignor(Consignor consignor)=>throw new NotSupportedException();
+        public IReadOnlyList<UnpaidInvoiceSummary> GetUnpaidInvoices()=>[];
+        public AuctionSettlementReport GetAuctionSettlementReport()=>throw new NotSupportedException();
+        public StaffPayment RecordStaffPayment(StaffPayment payment)=>throw new NotSupportedException();
+        public StaffPayment VoidStaffPayment(long staffPaymentId,string reason,StaffPayment? replacement)=>throw new NotSupportedException();
+        public Task<bool> CheckConnectionAsync(CancellationToken cancellationToken=default)=>Task.FromResult(true);
     }
 }
