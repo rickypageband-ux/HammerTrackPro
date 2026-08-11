@@ -10,6 +10,30 @@ namespace HammerTrackPro2.Tests;
 public sealed class LiveAuctionViewModelTests
 {
     [Fact]
+    public void PassOutEntryState_LocksLotIdentityAndPriceButKeepsBuyerEntryOpen()
+    {
+        using var database=TemporaryDatabase.Create();var store=new SqliteDataStore(database.Path);var service=new AuctionService(store);
+        var viewModel=new LiveAuctionViewModel(service,new ConsignorService(store));
+        var passOut=viewModel.GetEntryState(true);var standard=viewModel.GetEntryState(false);
+        Assert.False(passOut.CanChangeSeller);Assert.False(passOut.CanChangeDescription);Assert.False(passOut.CanChangeLot);Assert.False(passOut.CanChangeHammerPrice);
+        Assert.True(passOut.CanChangeBidder);Assert.True(passOut.CanChangeQuantity);
+        Assert.True(standard.CanChangeSeller);Assert.True(standard.CanChangeDescription);Assert.True(standard.CanChangeLot);Assert.True(standard.CanChangeHammerPrice);
+    }
+
+    [Fact]
+    public void LiveAuction_PassOutModeLocksFixedFieldsAndFocusesBidder()
+    {
+        using var database=TemporaryDatabase.Create();var store=new SqliteDataStore(database.Path);var service=new AuctionService(store);
+        using var form=new LiveAuctionForm(service,new LiveAuctionViewModel(service,new ConsignorService(store)));form.Show();
+        var controls=form.Controls.Cast<Control>().SelectMany(Descendants).ToList();var passOut=Assert.Single(controls.OfType<CheckBox>(),x=>x.Text.StartsWith("PASS-OUT MODE"));
+        passOut.Checked=true;Application.DoEvents();
+        Assert.False(Assert.Single(controls.OfType<Button>(),x=>x.Text=="CREATE LOT").Enabled);
+        var labels=controls.OfType<Label>().Where(x=>new[]{"Lot Number","Hammer Price (each)","Bidder Number","Quantity"}.Contains(x.Text)).ToList();
+        NumericUpDown Input(string caption){var label=labels.Single(x=>x.Text==caption);var layout=Assert.IsType<TableLayoutPanel>(label.Parent);return Assert.IsType<NumericUpDown>(layout.GetControlFromPosition(1,layout.GetRow(label)));}
+        Assert.False(Input("Lot Number").Enabled);Assert.False(Input("Hammer Price (each)").Enabled);Assert.True(Input("Bidder Number").Enabled);Assert.True(Input("Quantity").Enabled);Assert.True(Input("Bidder Number").Focused);
+    }
+
+    [Fact]
     public void LiveAuction_ActionButtonsUseFullWidthEqualColumnLayout()
     {
         using var database=TemporaryDatabase.Create();var store=new SqliteDataStore(database.Path);var service=new AuctionService(store);

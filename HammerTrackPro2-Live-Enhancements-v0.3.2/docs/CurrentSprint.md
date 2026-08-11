@@ -1,5 +1,13 @@
 # Current Sprint
 
+## Pass-out clerk workflow
+
+- While Pass-Out Mode is active, Seller, Lot Number, Item Description, and Hammer Price remain locked.
+- Keyboard entry is Bidder Number, Tab, Quantity, Enter; after recording, focus returns to Bidder Number for the next buyer.
+- Create Lot, Pass Item, and next-lot shortcuts cannot advance away from an active pass-out lot.
+- Close Lot is the deliberate action that unlocks the fixed fields and advances to the next lot.
+- Package this workflow correction as upgrade version 0.7.45.
+
 ## Buyer tax exemption and seller bidder traceability
 
 - Buyer registration provides optional Resale License / Tax Exemption Number, State, and Tax Exempt fields on both registration entry points.

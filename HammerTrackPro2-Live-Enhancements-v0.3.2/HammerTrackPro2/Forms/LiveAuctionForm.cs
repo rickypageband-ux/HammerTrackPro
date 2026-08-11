@@ -30,6 +30,7 @@ public sealed class LiveAuctionForm : Form
     private readonly Button _passLot = new();
     private readonly Button _undoLastSale = new();
     private readonly Button _fullScreenButton = new();
+    private readonly Button _createLot = new();
     private Sale? _lastSale;
     private int _lastBidderNumber;
     private bool _fullScreen;
@@ -127,7 +128,7 @@ public sealed class LiveAuctionForm : Form
         _quickDescription.TabIndex=1;
         _quickDescription.KeyDown+=(_,e)=>{if(e.KeyCode==Keys.Enter){QuickAddLot();e.SuppressKeyPress=true;}};
         panel.Controls.Add(_quickDescription,3,0);
-        var add=new Button(); ConfigureButton(add,"CREATE LOT",(_,_)=>QuickAddLot(),true);add.MinimumSize=new Size(150,48);add.Width=150;add.TabStop=false;panel.Controls.Add(add,4,0);
+        ConfigureButton(_createLot,"CREATE LOT",(_,_)=>QuickAddLot(),true);_createLot.MinimumSize=new Size(150,48);_createLot.Width=150;_createLot.TabStop=false;panel.Controls.Add(_createLot,4,0);
         return panel;
     }
 
@@ -331,6 +332,7 @@ public sealed class LiveAuctionForm : Form
 
     private void QuickAddLot()
     {
+        if(_passOutMode.Checked){ShowStatus("Close the current pass-out lot before creating another lot.",false);return;}
         try
         {
             var previousLot=Decimal.ToInt32(_lotNumber.Value);
@@ -346,6 +348,7 @@ public sealed class LiveAuctionForm : Form
 
     private void PassCurrentLot()
     {
+        if(_passOutMode.Checked){ShowStatus("Close the current pass-out lot before advancing.",false);return;}
         var lotNumber=Decimal.ToInt32(_lotNumber.Value);
         if(lotNumber<=0){ShowStatus("Enter or create a valid lot before passing it.",false);return;}
         if(MessageBox.Show($"Mark Lot #{lotNumber} as Passed and advance to the next item?","Pass Item",MessageBoxButtons.YesNo,MessageBoxIcon.Question)!=DialogResult.Yes)return;
@@ -457,6 +460,7 @@ public sealed class LiveAuctionForm : Form
 
     private void AdvanceToNextLot()
     {
+        if(_passOutMode.Checked){ShowStatus("Close the current pass-out lot before advancing.",false);_bidderNumber.Focus();return;}
         _quickDescription.Clear();
         var queued = Decimal.ToInt32(_queuedLot.Value);
         if (queued > 0)
@@ -528,12 +532,22 @@ public sealed class LiveAuctionForm : Form
 
     private void UpdateModeDisplay()
     {
+        var entryState=_viewModel.GetEntryState(_passOutMode.Checked);
+        _quickConsignorNumber.Enabled=entryState.CanChangeSeller;
+        _quickDescription.ReadOnly=!entryState.CanChangeDescription;
+        _createLot.Enabled=entryState.CanChangeDescription;
+        _lotNumber.Enabled=entryState.CanChangeLot;
+        _hammerPrice.Enabled=entryState.CanChangeHammerPrice;
+        _bidderNumber.Enabled=entryState.CanChangeBidder;
+        _quantity.Enabled=entryState.CanChangeQuantity;
+        _passLot.Enabled=!_passOutMode.Checked;
         if (_passOutMode.Checked)
         {
             _modeLabel.Text = "PASS-OUT MODE — lot and price stay open for additional buyers";
             _modeLabel.BackColor = Color.FromArgb(255, 235, 180);
             _modeLabel.ForeColor = Color.FromArgb(105, 65, 0);
             _completeSale.Text = "RECORD BUYER  (Enter)";
+            BeginInvoke(()=>{_bidderNumber.Focus();_bidderNumber.Select(0,_bidderNumber.Text.Length);});
         }
         else
         {

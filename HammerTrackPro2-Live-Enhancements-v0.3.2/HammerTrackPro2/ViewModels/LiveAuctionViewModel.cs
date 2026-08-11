@@ -41,4 +41,16 @@ public sealed class LiveAuctionViewModel
     }
 
     public void PassLot(int lotNumber)=>_auctionService.PassLot(lotNumber);
+
+    public LiveAuctionEntryState GetEntryState(bool passOutMode)=>passOutMode
+        ? new(false,false,false,false,true,true)
+        : new(true,true,true,true,true,true);
 }
+
+public sealed record LiveAuctionEntryState(
+    bool CanChangeSeller,
+    bool CanChangeDescription,
+    bool CanChangeLot,
+    bool CanChangeHammerPrice,
+    bool CanChangeBidder,
+    bool CanChangeQuantity);
