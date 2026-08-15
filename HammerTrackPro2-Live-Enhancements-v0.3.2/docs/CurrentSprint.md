@@ -1,5 +1,11 @@
 # Current Sprint
 
+## Wholesale Machine ID copy action
+
+- Show the Wholesale activation Machine ID in a read-only selectable field with a one-click Copy Machine ID button.
+- Preserve all Wholesale activation, live-entry, pass-out, calculation, persistence, invoice, and reporting behavior unchanged.
+- Package this owner-approved convenience update as version 0.7.48.
+
 ## Self-hosted product website
 
 - Rebuild the HammerTrack Pro marketing site as a portable PHP site for owner-managed Ubuntu/Plesk hosting.
