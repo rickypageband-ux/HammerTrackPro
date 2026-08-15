@@ -9,3 +9,11 @@ footer{padding:55px 24px 35px;background:#080808;color:#aaa;text-align:center;bo
 @media(max-width:760px){.site-header{height:78px}.brand-logo{width:185px;height:66px}.site-nav{display:none;position:absolute;top:78px;left:0;right:0;flex-direction:column;align-items:stretch;background:#fff;padding:22px;box-shadow:0 18px 40px rgba(0,0,0,.16)}.site-nav.open{display:flex}.nav-toggle{display:block}.site-nav .nav-cta{text-align:center}.hero,.section,.workflow-section,.contact-section,.pricing-page{padding:72px 20px}.hero{background:linear-gradient(160deg,#fff 0%,#fff 50%,#ededed 50%,#ddd 100%)}.hero h1{font-size:clamp(2.8rem,14vw,4.8rem)}.hero-stage{min-height:480px}.hero-logo{width:115%;top:0}.live-card{margin-top:150px}.feature-grid{grid-template-columns:1fr}.brand-band{gap:12px;flex-wrap:wrap}.brand-band i{display:none}.brand-band p{flex:1 1 40%;text-align:center}.proof-strip{display:grid;gap:6px}.contact-form{grid-template-columns:1fr;padding:25px}.contact-form label{grid-column:1/-1}.plan-card{padding:30px 24px}.plan-price{font-size:3.2rem}.pricing-note{align-items:flex-start;flex-direction:column;padding:32px}.pricing-hero{padding:75px 20px}.pricing-teaser{padding:55px 20px}}
 @media(max-width:430px){.live-card{width:100%;padding:20px}.live-lot strong{font-size:3.6rem}.live-stats b{font-size:.98rem}.hero-stage{min-height:430px}.hero-logo{top:10px}.pricing-hero h1{font-size:2.55rem}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.button,.feature-grid article{transition:none}}
+
+/* Keep the supplied logo and live-auction preview in separate layout rows. */
+.hero-stage{min-height:650px;flex-direction:column;gap:22px;padding:10px 0}
+.hero-logo{position:relative;top:auto;right:auto;transform:none;width:min(630px,110%)}
+.live-card{margin-top:0;flex:none}
+.package-disclaimer{margin:-2px 0 20px;padding:13px 14px;background:#f7eeee;border-left:3px solid var(--red);color:#5a3030;font-size:.78rem;line-height:1.45}
+@media(max-width:760px){.hero-stage{min-height:560px;gap:12px}.hero-logo{width:110%;top:auto}.live-card{margin-top:0}}
+@media(max-width:430px){.hero-stage{min-height:480px}.hero-logo{top:auto}}

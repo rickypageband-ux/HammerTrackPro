@@ -42,8 +42,9 @@ $contactEmail = trim((string)($config['contact_email'] ?? 'Info@rpdavid.com'));
 
         <article class="plan-card featured">
           <div class="popular">Complete solution</div>
-          <div><p class="plan-label">Whole package</p><h2>Whole Package</h2><div class="plan-price"><sup>$</sup>2,500<span>.00</span></div><p class="price-note">Contact us to confirm the included scope</p></div>
-          <ul><li>Built around your auction workflow</li><li>Direct setup coordination</li><li>Personal implementation guidance</li><li>One point of contact</li></ul>
+          <div><p class="plan-label">Whole package</p><h2>Whole Package</h2><div class="plan-price"><sup>$</sup>2,500<span>.00</span></div><p class="price-note">Equipment, South Carolina setup, and training</p></div>
+          <ul><li>2 laptops</li><li>1 laser printer</li><li>1 NETUM scanner</li><li>1 network router</li><li>On-site setup in South Carolina</li><li>1 hour of training</li></ul>
+          <p class="package-disclaimer">Service, setup, and training outside South Carolina may require additional fees.</p>
           <a class="button button-red" href="index.php?topic=Whole+Package#contact">Request Whole Package</a>
         </article>
 

@@ -5,6 +5,9 @@ This directory is a self-contained PHP website intended for an Ubuntu server man
 The site uses the supplied HammerTrack Pro logo throughout and includes a
 dedicated pricing page for Auction Software, the Whole Package, the Wholesale
 Auction upgrade, Yearly Updates, Hourly Support, and quoted feature requests.
+The Whole Package lists two laptops, one laser printer, one NETUM scanner, one
+network router, on-site setup in South Carolina, and one hour of training.
+Service, setup, and training outside South Carolina may require additional fees.
 
 ## Configure
 
