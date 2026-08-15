@@ -1,5 +1,11 @@
 # Current Sprint
 
+## Software license and ownership terms
+
+- Replace the installer agreement with the owner-approved eight-section Hammer Track Pro Software License and Ownership Terms without adding or removing substantive provisions.
+- Continue requiring explicit acceptance in the WiX installation workflow.
+- Package the agreement update as version 0.7.49.
+
 ## Wholesale Machine ID copy action
 
 - Show the Wholesale activation Machine ID in a read-only selectable field with a one-click Copy Machine ID button.

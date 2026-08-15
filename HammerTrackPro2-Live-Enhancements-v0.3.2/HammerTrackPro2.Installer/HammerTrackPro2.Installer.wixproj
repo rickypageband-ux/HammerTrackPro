@@ -3,7 +3,7 @@
     <OutputType>Package</OutputType>
     <Platform>x64</Platform>
     <InstallerPlatform>x64</InstallerPlatform>
-    <ProductVersion>0.7.48</ProductVersion>
+    <ProductVersion>0.7.49</ProductVersion>
     <OutputName>HammerTrackPro-$(ProductVersion)-x64</OutputName>
     <PublishDir>$(MSBuildThisFileDirectory)obj\$(Configuration)\publish\win-x64\</PublishDir>
     <DefineConstants>PublishDir=$(PublishDir);ProductVersion=$(ProductVersion)</DefineConstants>

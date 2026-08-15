@@ -17,7 +17,7 @@ OUT=ROOT/'output'/'pdf'/'HammerTrackPro-User-Manual.pdf'
 ASSETS=ROOT/'output'/'manual-assets'
 ANNOTATED=ROOT/'tmp'/'manual-annotated'
 LOGO=ROOT/'HammerTrackPro2'/'Assets'/'HammerTrackPro.png'
-VERSION='0.7.48'
+VERSION='0.7.49'
 NAVY=colors.HexColor('#18324A'); BLUE=colors.HexColor('#186096'); GOLD=colors.HexColor('#E0A836')
 PALE=colors.HexColor('#F2F5F8'); LIGHTBLUE=colors.HexColor('#E7F1F8'); WARN=colors.HexColor('#FFF4D6')
 RED=colors.HexColor('#A52A2A'); GREEN=colors.HexColor('#1F6B3B'); GRAY=colors.HexColor('#5C6670')
