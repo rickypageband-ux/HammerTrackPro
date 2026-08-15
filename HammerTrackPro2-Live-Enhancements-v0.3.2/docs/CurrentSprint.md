@@ -3,6 +3,8 @@
 ## Self-hosted product website
 
 - Rebuild the HammerTrack Pro marketing site as a portable PHP site for owner-managed Ubuntu/Plesk hosting.
+- Apply the owner-provided HammerTrack Pro logo and its black, white, and red visual identity across the home and pricing pages.
+- Publish a dedicated pricing page for Auction Software ($999), Whole Package ($2,500), Wholesale Auction upgrade ($299), Yearly Updates ($199), Hourly Support ($100/hour), and upgrades or feature requests quoted per request.
 - Present the licensed Wholesale Auction module as a one-time $299 upgrade and accurately describe its machine-bound offline activation.
 - Support a configurable hosted checkout URL with a sales-request fallback; do not claim payment completion when no processor is configured.
 - Keep all license-signing secrets and issuer tooling off the web server.

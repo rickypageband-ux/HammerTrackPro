@@ -10,3 +10,10 @@ if (toggle && nav) {
     toggle.setAttribute('aria-expanded', 'false');
   });
 }
+
+const topic = new URLSearchParams(window.location.search).get('topic');
+const topicSelect = document.querySelector('#topic');
+if (topic && topicSelect) {
+  const matchingOption = [...topicSelect.options].find(option => option.value === topic);
+  if (matchingOption) topicSelect.value = topic;
+}

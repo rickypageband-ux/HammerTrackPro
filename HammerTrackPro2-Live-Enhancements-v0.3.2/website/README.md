@@ -2,6 +2,10 @@
 
 This directory is a self-contained PHP website intended for an Ubuntu server managed by Plesk. It does not depend on a third-party application host or database.
 
+The site uses the supplied HammerTrack Pro logo throughout and includes a
+dedicated pricing page for Auction Software, the Whole Package, the Wholesale
+Auction upgrade, Yearly Updates, Hourly Support, and quoted feature requests.
+
 ## Configure
 
 The included `config.php` sends website requests to `Info@rpdavid.com`. The
@@ -17,7 +21,7 @@ setting later without rebuilding the website.
 4. Visit `/health.php`; it should return `{"status":"ok","service":"hammertrackpro.com"}`.
 5. Submit one test contact request and confirm delivery at `Info@rpdavid.com`. Plesk mail may require the domain's SPF/DKIM records and a local `no-reply` mailbox or an SMTP relay.
 
-Before publishing, run `php tests/site_test.php` and PHP's syntax check against each `.php` file. The test confirms the $299 offer, safe order-request fallback, Machine ID field, and activation wording.
+Before publishing, run `php tests/site_test.php` and PHP's syntax check against each `.php` file. The test confirms the brand asset, every published price, the request workflow, and the Machine ID field.
 
 ## Checkout and fulfillment
 

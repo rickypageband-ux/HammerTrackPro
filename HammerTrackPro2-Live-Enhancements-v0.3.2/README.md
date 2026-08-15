@@ -81,7 +81,7 @@ The host database defaults to `%ProgramData%\HammerTrackPro\hammertrack.db`. Wor
 
 ## Website
 
-The self-hosted product website is in `website/`. It is a lightweight PHP site for Ubuntu/Plesk and includes the optional Wholesale Auction module at a one-time price of $299. The purchase action can use a configured hosted checkout link or fall back to a sales request form. Deployment and uptime-monitoring instructions are in `website/README.md`; the private license-signing key and issuer utility must never be deployed with the website.
+The self-hosted product website is in `website/`. It is a branded, lightweight PHP site for Ubuntu/Plesk with dedicated home and pricing pages. Published offers include Auction Software ($999), the Whole Package ($2,500), the optional Wholesale Auction module ($299), Yearly Updates ($199), Hourly Support ($100/hour), and custom upgrades quoted per request. All actions currently use a sales-request form; a configured hosted checkout link can be added later. Deployment and uptime-monitoring instructions are in `website/README.md`; the private license-signing key and issuer utility must never be deployed with the website.
 
 ## Current boundaries
 
