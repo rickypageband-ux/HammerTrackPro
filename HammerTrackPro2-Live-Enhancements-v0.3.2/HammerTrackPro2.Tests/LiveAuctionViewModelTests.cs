@@ -10,6 +10,41 @@ namespace HammerTrackPro2.Tests;
 public sealed class LiveAuctionViewModelTests
 {
     [Fact]
+    public void WholesaleCalculation_MultipliesQuantityPerDealByDeals()
+    {
+        using var database=TemporaryDatabase.Create();var store=new SqliteDataStore(database.Path);var service=new AuctionService(store);
+        var viewModel=new LiveAuctionViewModel(service,new ConsignorService(store),AuctionSaleMode.Wholesale);
+        var result=viewModel.CalculateWholesaleSale(5m,4,6);
+        Assert.Equal(24,result.TotalQuantity);Assert.Equal(120m,result.SaleTotal);
+        var state=viewModel.GetEntryState(true);Assert.False(state.CanChangeQuantity);Assert.True(state.CanChangeDeals);Assert.True(state.CanChangeBidder);
+    }
+
+    [Fact]
+    public void WholesaleSale_PersistsDealBreakdownAndTotalQuantity()
+    {
+        using var database=TemporaryDatabase.Create();var store=new SqliteDataStore(database.Path);var service=new AuctionService(store);var consignors=new ConsignorService(store);
+        consignors.SaveConsignor(new Consignor{ConsignorNumber=91,BusinessName="Wholesale Seller",Active=true},null);
+        var viewModel=new LiveAuctionViewModel(service,consignors,AuctionSaleMode.Wholesale);var lot=viewModel.QuickAddLot(91,"Case goods");
+        service.SaveBidder(new AuctionBidder{AuctionId=service.GetCurrentAuction().AuctionId,BidderNumber=44,FirstName="Buyer"},null);
+        var sale=service.RecordSale(lot.LotNumber,44,5m,true,4,6);
+        Assert.Equal(4,sale.QuantityPerDeal);Assert.Equal(6,sale.Deals);Assert.Equal(24,sale.TotalQuantity);Assert.Equal(120m,sale.TotalPrice);
+        var loaded=Assert.Single(service.GetSalesForLot(lot.LotNumber));Assert.Equal(4,loaded.QuantityPerDeal);Assert.Equal(6,loaded.Deals);Assert.Equal(24,loaded.Quantity);
+        Assert.Equal(AuctionSaleMode.Wholesale,service.Load().Lots.Single().SaleMode);
+    }
+
+    [Fact]
+    public void WholesaleForm_ShowsDealColumnsAndLocksQuantityDuringPassOut()
+    {
+        using var database=TemporaryDatabase.Create();var store=new SqliteDataStore(database.Path);var service=new AuctionService(store);
+        using var form=new LiveAuctionForm(service,new LiveAuctionViewModel(service,new ConsignorService(store),AuctionSaleMode.Wholesale));form.Show();
+        var controls=form.Controls.Cast<Control>().SelectMany(Descendants).ToList();var grid=Assert.Single(controls.OfType<DataGridView>());
+        Assert.Equal(new[]{"Lot","Bidder","Price Each","Qty / Deal","Deals","Total Qty","Sale Total"},grid.Columns.Cast<DataGridViewColumn>().Select(column=>column.HeaderText));
+        var passOut=Assert.Single(controls.OfType<CheckBox>(),control=>control.Text.StartsWith("PASS-OUT MODE"));passOut.Checked=true;Application.DoEvents();
+        NumericUpDown Input(string caption){var label=controls.OfType<Label>().Single(control=>control.Text==caption);var layout=Assert.IsType<TableLayoutPanel>(label.Parent);return Assert.IsType<NumericUpDown>(layout.GetControlFromPosition(1,layout.GetRow(label)));}
+        Assert.False(Input("Quantity").Enabled);Assert.True(Input("Deals").Enabled);Assert.True(Input("Bidder Number").Focused);
+    }
+
+    [Fact]
     public void PassOutEntryState_LocksLotIdentityAndPriceButKeepsBuyerEntryOpen()
     {
         using var database=TemporaryDatabase.Create();var store=new SqliteDataStore(database.Path);var service=new AuctionService(store);

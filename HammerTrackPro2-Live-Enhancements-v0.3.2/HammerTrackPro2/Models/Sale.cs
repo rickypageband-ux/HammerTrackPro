@@ -7,8 +7,11 @@ public sealed class Sale
     public int LotNumber { get; set; }
     public int BidderNumber { get; set; }
     public int Quantity { get; set; } = 1;
+    public int QuantityPerDeal { get; set; } = 1;
+    public int Deals { get; set; } = 1;
     public decimal HammerPrice { get; set; }
     public decimal TotalPrice => Quantity * HammerPrice;
+    public int TotalQuantity => Quantity;
     public DateTime SaleUtc { get; set; }
     public bool Paid { get; set; }
 

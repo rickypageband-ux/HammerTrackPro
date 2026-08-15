@@ -10,7 +10,7 @@ public interface IAuctionService : IAuctionSetupService
     void DeleteBidder(int bidderNumber);
     void SaveLot(AuctionLot lot, int? originalLotNumber);
     void DeleteLot(int lotNumber);
-    Sale RecordSale(int lotNumber, int bidderNumber, decimal hammerPrice, bool keepLotOpen = false, int quantity = 1);
+    Sale RecordSale(int lotNumber, int bidderNumber, decimal hammerPrice, bool keepLotOpen = false, int quantity = 1, int deals = 1);
     void CloseLot(int lotNumber);
     void PassLot(int lotNumber);
     Sale? GetLastSale();

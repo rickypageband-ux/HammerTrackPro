@@ -93,13 +93,15 @@ public sealed class AuctionService : IAuctionService
     public void ReopenAuction(long auctionId) =>
         throw new NotSupportedException("Reopening an auction requires administrator authentication and is not available in Sprint 2.");
 
-    public Sale RecordSale(int lotNumber, int bidderNumber, decimal hammerPrice, bool keepLotOpen = false, int quantity = 1)
+    public Sale RecordSale(int lotNumber, int bidderNumber, decimal hammerPrice, bool keepLotOpen = false, int quantity = 1, int deals = 1)
     {
         EnsureCurrentAuctionOpen();
         if (lotNumber <= 0) throw new InvalidOperationException("Enter a valid lot number.");
         if (bidderNumber <= 0) throw new InvalidOperationException("Enter a valid bidder number.");
         if (hammerPrice <= 0) throw new InvalidOperationException("Hammer price must be greater than zero.");
         if (quantity <= 0) throw new InvalidOperationException("Quantity must be at least one.");
+        if (deals <= 0) throw new InvalidOperationException("Deals must be at least one.");
+        _ = checked(quantity * deals);
 
         var data = _dataStore.Load();
         var lot = data.Lots.FirstOrDefault(item => item.LotNumber == lotNumber)
@@ -109,7 +111,7 @@ public sealed class AuctionService : IAuctionService
         if (!data.Bidders.Any(item => item.BidderNumber == bidderNumber))
             throw new InvalidOperationException($"Bidder #{bidderNumber} was not found.");
 
-        return _dataStore.RecordSale(lotNumber, bidderNumber, hammerPrice, keepLotOpen, quantity);
+        return _dataStore.RecordSale(lotNumber, bidderNumber, hammerPrice, keepLotOpen, quantity, deals);
     }
 
     public void CloseLot(int lotNumber)

@@ -19,6 +19,7 @@ This is the approved release sequence. Do not pull work forward from a later rel
 - [x] Settlements (calculation, ledgered payouts, and printable settlement statement)
 - [ ] Check printing
 - [ ] Pickup verification
+- [x] Optional licensed Wholesale Auction module with deal-based pass-out entry (owner-approved early module slice)
 
 ## Version 0.8
 

@@ -8,5 +8,7 @@
 *.db-wal
 *.pem
 *.htplicense
+*.htpactivation
+*activation*.txt
 *.msi
 *.wixpdb

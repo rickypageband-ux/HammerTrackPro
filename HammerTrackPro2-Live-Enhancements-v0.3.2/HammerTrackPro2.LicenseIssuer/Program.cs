@@ -9,6 +9,7 @@ try
     {
         "keygen"=>GenerateKeys(args),
         "issue"=>IssueLicense(args),
+        "issue-module"=>IssueModule(args),
         _=>Usage()
     };
 }
@@ -37,6 +38,18 @@ static int IssueLicense(string[] arguments)
     Console.WriteLine($"Issued {payload.LicenseId} to {customer} for {machines.Length} PC(s): {output}"); return 0;
 }
 
+static int IssueModule(string[] arguments)
+{
+    var options=Parse(arguments.Skip(1));
+    var key=Required(options,"key");var customer=Required(options,"customer");var module=Required(options,"module");var machines=Required(options,"machines").Split(',',StringSplitOptions.RemoveEmptyEntries|StringSplitOptions.TrimEntries).Select(value=>value.ToUpperInvariant()).Distinct().ToArray();var output=Required(options,"output");
+    if(machines.Length==0)throw new InvalidOperationException("At least one Machine ID is required.");
+    var payload=new ModuleActivationPayload(Guid.NewGuid().ToString("D"),module,customer,machines,DateTime.UtcNow,options.TryGetValue("expires",out var expires)?DateTime.Parse(expires).ToUniversalTime():null);
+    var payloadJson=JsonSerializer.Serialize(payload,IssuerJson.Options);using var rsa=RSA.Create();rsa.ImportFromPem(File.ReadAllText(key));var signature=rsa.SignData(Encoding.UTF8.GetBytes(payloadJson),HashAlgorithmName.SHA256,RSASignaturePadding.Pkcs1);
+    var documentJson=JsonSerializer.Serialize(new ModuleActivationDocument(payload,Convert.ToBase64String(signature)),IssuerJson.Options);
+    var activationKey=Convert.ToBase64String(Encoding.UTF8.GetBytes(documentJson));Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(output))!);File.WriteAllText(output,activationKey);
+    Console.WriteLine($"Issued {module} activation {payload.ActivationId} to {customer} for {machines.Length} PC(s): {output}");return 0;
+}
+
 static Dictionary<string,string> Parse(IEnumerable<string> arguments)
 {
     var values=new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase); using var iterator=arguments.GetEnumerator();
@@ -44,8 +57,10 @@ static Dictionary<string,string> Parse(IEnumerable<string> arguments)
     return values;
 }
 static string Required(Dictionary<string,string> values,string name)=>values.TryGetValue(name,out var value)&&!string.IsNullOrWhiteSpace(value)?value:throw new InvalidOperationException($"Missing --{name}.");
-static int Usage() { Console.WriteLine("HammerTrack Pro License Issuer\n  keygen <secure-output-folder>\n  issue --key <private.pem> --customer <name> --machines <id,id> --output <license.htplicense> [--expires <date>]"); return 1; }
+static int Usage() { Console.WriteLine("HammerTrack Pro License Issuer\n  keygen <secure-output-folder>\n  issue --key <private.pem> --customer <name> --machines <id,id> --output <license.htplicense> [--expires <date>]\n  issue-module --key <private.pem> --module Wholesale --customer <name> --machines <id,id> --output <activation.txt> [--expires <date>]"); return 1; }
 
 internal sealed record LicensePayload(string LicenseId,string CustomerName,string[] MachineIds,DateTime IssuedUtc,DateTime? ExpiresUtc);
 internal sealed record LicenseDocument(LicensePayload Payload,string Signature);
+internal sealed record ModuleActivationPayload(string ActivationId,string Module,string CustomerName,string[] MachineIds,DateTime IssuedUtc,DateTime? ExpiresUtc);
+internal sealed record ModuleActivationDocument(ModuleActivationPayload Payload,string Signature);
 internal static class IssuerJson { internal static readonly JsonSerializerOptions Options=new() { WriteIndented=true }; }

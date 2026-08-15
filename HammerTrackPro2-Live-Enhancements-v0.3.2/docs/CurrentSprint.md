@@ -1,5 +1,14 @@
 # Current Sprint
 
+## Wholesale Auction licensed module
+
+- Rename the dashboard live-entry action to Retail Auction and keep its existing behavior unchanged.
+- Keep Wholesale Auction visible as a separately activated module using a signed, machine-bound key; never package the private issuer key.
+- Standard wholesale records price each times quantity. Wholesale Pass-Out locks seller, lot, description, hammer price, and quantity per deal, then repeats Bidder Number, Deals, Enter.
+- Store quantity per deal and deals separately while retaining total item quantity in the existing `Sales.Quantity` field so invoices, settlements, refunds, dashboards, and reports remain accurate.
+- Migration 20 additively introduces `Sales.QuantityPerDeal`, `Sales.Deals`, and `AuctionLots.SaleMode`, migrates legacy sales as one deal, and adds the auction/mode/lot lookup index.
+- Package this owner-approved feature as upgrade version 0.7.46.
+
 ## Pass-out clerk workflow
 
 - While Pass-Out Mode is active, Seller, Lot Number, Item Description, and Hammer Price remain locked.

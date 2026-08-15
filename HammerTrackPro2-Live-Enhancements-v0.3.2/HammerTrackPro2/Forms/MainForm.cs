@@ -10,6 +10,7 @@ public sealed class MainForm : Form
     private readonly ConsignorService _consignorService;
     private readonly ICashierService _cashierService;
     private readonly WorkstationConfiguration _workstationConfiguration;
+    private readonly IModuleEntitlementService _moduleEntitlements;
     private readonly AuctionSetupViewModel _auctionSetup;
     private AppData _data;
 
@@ -63,12 +64,13 @@ public sealed class MainForm : Form
     private int? _editingBidderNumber;
     private int? _editingLotNumber;
 
-    public MainForm(IAuctionService service, ConsignorService consignorService, ICashierService cashierService,WorkstationConfiguration workstationConfiguration)
+    public MainForm(IAuctionService service, ConsignorService consignorService, ICashierService cashierService,WorkstationConfiguration workstationConfiguration,IModuleEntitlementService? moduleEntitlements=null)
     {
         _service = service ?? throw new ArgumentNullException(nameof(service));
         _consignorService = consignorService ?? throw new ArgumentNullException(nameof(consignorService));
         _cashierService = cashierService ?? throw new ArgumentNullException(nameof(cashierService));
         _workstationConfiguration=workstationConfiguration;
+        _moduleEntitlements=moduleEntitlements??new ModuleEntitlementService();
         _auctionSetup = new AuctionSetupViewModel(_service);
         _auctionSetup.Load();
         _data = _service.Load();
@@ -261,18 +263,19 @@ public sealed class MainForm : Form
             Padding = new Padding(14),
             Margin = new Padding(8)
         };
-        var buttons = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 4 };
+        var buttons = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 5 };
         buttons.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
         buttons.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
-        for (var row = 0; row < 4; row++) buttons.RowStyles.Add(new RowStyle(SizeType.Percent, 25));
+        for (var row = 0; row < 5; row++) buttons.RowStyles.Add(new RowStyle(SizeType.Percent, 20));
         buttons.Controls.Add(MakeDashboardButton("Register Bidder", (_, _) => { _tabs.SelectedIndex = 1; NewBidder(); }), 0, 0);
         buttons.Controls.Add(MakeDashboardButton("Add Lot", (_, _) => { _tabs.SelectedIndex = 2; NewLot(); }), 1, 0);
         buttons.Controls.Add(MakeDashboardButton("Backup Database", (_, _) => BackupDatabase()), 0, 1);
         buttons.Controls.Add(MakeDashboardButton("Refresh Dashboard", (_, _) => RefreshAll()), 1, 1);
-        buttons.Controls.Add(MakeDashboardButton("Open Live Auction", (_, _) => OpenLiveAuction()), 0, 2);
-        buttons.Controls.Add(MakeDashboardButton("Manage Sellers", (_, _) => OpenConsignors()), 1, 2);
-        buttons.Controls.Add(MakeDashboardButton("Auction Setup", (_, _) => OpenAuctionSetup()), 0, 3);
-        buttons.Controls.Add(MakeDashboardButton("Cashier", (_, _) => OpenCashier()), 1, 3);
+        buttons.Controls.Add(MakeDashboardButton("Retail Auction", (_, _) => OpenLiveAuction(AuctionSaleMode.Retail)), 0, 2);
+        buttons.Controls.Add(MakeDashboardButton("Wholesale Auction", (_, _) => OpenWholesaleAuction()), 1, 2);
+        buttons.Controls.Add(MakeDashboardButton("Manage Sellers", (_, _) => OpenConsignors()), 0, 3);
+        buttons.Controls.Add(MakeDashboardButton("Auction Setup", (_, _) => OpenAuctionSetup()), 1, 3);
+        buttons.Controls.Add(MakeDashboardButton("Cashier", (_, _) => OpenCashier()), 0, 4);
         group.Controls.Add(buttons);
         return group;
     }
@@ -531,11 +534,21 @@ public sealed class MainForm : Form
         RefreshDashboard();
     }
 
-    private void OpenLiveAuction()
+    private void OpenLiveAuction(AuctionSaleMode saleMode)
     {
-        using var liveAuction = new LiveAuctionForm(_service,new LiveAuctionViewModel(_service,_consignorService));
+        using var liveAuction = new LiveAuctionForm(_service,new LiveAuctionViewModel(_service,_consignorService,saleMode));
         liveAuction.ShowDialog(this);
         RefreshAll();
+    }
+
+    private void OpenWholesaleAuction()
+    {
+        if(!_moduleEntitlements.IsActivated(ProductModules.Wholesale,out var reason))
+        {
+            using var activation=new WholesaleActivationForm(new WholesaleActivationViewModel(_moduleEntitlements),reason);
+            if(activation.ShowDialog(this)!=DialogResult.OK)return;
+        }
+        OpenLiveAuction(AuctionSaleMode.Wholesale);
     }
 
     private void OpenConsignors()

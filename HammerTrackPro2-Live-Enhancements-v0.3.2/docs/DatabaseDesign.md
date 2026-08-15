@@ -6,7 +6,7 @@ HammerTrack Pro uses SQLite through `SqliteDataStore` on the live-auction host o
 
 The supported two-PC topology is `Cashier -> paired HTTPS API -> live-auction host -> local SQLite`. The cashier pins the host certificate fingerprint, sends a high-entropy pairing key, and never receives a database path or SQL access. Cashier writes execute through the same transactional service/data-store path as local writes. A disconnected cashier retries health checks; the live-auction host continues locally.
 
-## Schema version 18
+## Schema version 20
 
 ### `Auctions`
 
@@ -37,6 +37,8 @@ Indexes cover `LotNumber`, `AuctionId`, `ConsignorId`, `(AuctionId, LotNumber)`,
 Buyer first/last name, address, city, state, ZIP, phone, email, and driver's license number are optional global identity fields. Both the main Bidders screen and Cashier Add Buyer workflow can populate them; only the auction-specific Bidder Number is required. These columns have existed since migration 8, so exposing them in Cashier requires no new schema migration.
 
 `Sales` stores `AuctionId`, `AuctionLotId`, `AuctionBidderId`, retained `LotNumber`, retained `BidderNumber`, unit hammer price, quantity, sale UTC, and paid state. Quantity defaults to one for backward compatibility, and financial totals use `Quantity * HammerPrice`. Foreign keys connect sales to the auction, auction lot, and exact auction registration; indexes cover all join paths.
+
+Migration 20 adds `AuctionLots.SaleMode` (`Retail` by default), `Sales.QuantityPerDeal`, and `Sales.Deals`. `Sales.Quantity` remains the authoritative total number of items, calculated as quantity per deal times deals for wholesale pass-out transactions. Existing sales migrate to `QuantityPerDeal=Quantity` and `Deals=1`, preserving all historical totals. The `(AuctionId, SaleMode, LotNumber)` index supports mode-specific live-lot selection. The migration is ordered, transactional, idempotent, and backward compatible with version-3 databases; rollback uses the pre-upgrade database backup.
 
 Migration 16 adds the positive integer `Sales.Quantity` column with a default of `1`, preserving every existing sale and its historical total. Rollback uses the pre-migration database backup; the migration is ordered, transactional, and skipped once `DatabaseSchemaVersion` is 16.
 

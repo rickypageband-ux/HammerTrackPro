@@ -37,7 +37,7 @@ internal static class Program
             var consignorService = new ConsignorService((IConsignorRepository)dataStore);
             ICashierService cashierService = new CashierService(dataStore);
             var networkHost=CashierNetworkHost.StartAsync(cashierService,configuration).GetAwaiter().GetResult();
-            try { Application.Run(new MainForm(auctionService,consignorService,cashierService,configuration)); }
+            try { Application.Run(new MainForm(auctionService,consignorService,cashierService,configuration,new ModuleEntitlementService())); }
             finally { networkHost.DisposeAsync().AsTask().GetAwaiter().GetResult(); }
         }
         catch (Exception ex)

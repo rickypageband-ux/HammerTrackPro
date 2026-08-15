@@ -10,7 +10,7 @@ public sealed record LicenseDocument(LicensePayload Payload,string Signature);
 
 public static class LicenseService
 {
-    private const string PublicKeyPem="""
+    internal const string PublicKeyPem="""
         -----BEGIN PUBLIC KEY-----
         MIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEA4ug2lh+tJJK2VBOYbAo1
         zYmPbxgx3wacYVmYUW4holUJmAjCSF4qb9ne8g84wn3tKGuyGAZn1vspscgGcYvS

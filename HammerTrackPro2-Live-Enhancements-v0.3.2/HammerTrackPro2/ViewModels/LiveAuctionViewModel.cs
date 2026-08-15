@@ -8,11 +8,14 @@ public sealed class LiveAuctionViewModel
     private readonly IAuctionService _auctionService;
     private readonly ConsignorService _consignorService;
 
-    public LiveAuctionViewModel(IAuctionService auctionService,ConsignorService consignorService)
+    public LiveAuctionViewModel(IAuctionService auctionService,ConsignorService consignorService,AuctionSaleMode saleMode=AuctionSaleMode.Retail)
     {
         _auctionService=auctionService??throw new ArgumentNullException(nameof(auctionService));
         _consignorService=consignorService??throw new ArgumentNullException(nameof(consignorService));
+        SaleMode=saleMode;
     }
+
+    public AuctionSaleMode SaleMode { get; }
 
     public AuctionLot QuickAddLot(int consignorNumber,string description,int currentLotNumber=0)
     {
@@ -34,6 +37,7 @@ public sealed class LiveAuctionViewModel
             Description=description,
             Status="Available",
             LotStatus="Available"
+            ,SaleMode=SaleMode
         };
         _consignorService.AssociateWithCurrentAuction(consignorNumber);
         _auctionService.SaveLot(lot,null);
@@ -43,8 +47,17 @@ public sealed class LiveAuctionViewModel
     public void PassLot(int lotNumber)=>_auctionService.PassLot(lotNumber);
 
     public LiveAuctionEntryState GetEntryState(bool passOutMode)=>passOutMode
-        ? new(false,false,false,false,true,true)
-        : new(true,true,true,true,true,true);
+        ? new(false,false,false,false,true,SaleMode==AuctionSaleMode.Retail,SaleMode==AuctionSaleMode.Wholesale)
+        : new(true,true,true,true,true,true,false);
+
+    public WholesaleSaleCalculation CalculateWholesaleSale(decimal priceEach,int quantityPerDeal,int deals)
+    {
+        if(priceEach<=0)throw new InvalidOperationException("Hammer price must be greater than zero.");
+        if(quantityPerDeal<=0)throw new InvalidOperationException("Quantity per deal must be at least one.");
+        if(deals<=0)throw new InvalidOperationException("Deals must be at least one.");
+        var totalQuantity=checked(quantityPerDeal*deals);
+        return new(totalQuantity,priceEach*totalQuantity);
+    }
 }
 
 public sealed record LiveAuctionEntryState(
@@ -53,4 +66,7 @@ public sealed record LiveAuctionEntryState(
     bool CanChangeLot,
     bool CanChangeHammerPrice,
     bool CanChangeBidder,
-    bool CanChangeQuantity);
+    bool CanChangeQuantity,
+    bool CanChangeDeals);
+
+public sealed record WholesaleSaleCalculation(int TotalQuantity,decimal SaleTotal);
