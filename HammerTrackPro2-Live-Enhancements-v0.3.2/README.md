@@ -79,6 +79,10 @@ The host database defaults to `%ProgramData%\HammerTrackPro\hammertrack.db`. Wor
 - [Product backlog](docs/ProductBacklog.md)
 - [Contributor and agent guidance](AGENTS.md)
 
+## Website
+
+The self-hosted product website is in `website/`. It is a lightweight PHP site for Ubuntu/Plesk and includes the optional Wholesale Auction module at a one-time price of $299. The purchase action can use a configured hosted checkout link or fall back to a sales request form. Deployment and uptime-monitoring instructions are in `website/README.md`; the private license-signing key and issuer utility must never be deployed with the website.
+
 ## Current boundaries
 
 There is no CI configuration, user/role authentication model, or auction reopening. A WiX MSI and offline signed machine-license system are included; production code signing remains required before broad distribution. Cashier supports current-auction bidder lookup, itemized invoices, partial/split cash/check/card payments, cash change, status updates, and Windows invoice printing. After an auction is closed, Cashier can look up a current-auction consignor, calculate commission using override → consignor default → auction default, record check/cash/ACH payouts, and print a settlement statement. Closing an auction is audited and locks buyer payments while enabling consignor payouts. Standard xUnit tests are in `HammerTrackPro2.Tests`; after restore, run `dotnet test .\HammerTrackPro2.sln`.

@@ -1,5 +1,13 @@
 # Current Sprint
 
+## Self-hosted product website
+
+- Rebuild the HammerTrack Pro marketing site as a portable PHP site for owner-managed Ubuntu/Plesk hosting.
+- Present the licensed Wholesale Auction module as a one-time $299 upgrade and accurately describe its machine-bound offline activation.
+- Support a configurable hosted checkout URL with a sales-request fallback; do not claim payment completion when no processor is configured.
+- Keep all license-signing secrets and issuer tooling off the web server.
+- Provide a health endpoint and Plesk deployment, HTTPS, mail-delivery, and uptime-monitoring instructions.
+
 ## Offline customer user manual
 
 - Provide a professional, version-matched PDF covering installation, licensing, auction setup, retail and wholesale live entry, checkout, settlements, reports, administration, troubleshooting, and FAQs.
