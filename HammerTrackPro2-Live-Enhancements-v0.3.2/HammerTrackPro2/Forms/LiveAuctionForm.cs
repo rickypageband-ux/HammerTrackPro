@@ -325,7 +325,20 @@ public sealed class LiveAuctionForm : Form
         control.TextAlign = HorizontalAlignment.Center;
     }
 
-    private static void SelectAllOnFocus(NumericUpDown control)=>control.Enter+=(_,_)=>control.BeginInvoke(()=>control.Select(0,control.Text.Length));
+    private static void SelectAllOnFocus(NumericUpDown control)=>control.Enter+=(_,_)=>PostWhenHandleCreated(control,()=>control.Select(0,control.Text.Length));
+
+    internal static void PostWhenHandleCreated(Control control,Action action)
+    {
+        if(control.IsDisposed)return;
+        if(control.IsHandleCreated){control.BeginInvoke(action);return;}
+        EventHandler? handleCreated=null;
+        handleCreated=(_,_)=>
+        {
+            control.HandleCreated-=handleCreated;
+            if(!control.IsDisposed&&control.IsHandleCreated)control.BeginInvoke(action);
+        };
+        control.HandleCreated+=handleCreated;
+    }
 
     private static void AddEntryRow(TableLayoutPanel form, int row, string caption, Control control)
     {
@@ -575,7 +588,7 @@ public sealed class LiveAuctionForm : Form
             _modeLabel.BackColor = Color.FromArgb(255, 235, 180);
             _modeLabel.ForeColor = Color.FromArgb(105, 65, 0);
             _completeSale.Text = "RECORD BUYER  (Enter)";
-            BeginInvoke(()=>{_bidderNumber.Focus();_bidderNumber.Select(0,_bidderNumber.Text.Length);});
+            PostWhenHandleCreated(this,()=>{_bidderNumber.Focus();_bidderNumber.Select(0,_bidderNumber.Text.Length);});
         }
         else
         {

@@ -10,6 +10,16 @@ namespace HammerTrackPro2.Tests;
 public sealed class LiveAuctionViewModelTests
 {
     [Fact]
+    public void WholesaleForm_DefersFocusWorkUntilItsWindowHandleExists()
+    {
+        using var control=new Control();var invoked=false;
+        LiveAuctionForm.PostWhenHandleCreated(control,()=>invoked=true);
+        Assert.False(invoked);
+        control.CreateControl();Application.DoEvents();
+        Assert.True(invoked);
+    }
+
+    [Fact]
     public void WholesaleCalculation_MultipliesQuantityPerDealByDeals()
     {
         using var database=TemporaryDatabase.Create();var store=new SqliteDataStore(database.Path);var service=new AuctionService(store);
