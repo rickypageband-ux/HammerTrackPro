@@ -45,6 +45,9 @@
           </Extension>
         </ProgId>
       </Component>
+      <Component Id="OfflineUserManual" Guid="901C1B1F-5E14-48A9-8B56-628CA13C2EB4">
+        <File Id="HammerTrackProUserManual" Source="..\output\pdf\HammerTrackPro-User-Manual.pdf" KeyPath="yes" />
+      </Component>
     </ComponentGroup>
 
     <ComponentGroup Id="FolderComponents">

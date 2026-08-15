@@ -8,6 +8,8 @@ The dashboard now separates **Retail Auction** from the optional licensed **Whol
 
 Buyer registration stores optional resale-license number/state and a durable tax-exempt status. Tax-exempt buyers automatically receive zero sales tax at checkout. Seller settlement screens, standard statements, and item-summary prints show the purchasing bidder number for every sold line.
 
+The dashboard includes an offline **Help / User Manual** button. The version-matched customer manual is installed beside the application and remains available without internet access.
+
 ## Technology and structure
 
 - .NET 8 Windows Forms (`net8.0-windows`)

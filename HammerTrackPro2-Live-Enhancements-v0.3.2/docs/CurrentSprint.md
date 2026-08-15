@@ -1,5 +1,12 @@
 # Current Sprint
 
+## Offline customer user manual
+
+- Provide a professional, version-matched PDF covering installation, licensing, auction setup, retail and wholesale live entry, checkout, settlements, reports, administration, troubleshooting, and FAQs.
+- Use actual application screenshots with numbered callouts for the primary workflows.
+- Add a dashboard Help / User Manual action and package the PDF beside the installed application for offline access.
+- Package this owner-approved feature as upgrade version 0.7.47.
+
 ## Wholesale Auction licensed module
 
 - Rename the dashboard live-entry action to Retail Auction and keep its existing behavior unchanged.

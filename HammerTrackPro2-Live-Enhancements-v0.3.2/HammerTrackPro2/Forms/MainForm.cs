@@ -11,6 +11,7 @@ public sealed class MainForm : Form
     private readonly ICashierService _cashierService;
     private readonly WorkstationConfiguration _workstationConfiguration;
     private readonly IModuleEntitlementService _moduleEntitlements;
+    private readonly HelpViewModel _help;
     private readonly AuctionSetupViewModel _auctionSetup;
     private AppData _data;
 
@@ -64,13 +65,14 @@ public sealed class MainForm : Form
     private int? _editingBidderNumber;
     private int? _editingLotNumber;
 
-    public MainForm(IAuctionService service, ConsignorService consignorService, ICashierService cashierService,WorkstationConfiguration workstationConfiguration,IModuleEntitlementService? moduleEntitlements=null)
+    public MainForm(IAuctionService service, ConsignorService consignorService, ICashierService cashierService,WorkstationConfiguration workstationConfiguration,IModuleEntitlementService? moduleEntitlements=null,IUserManualService? userManualService=null)
     {
         _service = service ?? throw new ArgumentNullException(nameof(service));
         _consignorService = consignorService ?? throw new ArgumentNullException(nameof(consignorService));
         _cashierService = cashierService ?? throw new ArgumentNullException(nameof(cashierService));
         _workstationConfiguration=workstationConfiguration;
         _moduleEntitlements=moduleEntitlements??new ModuleEntitlementService();
+        _help=new HelpViewModel(userManualService??new UserManualService());
         _auctionSetup = new AuctionSetupViewModel(_service);
         _auctionSetup.Load();
         _data = _service.Load();
@@ -276,6 +278,7 @@ public sealed class MainForm : Form
         buttons.Controls.Add(MakeDashboardButton("Manage Sellers", (_, _) => OpenConsignors()), 0, 3);
         buttons.Controls.Add(MakeDashboardButton("Auction Setup", (_, _) => OpenAuctionSetup()), 1, 3);
         buttons.Controls.Add(MakeDashboardButton("Cashier", (_, _) => OpenCashier()), 0, 4);
+        buttons.Controls.Add(MakeDashboardButton("Help / User Manual", (_, _) => OpenUserManual()), 1, 4);
         group.Controls.Add(buttons);
         return group;
     }
@@ -549,6 +552,12 @@ public sealed class MainForm : Form
             if(activation.ShowDialog(this)!=DialogResult.OK)return;
         }
         OpenLiveAuction(AuctionSaleMode.Wholesale);
+    }
+
+    private void OpenUserManual()
+    {
+        try{_help.OpenUserManual();}
+        catch(Exception exception){MessageBox.Show(this,exception.Message,"HammerTrack Pro User Manual",MessageBoxButtons.OK,MessageBoxIcon.Information);}
     }
 
     private void OpenConsignors()
