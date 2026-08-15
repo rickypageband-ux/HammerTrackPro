@@ -1,5 +1,13 @@
 # Current Sprint
 
+## Professional buyer and seller print documents
+
+- Prevent the buyer invoice Quantity header from clipping by widening and separating all numeric columns.
+- Apply the existing branded company header to seller settlements and seller item summaries, including company name, address, phone, email, auction identity, seller information, and document number.
+- Use consistent section bars, alternating item rows, aligned quantity/price/total columns, payout history, settlement totals, print timestamp, and HammerTrack Pro footer.
+- Preserve all invoice and settlement calculations and persistence behavior.
+- Package this owner-approved print-layout update as version 0.7.50.
+
 ## Software license and ownership terms
 
 - Replace the installer agreement with the owner-approved eight-section Hammer Track Pro Software License and Ownership Terms without adding or removing substantive provisions.

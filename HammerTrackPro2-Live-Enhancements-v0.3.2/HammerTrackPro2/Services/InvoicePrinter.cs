@@ -6,6 +6,7 @@ namespace HammerTrackPro2.Services;
 public sealed class InvoicePrinter
 {
     internal const string DocumentHeading="INVOICE / RECEIPT";
+    internal const int QuantityColumnWidth=90;
     internal const string WarrantyDisclaimer="""
 Condition of Sale – Disclaimer of Warranties
 
@@ -27,10 +28,10 @@ Any guarantees or warranties provided are solely between the buyer and the selle
         graphics.DrawString($"Bidder #{invoice.BidderNumber}",heading,navyBrush,bounds.Left,y);graphics.DrawString(invoice.BuyerName,heading,Brushes.Black,bounds.Left+105,y);y+=18;
         if(!string.IsNullOrWhiteSpace(invoice.BuyerAddress)){graphics.DrawString(invoice.BuyerAddress,body,Brushes.Black,bounds.Left,y);y+=16;}
         var buyerContact=string.Join("  |  ",new[]{invoice.BuyerPhone,invoice.BuyerEmail}.Where(value=>!string.IsNullOrWhiteSpace(value)));if(!string.IsNullOrWhiteSpace(buyerContact)){graphics.DrawString(buyerContact,body,Brushes.Black,bounds.Left,y);y+=16;}y+=5;
-        var quantityX=bounds.Right-245;var priceX=bounds.Right-175;var totalX=bounds.Right-90;
-        graphics.FillRectangle(navyBrush,bounds.Left,y,bounds.Width,26);graphics.DrawString("ITEM",heading,whiteBrush,bounds.Left+8,y+5);graphics.DrawString("QUANTITY",heading,whiteBrush,new RectangleF(quantityX,y+5,65,18),right);graphics.DrawString("PRICE",heading,whiteBrush,new RectangleF(priceX,y+5,75,18),right);graphics.DrawString("TOTAL",heading,whiteBrush,new RectangleF(totalX,y+5,80,18),right);y+=30;
+        var quantityX=bounds.Right-285;var priceX=bounds.Right-185;var totalX=bounds.Right-90;
+        graphics.FillRectangle(navyBrush,bounds.Left,y,bounds.Width,26);graphics.DrawString("ITEM",heading,whiteBrush,bounds.Left+8,y+5);graphics.DrawString("QUANTITY",heading,whiteBrush,new RectangleF(quantityX,y+5,QuantityColumnWidth,18),right);graphics.DrawString("PRICE EACH",heading,whiteBrush,new RectangleF(priceX,y+5,85,18),right);graphics.DrawString("TOTAL",heading,whiteBrush,new RectangleF(totalX,y+5,80,18),right);y+=30;
         var reserve=385+Math.Min(invoice.Payments.Count,5)*17;var availableRows=Math.Max(1,(bounds.Bottom-y-reserve)/20);var endLine=Math.Min(invoice.Purchases.Count,startLine+availableRows);
-        for(var index=startLine;index<endLine;index++){var purchase=invoice.Purchases[index];if((index-startLine)%2==1)graphics.FillRectangle(Brushes.WhiteSmoke,bounds.Left,y-1,bounds.Width,20);graphics.DrawString($"Lot {purchase.LotNumber} - {purchase.Description}",body,Brushes.Black,new RectangleF(bounds.Left+8,y,quantityX-bounds.Left-16,18));graphics.DrawString(purchase.Quantity.ToString(),body,Brushes.Black,new RectangleF(quantityX,y,65,18),right);graphics.DrawString(purchase.HammerPrice.ToString("C2"),body,Brushes.Black,new RectangleF(priceX,y,75,18),right);graphics.DrawString(purchase.LineTotal.ToString("C2"),body,Brushes.Black,new RectangleF(totalX,y,80,18),right);y+=20;}
+        for(var index=startLine;index<endLine;index++){var purchase=invoice.Purchases[index];if((index-startLine)%2==1)graphics.FillRectangle(Brushes.WhiteSmoke,bounds.Left,y-1,bounds.Width,20);graphics.DrawString($"Lot {purchase.LotNumber} - {purchase.Description}",body,Brushes.Black,new RectangleF(bounds.Left+8,y,quantityX-bounds.Left-16,18));graphics.DrawString(purchase.Quantity.ToString(),body,Brushes.Black,new RectangleF(quantityX,y,QuantityColumnWidth,18),right);graphics.DrawString(purchase.HammerPrice.ToString("C2"),body,Brushes.Black,new RectangleF(priceX,y,85,18),right);graphics.DrawString(purchase.LineTotal.ToString("C2"),body,Brushes.Black,new RectangleF(totalX,y,80,18),right);y+=20;}
         if(endLine<invoice.Purchases.Count){graphics.DrawLine(line,bounds.Left,y,bounds.Right,y);graphics.DrawString($"Continued - {invoice.Purchases.Count-endLine} purchase(s) remain",heading,navyBrush,bounds.Left,y+12);return endLine;}
         graphics.DrawLine(line,bounds.Left,y,bounds.Right,y);y+=14;var detailTop=y;
         PrintBranding.DrawSectionTitle(graphics,"PAYMENT HISTORY",new Rectangle(bounds.Left,y,bounds.Width/2-12,26));y+=32;
