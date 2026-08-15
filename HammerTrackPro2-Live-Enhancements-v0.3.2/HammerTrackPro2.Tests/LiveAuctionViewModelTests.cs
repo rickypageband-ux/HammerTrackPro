@@ -10,13 +10,14 @@ namespace HammerTrackPro2.Tests;
 public sealed class LiveAuctionViewModelTests
 {
     [Fact]
-    public void WholesaleForm_DefersFocusWorkUntilItsWindowHandleExists()
+    public void WholesaleForm_LoadsAnExistingPassOutLotBeforeItsWindowHandleExists()
     {
-        using var control=new Control();var invoked=false;
-        LiveAuctionForm.PostWhenHandleCreated(control,()=>invoked=true);
-        Assert.False(invoked);
-        control.CreateControl();Application.DoEvents();
-        Assert.True(invoked);
+        using var database=TemporaryDatabase.Create();var store=new SqliteDataStore(database.Path);var service=new AuctionService(store);var consignors=new ConsignorService(store);
+        consignors.SaveConsignor(new Consignor{ConsignorNumber=92,BusinessName="Pass-Out Seller",Active=true},null);
+        var seller=consignors.GetByNumber(92);var auction=service.GetCurrentAuction();
+        service.SaveLot(new AuctionLot{AuctionId=auction.AuctionId,ConsignorId=seller.ConsignorId,LotNumber=1,Description="Wholesale Pass-Out",PassOutMode=true,Status="Pass-Out",LotStatus="Pass-Out",SaleMode=AuctionSaleMode.Wholesale},null);
+        using var form=new LiveAuctionForm(service,new LiveAuctionViewModel(service,consignors,AuctionSaleMode.Wholesale));
+        Assert.False(form.IsHandleCreated);
     }
 
     [Fact]

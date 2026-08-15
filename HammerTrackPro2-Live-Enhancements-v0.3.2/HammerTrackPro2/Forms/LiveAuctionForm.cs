@@ -37,6 +37,7 @@ public sealed class LiveAuctionForm : Form
     private bool _fullScreen;
     private FormBorderStyle _savedBorderStyle;
     private FormWindowState _savedWindowState;
+    private bool _focusBidderWhenShown;
     private bool IsWholesale=>_viewModel.SaleMode==AuctionSaleMode.Wholesale;
 
     public LiveAuctionForm(IAuctionService service,LiveAuctionViewModel viewModel)
@@ -52,6 +53,12 @@ public sealed class LiveAuctionForm : Form
         KeyPreview = true;
         KeyDown += HandleFormKeyDown;
         Controls.Add(BuildLayout());
+        Shown+=(_,_)=>
+        {
+            if(!_focusBidderWhenShown)return;
+            _focusBidderWhenShown=false;
+            FocusBidderEntry();
+        };
         AcceptButton = _completeSale;
         UpdateModeDisplay();
         LoadLastSale();
@@ -325,20 +332,7 @@ public sealed class LiveAuctionForm : Form
         control.TextAlign = HorizontalAlignment.Center;
     }
 
-    private static void SelectAllOnFocus(NumericUpDown control)=>control.Enter+=(_,_)=>PostWhenHandleCreated(control,()=>control.Select(0,control.Text.Length));
-
-    internal static void PostWhenHandleCreated(Control control,Action action)
-    {
-        if(control.IsDisposed)return;
-        if(control.IsHandleCreated){control.BeginInvoke(action);return;}
-        EventHandler? handleCreated=null;
-        handleCreated=(_,_)=>
-        {
-            control.HandleCreated-=handleCreated;
-            if(!control.IsDisposed&&control.IsHandleCreated)control.BeginInvoke(action);
-        };
-        control.HandleCreated+=handleCreated;
-    }
+    private static void SelectAllOnFocus(NumericUpDown control)=>control.Enter+=(_,_)=>control.Select(0,control.Text.Length);
 
     private static void AddEntryRow(TableLayoutPanel form, int row, string caption, Control control)
     {
@@ -588,7 +582,7 @@ public sealed class LiveAuctionForm : Form
             _modeLabel.BackColor = Color.FromArgb(255, 235, 180);
             _modeLabel.ForeColor = Color.FromArgb(105, 65, 0);
             _completeSale.Text = "RECORD BUYER  (Enter)";
-            PostWhenHandleCreated(this,()=>{_bidderNumber.Focus();_bidderNumber.Select(0,_bidderNumber.Text.Length);});
+            if(IsHandleCreated)FocusBidderEntry();else _focusBidderWhenShown=true;
         }
         else
         {
@@ -597,6 +591,12 @@ public sealed class LiveAuctionForm : Form
             _modeLabel.ForeColor = Color.FromArgb(45, 55, 65);
             _completeSale.Text = "COMPLETE SALE  (Enter)";
         }
+    }
+
+    private void FocusBidderEntry()
+    {
+        _bidderNumber.Focus();
+        _bidderNumber.Select(0,_bidderNumber.Text.Length);
     }
 
     private void ToggleFullScreen()

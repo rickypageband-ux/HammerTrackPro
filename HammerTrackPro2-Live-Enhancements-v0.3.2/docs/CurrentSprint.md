@@ -6,7 +6,7 @@
 - Use actual application screenshots with numbered callouts for the primary workflows.
 - Add a dashboard Help / User Manual action and package the PDF beside the installed application for offline access.
 - Package this owner-approved feature as upgrade version 0.7.47.
-- Correct the 0.7.47 Wholesale screen startup so keyboard-focus selection waits until the window handle exists instead of raising an unhandled `BeginInvoke` exception.
+- Correct the 0.7.47 Wholesale screen startup so restoring an existing Pass-Out lot never calls `BeginInvoke` before the window exists; defer bidder focus until the form is shown.
 
 ## Wholesale Auction licensed module
 
