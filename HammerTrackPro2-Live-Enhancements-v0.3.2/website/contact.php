@@ -4,6 +4,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') { header('Location: /#contact', true,
 $configFile = __DIR__ . '/config.php';
 $config = is_file($configFile) ? require $configFile : [];
 $recipient = trim((string)($config['contact_email'] ?? ''));
+$smtpConfigFile = __DIR__ . '/_private/hammertrack-mail.php';
+require_once __DIR__ . '/lib/SmtpMailer.php';
 function clean(string $name, int $limit): string {
     $value = trim((string)($_POST[$name] ?? ''));
     $value = str_replace(["\r", "\0"], '', $value);
@@ -22,9 +24,14 @@ if ($recipient === '' || $name === '' || $email === false || $message === '') {
 } else {
     $subject = '[HammerTrack Pro] ' . ($topic !== '' ? $topic : 'Website request');
     $body = "Name: {$name}\nEmail: {$email}\nTopic: {$topic}\nMachine ID: {$machineId}\n\nMessage:\n{$message}\n";
-    $host = preg_replace('/[^a-z0-9.-]/i', '', (string)($_SERVER['SERVER_NAME'] ?? 'localhost'));
-    $headers = ['From: HammerTrack Pro Website <no-reply@' . $host . '>', 'Reply-To: ' . $email, 'Content-Type: text/plain; charset=UTF-8'];
-    $sent = mail($recipient, $subject, $body, implode("\r\n", $headers));
+    try {
+        $smtpConfig = is_file($smtpConfigFile) ? require $smtpConfigFile : [];
+        SmtpMailer::send($smtpConfig, $recipient, (string)$email, $subject, $body);
+        $sent = true;
+    } catch (Throwable $exception) {
+        error_log('HammerTrack contact form: ' . $exception->getMessage());
+        $sent = false;
+    }
     http_response_code($sent ? 200 : 500);
     $title = $sent ? 'Request received' : 'We could not send your request';
     $detail = $sent ? 'Thank you. We will follow up using the email address you provided.' : 'Please try again later or contact HammerTrack Pro directly.';

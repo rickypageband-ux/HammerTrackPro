@@ -36,4 +36,20 @@ expect(str_contains($pricing, '$199<span>.00/year</span>'), 'Yearly Updates are 
 expect(str_contains($pricing, '$100<span>/hour</span>'), 'Hourly Support is priced at $100 per hour.');
 expect(str_contains($pricing, 'TBD<span>per request</span>'), 'Feature requests are quoted per request.');
 
+require_once dirname(__DIR__) . '/lib/SmtpMailer.php';
+$incompleteConfigRejected = false;
+try {
+    SmtpMailer::send([
+        'host' => 'smtp.ionos.com',
+        'port' => 465,
+        'encryption' => 'ssl',
+        'username' => 'Info@rpdavid.com',
+        'password' => 'ENTER_YOUR_IONOS_EMAIL_PASSWORD_HERE',
+        'from_email' => 'Info@rpdavid.com'
+    ], 'Info@rpdavid.com', 'customer@example.com', 'Test', 'Test');
+} catch (RuntimeException) {
+    $incompleteConfigRejected = true;
+}
+expect($incompleteConfigRejected, 'SMTP refuses to send while the password placeholder is present.');
+
 fwrite(STDOUT, "Website tests passed.\n");

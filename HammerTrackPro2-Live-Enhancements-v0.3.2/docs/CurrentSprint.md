@@ -10,6 +10,7 @@
 - Support a configurable hosted checkout URL with a sales-request fallback; do not claim payment completion when no processor is configured.
 - Keep all license-signing secrets and issuer tooling off the web server.
 - Provide a health endpoint and Plesk deployment, HTTPS, mail-delivery, and uptime-monitoring instructions.
+- Send website requests through authenticated IONOS SMTP using encrypted port 465, keep the mailbox password in a browser-blocked private configuration, deliver to `Info@rpdavid.com`, and use the customer's validated email as Reply-To.
 
 ## Offline customer user manual
 

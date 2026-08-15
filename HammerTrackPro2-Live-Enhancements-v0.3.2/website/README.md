@@ -16,15 +16,33 @@ The included `config.php` sends website requests to `Info@rpdavid.com`. The
 opens the order-request form. A Square payment link can be placed in that
 setting later without rebuilding the website.
 
+### Enable the contact form with IONOS
+
+The upload package already contains the IONOS SMTP configuration and mail
+sender. After uploading the complete website:
+
+1. In Plesk, open **Files → httpdocs → _private**.
+2. Open `hammertrack-mail.php` in the editor.
+3. Replace only `ENTER_YOUR_IONOS_EMAIL_PASSWORD_HERE` with the mailbox
+   password for `Info@rpdavid.com`.
+4. Save the file and submit one website request.
+5. Confirm the message arrives at `Info@rpdavid.com`. The customer's submitted
+   address is set as Reply-To.
+
+The included `_private/.htaccess` denies browser access to the SMTP settings.
+Do not email, publish, or commit the completed password. If Plesk offers file
+permissions, keep the configuration readable only by the subscription's system
+user.
+
 ## Publish with Plesk
 
 1. In Plesk, open the domain's **Hosting & DNS → Hosting** settings and set PHP to a currently supported 8.x release.
 2. Upload the contents of this directory into the domain's `httpdocs` folder. Do not upload the containing `website` folder unless it should appear in the URL.
 3. In **SSL/TLS Certificates**, issue or renew the free Let's Encrypt certificate and enable permanent HTTPS redirection.
 4. Visit `/health.php`; it should return `{"status":"ok","service":"hammertrackpro.com"}`.
-5. Submit one test contact request and confirm delivery at `Info@rpdavid.com`. Plesk mail may require the domain's SPF/DKIM records and a local `no-reply` mailbox or an SMTP relay.
+5. Complete the IONOS password step above, submit one test contact request, and confirm delivery at `Info@rpdavid.com`.
 
-Before publishing, run `php tests/site_test.php` and PHP's syntax check against each `.php` file. The test confirms the brand asset, every published price, the request workflow, and the Machine ID field.
+Before publishing, run `php tests/site_test.php` and PHP's syntax check against each `.php` file. The test confirms the brand asset, every published price, the request workflow, the Machine ID field, and safe handling of an incomplete SMTP configuration.
 
 ## Checkout and fulfillment
 
