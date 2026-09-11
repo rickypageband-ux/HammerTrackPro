@@ -49,7 +49,7 @@ public sealed class LiveAuctionViewModelTests
         using var database=TemporaryDatabase.Create();var store=new SqliteDataStore(database.Path);var service=new AuctionService(store);
         using var form=new LiveAuctionForm(service,new LiveAuctionViewModel(service,new ConsignorService(store),AuctionSaleMode.Wholesale));form.Show();
         var controls=form.Controls.Cast<Control>().SelectMany(Descendants).ToList();var grid=Assert.Single(controls.OfType<DataGridView>());
-        Assert.Equal(new[]{"Lot","Bidder","Price Each","Qty / Deal","Deals","Total Qty","Sale Total"},grid.Columns.Cast<DataGridViewColumn>().Select(column=>column.HeaderText));
+        Assert.Equal(new[]{"Lot","Buyer","Total Qty","Price","Total"},grid.Columns.Cast<DataGridViewColumn>().Select(column=>column.HeaderText));
         var passOut=Assert.Single(controls.OfType<CheckBox>(),control=>control.Text.StartsWith("PASS-OUT MODE"));passOut.Checked=true;Application.DoEvents();
         NumericUpDown Input(string caption){var label=controls.OfType<Label>().Single(control=>control.Text==caption);var layout=Assert.IsType<TableLayoutPanel>(label.Parent);return Assert.IsType<NumericUpDown>(layout.GetControlFromPosition(1,layout.GetRow(label)));}
         Assert.False(Input("Quantity").Enabled);Assert.True(Input("Deals").Enabled);Assert.True(Input("Bidder Number").Focused);
@@ -95,13 +95,15 @@ public sealed class LiveAuctionViewModelTests
         Assert.All(buttons,x=>Assert.Same(actionLayout,x.Parent));
         var create=Assert.Single(controls.OfType<Button>(),x=>x.Text=="CREATE LOT");
         Assert.True(create.MinimumSize.Width>=150);
-        var grid=Assert.Single(controls.OfType<DataGridView>());Assert.Equal(new[]{"Lot","Bidder","Quantity","Price Each","Total"},grid.Columns.Cast<DataGridViewColumn>().Select(x=>x.HeaderText));
+        var grid=Assert.Single(controls.OfType<DataGridView>());Assert.Equal(new[]{"Lot","Buyer","Qty","Price","Total"},grid.Columns.Cast<DataGridViewColumn>().Select(x=>x.HeaderText));
+        var shell=Assert.IsType<TableLayoutPanel>(form.Controls[0]);Assert.Equal(2,shell.ColumnCount);Assert.Equal(68,shell.ColumnStyles[0].Width);Assert.Equal(32,shell.ColumnStyles[1].Width);
+        Assert.Single(controls.OfType<Button>(),x=>x.Text=="EDIT SELECTED SALE");
         var entryLabels=controls.OfType<Label>().Where(x=>new[]{"Lot Number","Hammer Price (each)","Bidder Number","Quantity"}.Contains(x.Text)).ToList();Assert.Equal(4,entryLabels.Count);
         var entryLayout=Assert.IsType<TableLayoutPanel>(entryLabels[0].Parent);Assert.Equal(0,entryLayout.GetRow(entryLabels.Single(x=>x.Text=="Lot Number")));Assert.Equal(1,entryLayout.GetRow(entryLabels.Single(x=>x.Text=="Hammer Price (each)")));Assert.Equal(2,entryLayout.GetRow(entryLabels.Single(x=>x.Text=="Bidder Number")));Assert.Equal(3,entryLayout.GetRow(entryLabels.Single(x=>x.Text=="Quantity")));
         var numberFor=entryLabels.ToDictionary(label=>label.Text,label=>Assert.IsType<NumericUpDown>(entryLayout.GetControlFromPosition(1,entryLayout.GetRow(label))));
         Assert.False(numberFor["Lot Number"].TabStop);Assert.Equal(0,numberFor["Hammer Price (each)"].TabIndex);Assert.Equal(1,numberFor["Bidder Number"].TabIndex);Assert.Equal(2,numberFor["Quantity"].TabIndex);
         Assert.All(buttons,button=>Assert.False(button.TabStop));Assert.True(grid.ColumnHeadersHeight>=42);Assert.True(grid.RowTemplate.Height>=38);
-        var quickLayout=Assert.IsType<TableLayoutPanel>(create.Parent);var seller=Assert.IsType<NumericUpDown>(quickLayout.GetControlFromPosition(1,0));var description=Assert.IsType<TextBox>(quickLayout.GetControlFromPosition(3,0));Assert.Equal(0,seller.TabIndex);Assert.Equal(1,description.TabIndex);Assert.False(create.TabStop);
+        var quickLayout=Assert.IsType<TableLayoutPanel>(create.Parent);var seller=Assert.IsType<NumericUpDown>(quickLayout.GetControlFromPosition(1,0));var description=Assert.IsType<TextBox>(quickLayout.GetControlFromPosition(1,1));Assert.Equal(2,quickLayout.RowCount);Assert.Equal(0,seller.TabIndex);Assert.Equal(1,description.TabIndex);Assert.False(create.TabStop);
     }
 
     [Fact]
@@ -140,6 +142,39 @@ public sealed class LiveAuctionViewModelTests
         Assert.Equal(consignors.GetByNumber(77).ConsignorId,lot.ConsignorId);
         Assert.Equal("Available",lot.Status);
         Assert.Equal("1",Scalar(database.Path,"SELECT COUNT(*) FROM AuctionConsignors WHERE AuctionId=(SELECT CAST(Value AS INTEGER) FROM Settings WHERE Key='CurrentAuctionId') AND ConsignorId=(SELECT ConsignorId FROM Consignors WHERE ConsignorNumber=77);"));
+    }
+
+    [Fact]
+    public void LiveSaleHistory_IsCurrentAuctionAndModeScopedAndIncludesBuyerIdentity()
+    {
+        using var database=TemporaryDatabase.Create();var store=new SqliteDataStore(database.Path);var service=new AuctionService(store);var consignors=new ConsignorService(store);var auction=service.GetCurrentAuction();
+        consignors.SaveConsignor(new Consignor{ConsignorNumber=71,BusinessName="Seller",Active=true},null);var seller=consignors.GetByNumber(71);
+        service.SaveBidder(new AuctionBidder{AuctionId=auction.AuctionId,BidderNumber=15,FirstName="Jane",LastName="Buyer"},null);
+        service.SaveLot(new AuctionLot{AuctionId=auction.AuctionId,ConsignorId=seller.ConsignorId,LotNumber=1,Description="Retail chair",SaleMode=AuctionSaleMode.Retail},null);
+        service.SaveLot(new AuctionLot{AuctionId=auction.AuctionId,ConsignorId=seller.ConsignorId,LotNumber=2,Description="Wholesale cases",SaleMode=AuctionSaleMode.Wholesale},null);
+        service.RecordSale(1,15,20m,true,2);service.RecordSale(2,15,5m,true,4,3);
+
+        var retail=Assert.Single(new LiveAuctionViewModel(service,consignors,AuctionSaleMode.Retail).GetSaleHistory());
+        Assert.Equal("#15 — Jane Buyer",retail.BuyerDisplay);Assert.Equal("Retail chair",retail.Description);Assert.Equal(40m,retail.Total);
+        var wholesale=Assert.Single(new LiveAuctionViewModel(service,consignors,AuctionSaleMode.Wholesale).GetSaleHistory());
+        Assert.Equal(4,wholesale.QuantityPerDeal);Assert.Equal(3,wholesale.Deals);Assert.Equal(12,wholesale.Quantity);Assert.Equal(60m,wholesale.Total);
+    }
+
+    [Fact]
+    public void LiveSaleCorrection_IsAuditedAndPreservesWholesaleDealBreakdown()
+    {
+        using var database=TemporaryDatabase.Create();var store=new SqliteDataStore(database.Path);var service=new AuctionService(store);var consignors=new ConsignorService(store);var auction=service.GetCurrentAuction();
+        consignors.SaveConsignor(new Consignor{ConsignorNumber=72,BusinessName="Seller",Active=true},null);var seller=consignors.GetByNumber(72);
+        service.SaveBidder(new AuctionBidder{AuctionId=auction.AuctionId,BidderNumber=10,FirstName="Wrong",LastName="Buyer"},null);service.SaveBidder(new AuctionBidder{AuctionId=auction.AuctionId,BidderNumber=20,FirstName="Correct",LastName="Buyer"},null);
+        service.SaveLot(new AuctionLot{AuctionId=auction.AuctionId,ConsignorId=seller.ConsignorId,LotNumber=7,Description="Cases",SaleMode=AuctionSaleMode.Wholesale},null);
+        service.RecordSale(7,10,25m,true,2,3);var original=Assert.Single(service.GetSaleHistory(AuctionSaleMode.Wholesale));
+        var correction=new LiveSaleCorrectionViewModel(original).CreateRequest(20,4,2,15m,"Bidder number entered as price");
+
+        service.CorrectSale(original.BidderNumber,correction);
+
+        var replacement=Assert.Single(service.GetSaleHistory(AuctionSaleMode.Wholesale));Assert.Equal(20,replacement.BidderNumber);Assert.Equal(4,replacement.QuantityPerDeal);Assert.Equal(2,replacement.Deals);Assert.Equal(8,replacement.Quantity);Assert.Equal(120m,replacement.Total);
+        Assert.Equal("1",Scalar(database.Path,"SELECT COUNT(*) FROM Sales WHERE IsVoided=1 AND VoidReason='Bidder number entered as price';"));
+        Assert.Equal("1",Scalar(database.Path,"SELECT COUNT(*) FROM AuditLog WHERE Action='SaleCorrected';"));
     }
 
     [Fact]

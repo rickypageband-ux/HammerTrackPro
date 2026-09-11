@@ -24,6 +24,8 @@ public sealed class LiveAuctionForm : Form
     private readonly Label _status = new();
     private readonly Label _previousSale = new();
     private readonly DataGridView _salesGrid = new();
+    private readonly Label _historyDetails = new();
+    private readonly Button _editSale = new();
     private readonly Label _modeLabel = new();
     private readonly TextBox _notes = new();
     private readonly Button _completeSale = new();
@@ -67,21 +69,22 @@ public sealed class LiveAuctionForm : Form
 
     private Control BuildLayout()
     {
+        var shell=new TableLayoutPanel{Dock=DockStyle.Fill,ColumnCount=2,RowCount=1,Padding=new Padding(12),BackColor=Color.FromArgb(242,245,248)};
+        shell.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,68));shell.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,32));shell.RowStyles.Add(new RowStyle(SizeType.Percent,100));
         var root = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
             AutoScroll = true,
             ColumnCount = 1,
-            RowCount = 8,
-            Padding = new Padding(16),
+            RowCount = 7,
+            Padding = new Padding(4,4,10,4),
             BackColor = Color.FromArgb(242, 245, 248)
         };
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 190));
         root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 86));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 126));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 230));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 115));
         root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
 
@@ -107,8 +110,7 @@ public sealed class LiveAuctionForm : Form
 
         root.Controls.Add(BuildQuickAddPanel(), 0, 3);
         root.Controls.Add(BuildEntryCard(), 0, 4);
-        root.Controls.Add(BuildRecordedSalesPanel(), 0, 5);
-        root.Controls.Add(BuildNotesAndQueuePanel(), 0, 6);
+        root.Controls.Add(BuildNotesAndQueuePanel(), 0, 5);
 
         var help = new Label
         {
@@ -117,28 +119,28 @@ public sealed class LiveAuctionForm : Form
             ForeColor = Color.DimGray,
             Margin = new Padding(0, 10, 0, 0)
         };
-        root.Controls.Add(help, 0, 7);
-        return root;
+        root.Controls.Add(help, 0, 6);
+        shell.Controls.Add(root,0,0);shell.Controls.Add(BuildRecordedSalesPanel(),1,0);
+        return shell;
     }
 
     private Control BuildQuickAddPanel()
     {
-        var panel=new TableLayoutPanel { Dock=DockStyle.Fill,ColumnCount=5,Padding=new Padding(12),Margin=new Padding(0,8,0,0),BackColor=Color.White };
-        panel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,130));
-        panel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        var panel=new TableLayoutPanel { Dock=DockStyle.Fill,ColumnCount=3,RowCount=2,Padding=new Padding(12),Margin=new Padding(0,8,0,0),BackColor=Color.White };
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,230));
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));
-        panel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,160));
+        panel.RowStyles.Add(new RowStyle(SizeType.Percent,50));panel.RowStyles.Add(new RowStyle(SizeType.Percent,50));
         panel.Controls.Add(new Label { Text="Quick Add Seller Number",AutoSize=true,Anchor=AnchorStyles.Left,Font=new Font("Segoe UI",11F,FontStyle.Bold) },0,0);
         _quickConsignorNumber.Minimum=0; _quickConsignorNumber.Maximum=999999; _quickConsignorNumber.Dock=DockStyle.Fill;
         _quickConsignorNumber.TabIndex=0;
         panel.Controls.Add(_quickConsignorNumber,1,0);
-        panel.Controls.Add(new Label { Text="Lot Description / Name",AutoSize=true,Anchor=AnchorStyles.Left,Margin=new Padding(16,3,3,3),Font=new Font("Segoe UI",11F,FontStyle.Bold) },2,0);
+        panel.Controls.Add(new Label { Text="Lot Description / Name",AutoSize=true,Anchor=AnchorStyles.Left,Font=new Font("Segoe UI",11F,FontStyle.Bold) },0,1);
         _quickDescription.Dock=DockStyle.Fill;
         _quickDescription.TabIndex=1;
         _quickDescription.KeyDown+=(_,e)=>{if(e.KeyCode==Keys.Enter){QuickAddLot();e.SuppressKeyPress=true;}};
-        panel.Controls.Add(_quickDescription,3,0);
-        ConfigureButton(_createLot,"CREATE LOT",(_,_)=>QuickAddLot(),true);_createLot.MinimumSize=new Size(150,48);_createLot.Width=150;_createLot.TabStop=false;panel.Controls.Add(_createLot,4,0);
+        panel.Controls.Add(_quickDescription,1,1);panel.SetColumnSpan(_quickDescription,2);
+        ConfigureButton(_createLot,"CREATE LOT",(_,_)=>QuickAddLot(),true);_createLot.MinimumSize=new Size(150,48);_createLot.Width=150;_createLot.TabStop=false;panel.Controls.Add(_createLot,2,0);
         return panel;
     }
 
@@ -257,27 +259,18 @@ public sealed class LiveAuctionForm : Form
 
     private Control BuildRecordedSalesPanel()
     {
-        var panel=new TableLayoutPanel{Dock=DockStyle.Fill,BackColor=Color.White,Padding=new Padding(14),RowCount=2,ColumnCount=1};panel.RowStyles.Add(new RowStyle(SizeType.Absolute,34));panel.RowStyles.Add(new RowStyle(SizeType.Percent,100));
-        var caption=new Label{Text="RECORDED SALES FOR CURRENT LOT — verify every bidder before moving on",Dock=DockStyle.Fill,Font=new Font("Segoe UI",11F,FontStyle.Bold),ForeColor=Color.FromArgb(24,50,74),TextAlign=ContentAlignment.MiddleLeft};panel.Controls.Add(caption,0,0);
+        var panel=new TableLayoutPanel{Dock=DockStyle.Fill,BackColor=Color.White,Padding=new Padding(12),Margin=new Padding(4),RowCount=4,ColumnCount=1};panel.RowStyles.Add(new RowStyle(SizeType.Absolute,52));panel.RowStyles.Add(new RowStyle(SizeType.Percent,100));panel.RowStyles.Add(new RowStyle(SizeType.Absolute,100));panel.RowStyles.Add(new RowStyle(SizeType.Absolute,58));
+        var caption=new Label{Text="LIVE SALE HISTORY",Dock=DockStyle.Fill,Font=new Font("Segoe UI",14F,FontStyle.Bold),ForeColor=Color.FromArgb(24,50,74),TextAlign=ContentAlignment.MiddleLeft};panel.Controls.Add(caption,0,0);
         _salesGrid.Dock=DockStyle.Fill;_salesGrid.ReadOnly=true;_salesGrid.AllowUserToAddRows=false;_salesGrid.AllowUserToDeleteRows=false;_salesGrid.AllowUserToResizeRows=false;_salesGrid.RowHeadersVisible=false;_salesGrid.AutoGenerateColumns=false;_salesGrid.SelectionMode=DataGridViewSelectionMode.FullRowSelect;_salesGrid.BackgroundColor=Color.White;_salesGrid.BorderStyle=BorderStyle.FixedSingle;_salesGrid.AutoSizeColumnsMode=DataGridViewAutoSizeColumnsMode.Fill;
-        _salesGrid.ColumnHeadersHeightSizeMode=DataGridViewColumnHeadersHeightSizeMode.DisableResizing;_salesGrid.ColumnHeadersHeight=42;_salesGrid.RowTemplate.Height=38;_salesGrid.AutoSizeRowsMode=DataGridViewAutoSizeRowsMode.None;_salesGrid.ColumnHeadersDefaultCellStyle.WrapMode=DataGridViewTriState.False;_salesGrid.ColumnHeadersDefaultCellStyle.Padding=new Padding(6);_salesGrid.DefaultCellStyle.Padding=new Padding(6,3,6,3);
-        _salesGrid.Columns.Add(new DataGridViewTextBoxColumn{Name="Lot",HeaderText="Lot",DataPropertyName=nameof(Sale.LotNumber),FillWeight=16});
-        _salesGrid.Columns.Add(new DataGridViewTextBoxColumn{Name="Bidder",HeaderText="Bidder",DataPropertyName=nameof(Sale.BidderNumber),FillWeight=20});
-        if(IsWholesale)
-        {
-            _salesGrid.Columns.Add(new DataGridViewTextBoxColumn{Name="Price",HeaderText="Price Each",DataPropertyName=nameof(Sale.HammerPrice),DefaultCellStyle=new DataGridViewCellStyle{Format="C2"},FillWeight=18});
-            _salesGrid.Columns.Add(new DataGridViewTextBoxColumn{Name="QuantityPerDeal",HeaderText="Qty / Deal",DataPropertyName=nameof(Sale.QuantityPerDeal),FillWeight=18});
-            _salesGrid.Columns.Add(new DataGridViewTextBoxColumn{Name="Deals",HeaderText="Deals",DataPropertyName=nameof(Sale.Deals),FillWeight=14});
-            _salesGrid.Columns.Add(new DataGridViewTextBoxColumn{Name="TotalQuantity",HeaderText="Total Qty",DataPropertyName=nameof(Sale.TotalQuantity),FillWeight=18});
-            _salesGrid.Columns.Add(new DataGridViewTextBoxColumn{Name="Total",HeaderText="Sale Total",DataPropertyName=nameof(Sale.TotalPrice),DefaultCellStyle=new DataGridViewCellStyle{Format="C2"},FillWeight=20});
-        }
-        else
-        {
-            _salesGrid.Columns.Add(new DataGridViewTextBoxColumn{Name="Quantity",HeaderText="Quantity",DataPropertyName=nameof(Sale.Quantity),FillWeight=18});
-            _salesGrid.Columns.Add(new DataGridViewTextBoxColumn{Name="Price",HeaderText="Price Each",DataPropertyName=nameof(Sale.HammerPrice),DefaultCellStyle=new DataGridViewCellStyle{Format="C2"},FillWeight=23});
-            _salesGrid.Columns.Add(new DataGridViewTextBoxColumn{Name="Total",HeaderText="Total",DataPropertyName=nameof(Sale.TotalPrice),DefaultCellStyle=new DataGridViewCellStyle{Format="C2"},FillWeight=23});
-        }
-        panel.Controls.Add(_salesGrid,0,1);
+        _salesGrid.ColumnHeadersHeightSizeMode=DataGridViewColumnHeadersHeightSizeMode.DisableResizing;_salesGrid.ColumnHeadersHeight=42;_salesGrid.RowTemplate.Height=44;_salesGrid.AutoSizeRowsMode=DataGridViewAutoSizeRowsMode.None;_salesGrid.ColumnHeadersDefaultCellStyle.WrapMode=DataGridViewTriState.True;_salesGrid.ColumnHeadersDefaultCellStyle.Padding=new Padding(3);_salesGrid.DefaultCellStyle.Padding=new Padding(3);
+        _salesGrid.Columns.Add(new DataGridViewTextBoxColumn{Name="Lot",HeaderText="Lot",DataPropertyName=nameof(LiveSaleHistoryItem.LotNumber),FillWeight=14});
+        _salesGrid.Columns.Add(new DataGridViewTextBoxColumn{Name="Buyer",HeaderText="Buyer",DataPropertyName=nameof(LiveSaleHistoryItem.BuyerDisplay),FillWeight=42});
+        _salesGrid.Columns.Add(new DataGridViewTextBoxColumn{Name="Quantity",HeaderText=IsWholesale?"Total Qty":"Qty",DataPropertyName=nameof(LiveSaleHistoryItem.Quantity),FillWeight=18});
+        _salesGrid.Columns.Add(new DataGridViewTextBoxColumn{Name="Price",HeaderText="Price",DataPropertyName=nameof(LiveSaleHistoryItem.HammerPrice),DefaultCellStyle=new DataGridViewCellStyle{Format="C2"},FillWeight=22});
+        _salesGrid.Columns.Add(new DataGridViewTextBoxColumn{Name="Total",HeaderText="Total",DataPropertyName=nameof(LiveSaleHistoryItem.Total),DefaultCellStyle=new DataGridViewCellStyle{Format="C2"},FillWeight=24});
+        _salesGrid.SelectionChanged+=(_,_)=>ShowSelectedSaleDetails();_salesGrid.CellDoubleClick+=(_,e)=>{if(e.RowIndex>=0)EditSelectedSale();};panel.Controls.Add(_salesGrid,0,1);
+        _historyDetails.Text="Select a sale to see its buyer and transaction details.";_historyDetails.Dock=DockStyle.Fill;_historyDetails.Padding=new Padding(8);_historyDetails.Font=new Font("Segoe UI",10F);_historyDetails.BackColor=Color.FromArgb(242,245,248);panel.Controls.Add(_historyDetails,0,2);
+        ConfigureButton(_editSale,"EDIT SELECTED SALE",(_,_)=>EditSelectedSale(),true);_editSale.Enabled=false;_editSale.TabStop=false;panel.Controls.Add(_editSale,0,3);
         return panel;
     }
 
@@ -550,11 +543,36 @@ public sealed class LiveAuctionForm : Form
 
     private void RefreshRecordedSales()
     {
-        var lot=Decimal.ToInt32(_lotNumber.Value);
         _salesGrid.DataSource=null;
-        _salesGrid.DataSource=lot>0?_service.GetSalesForLot(lot).ToList():[];
+        _salesGrid.DataSource=_viewModel.GetSaleHistory().ToList();
         _salesGrid.ClearSelection();
         if(_salesGrid.Rows.Count>0)_salesGrid.FirstDisplayedScrollingRowIndex=_salesGrid.Rows.Count-1;
+        ShowSelectedSaleDetails();
+    }
+
+    private void ShowSelectedSaleDetails()
+    {
+        if(_salesGrid.CurrentRow?.DataBoundItem is not LiveSaleHistoryItem sale)
+        {
+            _historyDetails.Text="Select a sale to see its buyer and transaction details.";_editSale.Enabled=false;return;
+        }
+        var quantity=IsWholesale?$"{sale.QuantityPerDeal} per deal × {sale.Deals} deals = {sale.Quantity} items":$"Quantity {sale.Quantity}";
+        _historyDetails.Text=$"Lot #{sale.LotNumber}: {sale.Description}\r\n{sale.BuyerDisplay}\r\n{quantity} × {sale.HammerPrice:C2} = {sale.Total:C2}   •   {sale.LocalTime}";
+        _editSale.Enabled=true;
+    }
+
+    private void EditSelectedSale()
+    {
+        if(_salesGrid.CurrentRow?.DataBoundItem is not LiveSaleHistoryItem sale){ShowStatus("Select a sale from Live Sale History.",false);return;}
+        using var form=new LiveSaleCorrectionForm(sale);
+        if(form.ShowDialog(this)!=DialogResult.OK||form.Request is null)return;
+        if(MessageBox.Show(this,$"Save this correction for Lot #{sale.LotNumber}? The original transaction remains in the audit history.","Confirm Sale Correction",MessageBoxButtons.YesNo,MessageBoxIcon.Warning,MessageBoxDefaultButton.Button2)!=DialogResult.Yes)return;
+        try
+        {
+            _viewModel.CorrectSale(sale.BidderNumber,form.Request);LoadLastSale();RefreshRecordedSales();RefreshBuyerCount();
+            ShowStatus($"Sale for Lot #{sale.LotNumber} was corrected and invoice totals were refreshed.",true);System.Media.SystemSounds.Asterisk.Play();
+        }
+        catch(Exception exception){ShowStatus(exception.Message,false);System.Media.SystemSounds.Hand.Play();MessageBox.Show(this,exception.Message,"Sale Not Corrected",MessageBoxButtons.OK,MessageBoxIcon.Warning);}
     }
 
     private void SaveCurrentLotNotes()

@@ -28,6 +28,7 @@ public interface IDataStore : IConsignorRepository
     void PassLot(int lotNumber);
     Sale? GetLastSale();
     IReadOnlyList<Sale> GetSalesForLot(int lotNumber);
+    IReadOnlyList<LiveSaleHistoryItem> GetSaleHistory(AuctionSaleMode saleMode);
     void UndoLastSale(long saleId);
     int GetSaleCountForLot(int lotNumber);
     DashboardSnapshot GetDashboardSnapshot();

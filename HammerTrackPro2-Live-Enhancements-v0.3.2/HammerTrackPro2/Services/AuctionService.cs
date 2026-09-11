@@ -132,6 +132,13 @@ public sealed class AuctionService : IAuctionService
 
     public Sale? GetLastSale() => _dataStore.GetLastSale();
     public IReadOnlyList<Sale> GetSalesForLot(int lotNumber) => lotNumber <= 0 ? [] : _dataStore.GetSalesForLot(lotNumber);
+    public IReadOnlyList<LiveSaleHistoryItem> GetSaleHistory(AuctionSaleMode saleMode) => _dataStore.GetSaleHistory(saleMode);
+    public void CorrectSale(int currentBidderNumber,SaleCorrectionRequest correction)
+    {
+        EnsureCurrentAuctionOpen();
+        if(currentBidderNumber<=0)throw new InvalidOperationException("Select a recorded sale to correct.");
+        _=new CashierService(_dataStore).CorrectSale(currentBidderNumber,correction);
+    }
     public int GetSaleCountForLot(int lotNumber) => lotNumber <= 0 ? 0 : _dataStore.GetSaleCountForLot(lotNumber);
 
     public void UndoLastSale(long saleId)

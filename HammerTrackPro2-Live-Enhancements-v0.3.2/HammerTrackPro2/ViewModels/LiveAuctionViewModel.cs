@@ -17,6 +17,10 @@ public sealed class LiveAuctionViewModel
 
     public AuctionSaleMode SaleMode { get; }
 
+    public IReadOnlyList<LiveSaleHistoryItem> GetSaleHistory()=>_auctionService.GetSaleHistory(SaleMode);
+
+    public void CorrectSale(int currentBidderNumber,SaleCorrectionRequest correction)=>_auctionService.CorrectSale(currentBidderNumber,correction);
+
     public AuctionLot QuickAddLot(int consignorNumber,string description,int currentLotNumber=0)
     {
         description=description?.Trim()??string.Empty;

@@ -142,11 +142,11 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
             using (var purchases = connection.CreateCommand())
             {
                 purchases.CommandText = """
-                    SELECT s.Id,s.LotNumber,al.Description,s.Quantity,s.HammerPrice FROM Sales s
+                    SELECT s.Id,s.LotNumber,al.Description,s.Quantity,s.HammerPrice,s.QuantityPerDeal,s.Deals FROM Sales s
                     JOIN AuctionLots al ON al.AuctionLotId=s.AuctionLotId WHERE s.AuctionBidderId=$registration AND s.IsVoided=0 ORDER BY s.Id;
                     """;
                 purchases.Parameters.AddWithValue("$registration", auctionBidderId); using var reader = purchases.ExecuteReader();
-                while (reader.Read()) result.Purchases.Add(new InvoiceLine { SaleId=reader.GetInt64(0),LotNumber=reader.GetInt32(1),Description=reader.GetString(2),Quantity=reader.GetInt32(3),HammerPrice=decimal.Parse(reader.GetString(4),CultureInfo.InvariantCulture) });
+                while (reader.Read()) result.Purchases.Add(new InvoiceLine { SaleId=reader.GetInt64(0),LotNumber=reader.GetInt32(1),Description=reader.GetString(2),Quantity=reader.GetInt32(3),HammerPrice=decimal.Parse(reader.GetString(4),CultureInfo.InvariantCulture),QuantityPerDeal=reader.GetInt32(5),Deals=reader.GetInt32(6) });
             }
             using (var payments = connection.CreateCommand())
             {
@@ -182,7 +182,7 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
             long? newRegistration=null;if(correction.BidderNumber is int newBidder){using var q=c.CreateCommand();q.Transaction=t;q.CommandText="SELECT AuctionBidderId FROM AuctionBidders WHERE AuctionId=$auction AND BidderNumber=$bidder;";q.Parameters.AddWithValue("$auction",auctionId);q.Parameters.AddWithValue("$bidder",newBidder);var value=q.ExecuteScalar();if(value is null)throw new InvalidOperationException($"Bidder #{newBidder} is not registered in the current auction.");newRegistration=Convert.ToInt64(value,CultureInfo.InvariantCulture);}
             var projectedReduction=oldTotal-(correction.BidderNumber is null?0m:correction.Quantity*correction.HammerPrice);if(projectedReduction>0){using var q=c.CreateCommand();q.Transaction=t;q.CommandText="SELECT COALESCE(SUM(CAST(p.AppliedAmount AS REAL)),0)-COALESCE((SELECT SUM(CAST(r.Amount AS REAL)) FROM Refunds r WHERE r.InvoiceId=i.InvoiceId),0),CAST(i.TotalAmount AS REAL) FROM Invoices i LEFT JOIN Payments p ON p.InvoiceId=i.InvoiceId WHERE i.AuctionBidderId=$registration GROUP BY i.InvoiceId;";q.Parameters.AddWithValue("$registration",oldRegistration);using var r=q.ExecuteReader();if(r.Read()){var netPaid=Convert.ToDecimal(r.GetDouble(0),CultureInfo.InvariantCulture);var currentTotal=Convert.ToDecimal(r.GetDouble(1),CultureInfo.InvariantCulture);if(netPaid>currentTotal-projectedReduction)throw new InvalidOperationException($"Record a refund of at least {netPaid-(currentTotal-projectedReduction):C2} before reducing or removing this paid sale.");}}
             var utc=DateTime.UtcNow.ToString("O",CultureInfo.InvariantCulture);using(var update=c.CreateCommand()){update.Transaction=t;update.CommandText="UPDATE Sales SET IsVoided=1,VoidedUtc=$utc,VoidReason=$reason WHERE Id=$id;";update.Parameters.AddWithValue("$utc",utc);update.Parameters.AddWithValue("$reason",correction.Reason);update.Parameters.AddWithValue("$id",correction.SaleId);update.ExecuteNonQuery();}
-            long? replacementId=null;if(correction.BidderNumber is int replacementBidder){using var insert=c.CreateCommand();insert.Transaction=t;insert.CommandText="INSERT INTO Sales(AuctionId,AuctionLotId,AuctionBidderId,LotNumber,BidderNumber,HammerPrice,Quantity,QuantityPerDeal,Deals,SaleUtc,Paid,CorrectionForSaleId) VALUES($auction,$lot,$registration,$lotNumber,$bidder,$price,$quantity,$quantity,1,$utc,0,$original); SELECT last_insert_rowid();";insert.Parameters.AddWithValue("$auction",auctionId);insert.Parameters.AddWithValue("$lot",lotId);insert.Parameters.AddWithValue("$registration",newRegistration!.Value);insert.Parameters.AddWithValue("$lotNumber",lotNumber);insert.Parameters.AddWithValue("$bidder",replacementBidder);insert.Parameters.AddWithValue("$price",correction.HammerPrice.ToString(CultureInfo.InvariantCulture));insert.Parameters.AddWithValue("$quantity",correction.Quantity);insert.Parameters.AddWithValue("$utc",utc);insert.Parameters.AddWithValue("$original",correction.SaleId);replacementId=Convert.ToInt64(insert.ExecuteScalar(),CultureInfo.InvariantCulture);}else{using var lot=c.CreateCommand();lot.Transaction=t;lot.CommandText="UPDATE AuctionLots SET Status='Available',LotStatus='Available',UpdatedUtc=$utc WHERE AuctionLotId=$lot AND NOT EXISTS(SELECT 1 FROM Sales WHERE AuctionLotId=$lot AND IsVoided=0);";lot.Parameters.AddWithValue("$utc",utc);lot.Parameters.AddWithValue("$lot",lotId);lot.ExecuteNonQuery();}
+            long? replacementId=null;if(correction.BidderNumber is int replacementBidder){using var insert=c.CreateCommand();insert.Transaction=t;insert.CommandText="INSERT INTO Sales(AuctionId,AuctionLotId,AuctionBidderId,LotNumber,BidderNumber,HammerPrice,Quantity,QuantityPerDeal,Deals,SaleUtc,Paid,CorrectionForSaleId) VALUES($auction,$lot,$registration,$lotNumber,$bidder,$price,$quantity,$quantityPerDeal,$deals,$utc,0,$original); SELECT last_insert_rowid();";insert.Parameters.AddWithValue("$auction",auctionId);insert.Parameters.AddWithValue("$lot",lotId);insert.Parameters.AddWithValue("$registration",newRegistration!.Value);insert.Parameters.AddWithValue("$lotNumber",lotNumber);insert.Parameters.AddWithValue("$bidder",replacementBidder);insert.Parameters.AddWithValue("$price",correction.HammerPrice.ToString(CultureInfo.InvariantCulture));insert.Parameters.AddWithValue("$quantity",correction.Quantity);insert.Parameters.AddWithValue("$quantityPerDeal",correction.QuantityPerDeal);insert.Parameters.AddWithValue("$deals",correction.Deals);insert.Parameters.AddWithValue("$utc",utc);insert.Parameters.AddWithValue("$original",correction.SaleId);replacementId=Convert.ToInt64(insert.ExecuteScalar(),CultureInfo.InvariantCulture);}else{using var lot=c.CreateCommand();lot.Transaction=t;lot.CommandText="UPDATE AuctionLots SET Status='Available',LotStatus='Available',UpdatedUtc=$utc WHERE AuctionLotId=$lot AND NOT EXISTS(SELECT 1 FROM Sales WHERE AuctionLotId=$lot AND IsVoided=0);";lot.Parameters.AddWithValue("$utc",utc);lot.Parameters.AddWithValue("$lot",lotId);lot.ExecuteNonQuery();}
             RefreshInvoiceTotals(c,t,oldRegistration);if(newRegistration is long nr&&nr!=oldRegistration)RefreshInvoiceTotals(c,t,nr);WriteAudit(c,t,"SaleCorrected",$"Sale #{correction.SaleId}, lot #{lotNumber}, replacement={replacementId?.ToString()??"removed"}, bidder={correction.BidderNumber?.ToString()??"none"}, quantity={correction.Quantity}, unit={correction.HammerPrice:C2}, reason={correction.Reason}");t.Commit();return LoadCashierInvoice(bidderNumber);}
     }
 
@@ -992,6 +992,35 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
             command.CommandText="SELECT Id,AuctionId,LotNumber,BidderNumber,HammerPrice,SaleUtc,Paid,Quantity,QuantityPerDeal,Deals FROM Sales WHERE AuctionId=$auctionId AND LotNumber=$lot AND IsVoided=0 ORDER BY Id;";
             command.Parameters.AddWithValue("$auctionId",GetCurrentAuctionId(connection));command.Parameters.AddWithValue("$lot",lotNumber);
             using var reader=command.ExecuteReader();var sales=new List<Sale>();while(reader.Read())sales.Add(ReadSale(reader));return sales;
+        }
+    }
+
+    public IReadOnlyList<LiveSaleHistoryItem> GetSaleHistory(AuctionSaleMode saleMode)
+    {
+        lock(_sync)
+        {
+            using var connection=OpenConnection();using var command=connection.CreateCommand();
+            command.CommandText="""
+                SELECT s.Id,s.LotNumber,al.Description,s.BidderNumber,trim(b.FirstName||' '||b.LastName),
+                       s.Quantity,s.QuantityPerDeal,s.Deals,s.HammerPrice,s.SaleUtc,s.Paid,al.SaleMode
+                FROM Sales s
+                JOIN AuctionLots al ON al.AuctionLotId=s.AuctionLotId
+                JOIN AuctionBidders ab ON ab.AuctionBidderId=s.AuctionBidderId
+                JOIN Buyers b ON b.BuyerId=ab.BuyerId
+                WHERE s.AuctionId=$auctionId AND s.IsVoided=0 AND al.SaleMode=$saleMode
+                ORDER BY s.Id;
+                """;
+            command.Parameters.AddWithValue("$auctionId",GetCurrentAuctionId(connection));
+            command.Parameters.AddWithValue("$saleMode",saleMode.ToString());
+            using var reader=command.ExecuteReader();var results=new List<LiveSaleHistoryItem>();
+            while(reader.Read())results.Add(new LiveSaleHistoryItem
+            {
+                SaleId=reader.GetInt64(0),LotNumber=reader.GetInt32(1),Description=reader.GetString(2),BidderNumber=reader.GetInt32(3),BuyerName=reader.GetString(4),
+                Quantity=reader.GetInt32(5),QuantityPerDeal=reader.GetInt32(6),Deals=reader.GetInt32(7),HammerPrice=decimal.Parse(reader.GetString(8),CultureInfo.InvariantCulture),
+                SaleUtc=DateTime.Parse(reader.GetString(9),CultureInfo.InvariantCulture,DateTimeStyles.RoundtripKind),Paid=reader.GetInt32(10)!=0,
+                SaleMode=Enum.TryParse<AuctionSaleMode>(reader.GetString(11),true,out var mode)?mode:AuctionSaleMode.Retail
+            });
+            return results;
         }
     }
 

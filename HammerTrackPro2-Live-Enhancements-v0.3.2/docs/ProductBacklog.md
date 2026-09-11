@@ -20,6 +20,7 @@ This is the approved release sequence. Do not pull work forward from a later rel
 - [ ] Check printing
 - [ ] Pickup verification
 - [x] Optional licensed Wholesale Auction module with deal-based pass-out entry (owner-approved early module slice)
+- [x] Continuous Retail/Wholesale live-sale history with audited transaction correction (owner-approved operational usability slice)
 
 ## Version 0.8
 

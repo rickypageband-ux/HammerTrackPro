@@ -39,6 +39,8 @@ public sealed class InvoiceLine
     public int LotNumber { get; set; }
     public string Description { get; set; } = string.Empty;
     public int Quantity { get; set; } = 1;
+    public int QuantityPerDeal { get; set; } = 1;
+    public int Deals { get; set; } = 1;
     public decimal HammerPrice { get; set; }
     public decimal LineTotal => Quantity * HammerPrice;
 }
@@ -90,6 +92,8 @@ public sealed class SaleCorrectionRequest
     public long SaleId { get; set; }
     public int? BidderNumber { get; set; }
     public int Quantity { get; set; } = 1;
+    public int QuantityPerDeal { get; set; } = 1;
+    public int Deals { get; set; } = 1;
     public decimal HammerPrice { get; set; }
     public string Reason { get; set; } = string.Empty;
 }

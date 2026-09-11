@@ -15,6 +15,8 @@ public interface IAuctionService : IAuctionSetupService
     void PassLot(int lotNumber);
     Sale? GetLastSale();
     IReadOnlyList<Sale> GetSalesForLot(int lotNumber);
+    IReadOnlyList<LiveSaleHistoryItem> GetSaleHistory(AuctionSaleMode saleMode);
+    void CorrectSale(int currentBidderNumber, SaleCorrectionRequest correction);
     void UndoLastSale(long saleId);
     int GetSaleCountForLot(int lotNumber);
     DashboardSnapshot GetDashboardSnapshot();
