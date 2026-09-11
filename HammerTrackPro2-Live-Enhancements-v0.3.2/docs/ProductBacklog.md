@@ -22,6 +22,7 @@ This is the approved release sequence. Do not pull work forward from a later rel
 - [x] Optional licensed Wholesale Auction module with deal-based pass-out entry (owner-approved early module slice)
 - [x] Continuous Retail/Wholesale live-sale history with audited transaction correction (owner-approved operational usability slice)
 - [x] Per-workstation printer selection with saved preference and test page (owner-approved operational usability slice)
+- [x] Scroll-safe Cashier action rows plus current-auction buyer lookup by bidder number, name, or driver's-license number from Cashier and Bidder Cards (owner-approved 0.7.56 correction)
 
 ## Version 0.8
 

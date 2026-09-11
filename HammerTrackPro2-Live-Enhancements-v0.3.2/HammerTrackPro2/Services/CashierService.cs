@@ -9,7 +9,7 @@ public sealed class CashierService : ICashierService
     public Auction GetCurrentAuction() => _dataStore.GetCurrentAuction();
     public Task<bool> CheckConnectionAsync(CancellationToken cancellationToken=default) => Task.FromResult(true);
     public Invoice RegisterBuyer(AuctionBidder bidder){ArgumentNullException.ThrowIfNull(bidder);var auction=_dataStore.GetCurrentAuction();if(string.Equals(auction.Status,"Closed",StringComparison.OrdinalIgnoreCase))throw new InvalidOperationException("This auction is closed. New buyers cannot be registered.");if(_dataStore.Load().Bidders.Any(x=>x.BidderNumber==bidder.BidderNumber))throw new InvalidOperationException($"Buyer Number #{bidder.BidderNumber} is already registered in the current auction. Use Lookup instead.");bidder.AuctionId=auction.AuctionId;new AuctionService(_dataStore).SaveBidder(bidder,null);return LoadInvoice(bidder.BidderNumber);}
-    public IReadOnlyList<RegisteredBidderSummary> GetRegisteredBidders()=>_dataStore.Load().Bidders.OrderBy(x=>x.BidderNumber).Select(x=>new RegisteredBidderSummary{BuyerNumber=x.BidderNumber,Name=x.FullName}).ToList();
+    public IReadOnlyList<RegisteredBidderSummary> GetRegisteredBidders()=>_dataStore.Load().Bidders.OrderBy(x=>x.BidderNumber).Select(x=>new RegisteredBidderSummary{BuyerNumber=x.BidderNumber,Name=x.FullName,DriversLicense=x.DriversLicense}).ToList();
     public ConsignorSettlement RegisterConsignor(Consignor consignor)
     {
         ArgumentNullException.ThrowIfNull(consignor);

@@ -45,7 +45,7 @@ public sealed class CashierForm : Form
         var header=BuildHeader();
         var lookup=ActionFlow();
         lookup.Controls.Add(new Label { Text="Auction Bidder Number",AutoSize=true }); lookup.Controls.Add(_bidderNumber);
-        lookup.Controls.Add(Button("Lookup Buyer",Lookup)); lookup.Controls.Add(Button("Add Buyer",RegisterBuyer)); lookup.Controls.Add(Button("Add Seller",RegisterConsignor)); lookup.Controls.Add(Button("Bidder Cards",ShowBidderCards)); lookup.Controls.Add(Button("Correct Sale",CorrectSale)); lookup.Controls.Add(Button("Refund",RecordRefund)); lookup.Controls.Add(Button("Unpaid Buyers",ShowUnpaid)); lookup.Controls.Add(Button("End-of-Night",()=>{using var f=new AuctionSettlementForm(_cashierService);f.ShowDialog(this);})); lookup.Controls.Add(Button("Print Invoice",PrintInvoice)); lookup.Controls.Add(Button("Printer Setup",OpenPrinterSetup));
+        lookup.Controls.Add(Button("Lookup Buyer",Lookup)); lookup.Controls.Add(Button("Search Buyers",SearchBuyers)); lookup.Controls.Add(Button("Add Buyer",RegisterBuyer)); lookup.Controls.Add(Button("Add Seller",RegisterConsignor)); lookup.Controls.Add(Button("Bidder Cards",ShowBidderCards)); lookup.Controls.Add(Button("Correct Sale",CorrectSale)); lookup.Controls.Add(Button("Refund",RecordRefund)); lookup.Controls.Add(Button("Unpaid Buyers",ShowUnpaid)); lookup.Controls.Add(Button("End-of-Night",()=>{using var f=new AuctionSettlementForm(_cashierService);f.ShowDialog(this);})); lookup.Controls.Add(Button("Print Invoice",PrintInvoice)); lookup.Controls.Add(Button("Printer Setup",OpenPrinterSetup));
         if(configuration is not null) lookup.Controls.Add(Button("Network Setup",OpenNetworkSetup));
         var paymentEntry=BuildPaymentEntry();
         var tabs=new TabControl { Dock=DockStyle.Fill,Font=new Font("Segoe UI",10F,FontStyle.Bold),Padding=new Point(18,8) };
@@ -82,7 +82,18 @@ public sealed class CashierForm : Form
     }
 
     private Control BuildHeader(){var panel=new Panel{Dock=DockStyle.Fill,BackColor=Navy,Padding=new Padding(20,10,16,10)};var brand=new Label{Text="HAMMERTRACK PRO",Dock=DockStyle.Left,Width=290,TextAlign=ContentAlignment.MiddleLeft,Font=new Font("Segoe UI",20F,FontStyle.Bold),ForeColor=Color.White};var subtitle=new Label{Text="AUCTION CASHIER",Dock=DockStyle.Left,Width=210,TextAlign=ContentAlignment.MiddleLeft,Font=new Font("Segoe UI",11F,FontStyle.Bold),ForeColor=Gold};StyleButton(_fullScreenButton,true);_fullScreenButton.Dock=DockStyle.Right;_connection.Dock=DockStyle.Right;_connection.Width=220;_connection.TextAlign=ContentAlignment.MiddleCenter;_connection.Font=new Font("Segoe UI",10F,FontStyle.Bold);panel.Controls.Add(_fullScreenButton);panel.Controls.Add(_connection);panel.Controls.Add(subtitle);panel.Controls.Add(brand);return panel;}
-    private static FlowLayoutPanel ActionFlow()=>new(){Dock=DockStyle.Fill,AutoSize=true,WrapContents=true,Padding=new Padding(6),BackColor=Color.White};
+    internal static FlowLayoutPanel ActionFlow()=>new()
+    {
+        Dock=DockStyle.Fill,
+        AutoSize=false,
+        Height=68,
+        MinimumSize=new Size(0,68),
+        AutoScroll=true,
+        WrapContents=false,
+        FlowDirection=FlowDirection.LeftToRight,
+        Padding=new Padding(6),
+        BackColor=Color.White
+    };
     private Control BuildPaymentEntry()
     {
         var fields=ActionFlow();
@@ -107,6 +118,7 @@ public sealed class CashierForm : Form
     private static void StyleGrid(DataGridView grid){grid.BackgroundColor=Color.White;grid.BorderStyle=BorderStyle.None;grid.RowHeadersVisible=false;grid.AutoSizeColumnsMode=DataGridViewAutoSizeColumnsMode.Fill;grid.SelectionMode=DataGridViewSelectionMode.FullRowSelect;grid.ColumnHeadersHeight=38;grid.RowTemplate.Height=32;grid.EnableHeadersVisualStyles=false;grid.ColumnHeadersDefaultCellStyle.BackColor=Navy;grid.ColumnHeadersDefaultCellStyle.ForeColor=Color.White;grid.ColumnHeadersDefaultCellStyle.Font=new Font("Segoe UI",10F,FontStyle.Bold);grid.DefaultCellStyle.SelectionBackColor=Color.FromArgb(214,232,245);grid.DefaultCellStyle.SelectionForeColor=Navy;grid.AlternatingRowsDefaultCellStyle.BackColor=Color.FromArgb(246,249,251);}
     private void ToggleFullScreen(){_fullScreen=!_fullScreen;FormBorderStyle=_fullScreen?FormBorderStyle.None:FormBorderStyle.Sizable;WindowState=_fullScreen?FormWindowState.Maximized:FormWindowState.Normal;_fullScreenButton.Text=_fullScreen?"Exit Full Screen":"Full Screen";}
     private void Lookup() { _viewModel.Lookup(Decimal.ToInt32(_bidderNumber.Value)); RefreshInvoice(); }
+    private void SearchBuyers(){using var search=new CashierBidderSearchForm(new CashierBidderSearchViewModel(_cashierService.GetRegisteredBidders()));if(search.ShowDialog(this)!=DialogResult.OK||search.SelectedBidderNumber is not int number)return;_bidderNumber.Value=number;Lookup();}
     private void AddPayment() { var method=(PaymentMethod)_method.SelectedItem!;var paymentAmount=method==PaymentMethod.Cash?_cashTendered.Value:_amount.Value;if(method==PaymentMethod.Cash&&paymentAmount<=0)throw new InvalidOperationException("Enter the cash received in Cash Tendered.");_viewModel.AddPayment(method,paymentAmount,_reference.Text); _amount.Value=0;_cashTendered.Value=0; _reference.Clear(); RefreshInvoice(); }
     private void RemovePayment() { if (_pending.CurrentRow?.DataBoundItem is PaymentRequest payment) _viewModel.RemovePayment(payment); RefreshInvoice(); }
     private void RecordPayments() { _viewModel.RecordPayments(); RefreshInvoice(); }
