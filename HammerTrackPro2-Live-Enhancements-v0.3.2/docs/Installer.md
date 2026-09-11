@@ -20,6 +20,8 @@ The installer creates and grants normal users access to:
     └── license.htplicense
 ```
 
+Each workstation can select its HammerTrack printer from **Printer Setup**. The selected Windows printer name is saved in that PC's `workstation.json`; it is not stored in the shared auction database and does not affect another workstation. Existing configuration files remain compatible because a missing printer name continues to use the current Windows default until an operator saves a choice. If a saved printer is later removed or renamed, HammerTrack stops the print with an actionable message instead of silently sending the document to another printer.
+
 On first start, the application copies a missing legacy database, WAL/SHM companions, backups, and workstation configuration from the prior `HammerTrackPro2` locations. Existing destination files are never overwritten, and legacy files remain as a recovery copy.
 
 ## Build the MSI

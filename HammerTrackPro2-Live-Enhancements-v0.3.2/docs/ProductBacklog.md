@@ -21,6 +21,7 @@ This is the approved release sequence. Do not pull work forward from a later rel
 - [ ] Pickup verification
 - [x] Optional licensed Wholesale Auction module with deal-based pass-out entry (owner-approved early module slice)
 - [x] Continuous Retail/Wholesale live-sale history with audited transaction correction (owner-approved operational usability slice)
+- [x] Per-workstation printer selection with saved preference and test page (owner-approved operational usability slice)
 
 ## Version 0.8
 
@@ -31,7 +32,7 @@ This is the approved release sequence. Do not pull work forward from a later rel
 ## Version 0.9
 
 - [ ] General barcode scanning (a separately approved PDF417 driver's-license registration slice shipped early for camera and HID handheld scanners in 0.7.28-0.7.30)
-- [ ] Receipt printers
+- [ ] Receipt-printer-specific formatting and hardware integration (basic Windows printer selection shipped early in 0.7.55)
 - [ ] Touchscreen mode
 
 ## Version 1.0

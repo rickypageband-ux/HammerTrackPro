@@ -14,6 +14,7 @@ public sealed class WorkstationConfiguration
     public string PairingKey { get; set; } = string.Empty;
     public string CertificateThumbprint { get; set; } = string.Empty;
     public string HostUrl { get; set; } = string.Empty;
+    public string PrinterName { get; set; } = string.Empty;
 }
 
 public static class WorkstationConfigurationService

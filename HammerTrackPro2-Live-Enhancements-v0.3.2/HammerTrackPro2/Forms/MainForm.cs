@@ -265,10 +265,10 @@ public sealed class MainForm : Form
             Padding = new Padding(14),
             Margin = new Padding(8)
         };
-        var buttons = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 5 };
+        var buttons = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 6 };
         buttons.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
         buttons.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
-        for (var row = 0; row < 5; row++) buttons.RowStyles.Add(new RowStyle(SizeType.Percent, 20));
+        for (var row = 0; row < 6; row++) buttons.RowStyles.Add(new RowStyle(SizeType.Percent, 100F / 6));
         buttons.Controls.Add(MakeDashboardButton("Register Bidder", (_, _) => { _tabs.SelectedIndex = 1; NewBidder(); }), 0, 0);
         buttons.Controls.Add(MakeDashboardButton("Add Lot", (_, _) => { _tabs.SelectedIndex = 2; NewLot(); }), 1, 0);
         buttons.Controls.Add(MakeDashboardButton("Backup Database", (_, _) => BackupDatabase()), 0, 1);
@@ -279,6 +279,7 @@ public sealed class MainForm : Form
         buttons.Controls.Add(MakeDashboardButton("Auction Setup", (_, _) => OpenAuctionSetup()), 1, 3);
         buttons.Controls.Add(MakeDashboardButton("Cashier", (_, _) => OpenCashier()), 0, 4);
         buttons.Controls.Add(MakeDashboardButton("Help / User Manual", (_, _) => OpenUserManual()), 1, 4);
+        buttons.Controls.Add(MakeDashboardButton("Printer Setup", (_, _) => { using var setup = new PrinterSetupForm(); setup.ShowDialog(this); }), 0, 5);
         group.Controls.Add(buttons);
         return group;
     }
