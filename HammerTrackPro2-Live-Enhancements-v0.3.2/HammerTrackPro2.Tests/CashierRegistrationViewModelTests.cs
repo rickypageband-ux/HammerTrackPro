@@ -84,6 +84,20 @@ public sealed class CashierRegistrationViewModelTests
         Assert.True(actions.Width>=450);
     }
 
+    [Fact]
+    public void CashierBuyerAndPaymentBandsCannotCollapseAndHideTheirActions()
+    {
+        var service=new CashierFormService();
+        using var form=new CashierForm(new CashierViewModel(service),service);
+        var controls=form.Controls.Cast<Control>().SelectMany(Descendants).ToList();
+        var buyerBand=controls.Single(x=>x.Name=="BUYER&INVOICEBand");
+        var paymentBand=controls.Single(x=>x.Name=="PAYMENTBand");
+        Assert.True(buyerBand.MinimumSize.Height>=82);
+        Assert.True(paymentBand.MinimumSize.Height>=138);
+        Assert.Contains(controls.OfType<Button>(),button=>button.Text=="Search Buyers");
+        Assert.Contains(controls.OfType<Button>(),button=>button.Text=="Printer Setup");
+    }
+
     private static IEnumerable<Control> Descendants(Control control)
     {
         yield return control;

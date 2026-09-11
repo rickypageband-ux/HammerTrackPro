@@ -23,6 +23,7 @@ This is the approved release sequence. Do not pull work forward from a later rel
 - [x] Continuous Retail/Wholesale live-sale history with audited transaction correction (owner-approved operational usability slice)
 - [x] Per-workstation printer selection with saved preference and test page (owner-approved operational usability slice)
 - [x] Scroll-safe Cashier action rows plus current-auction buyer lookup by bidder number, name, or driver's-license number from Cashier and Bidder Cards (owner-approved 0.7.56 correction)
+- [x] Preserve fixed usable heights for Cashier buyer and payment action bands so full-screen and scaled layouts cannot collapse the controls (owner-approved 0.7.57 correction)
 
 ## Version 0.8
 
