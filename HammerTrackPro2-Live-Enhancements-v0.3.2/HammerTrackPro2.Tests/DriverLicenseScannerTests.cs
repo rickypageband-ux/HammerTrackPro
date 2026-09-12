@@ -15,7 +15,7 @@ public sealed class DriverLicenseScannerTests
     [Fact]
     public void ScannerFormProvidesPrivateKeyboardWedgeReceiverForZebraAndNetumStreams()
     {
-        using var form=new HammerTrackPro2.Forms.HandheldLicenseScannerForm(true);
+        using var form=new HammerTrackPro2.Forms.HandheldLicenseScannerForm();
         Assert.True(form.ScannerInputControl.Multiline);
         Assert.True(form.ScannerInputControl.AcceptsReturn);
         Assert.True(form.ScannerInputControl.AcceptsTab);

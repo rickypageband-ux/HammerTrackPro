@@ -350,8 +350,7 @@ public sealed class MainForm : Form
 
         var buttons = new FlowLayoutPanel { AutoSize = true, Dock = DockStyle.Top };
         buttons.Controls.Add(MakeButton("New", (_, _) => NewBidder()));
-        buttons.Controls.Add(MakeButton("Scan ID",(_,_)=>ScanHandheldLicense(false)));
-        buttons.Controls.Add(MakeButton("Scan New ID",(_,_)=>ScanHandheldLicense(true)));
+        buttons.Controls.Add(MakeButton("Scan Driver's License",(_,_)=>ScanHandheldLicense()));
         buttons.Controls.Add(MakeButton("Save", (_, _) => SaveBidder()));
         buttons.Controls.Add(MakeButton("Delete", (_, _) => DeleteBidder()));
         form.Controls.Add(buttons, 1, form.RowCount);
@@ -665,7 +664,7 @@ public sealed class MainForm : Form
         MessageBox.Show(this,"Driver's license information was filled in. Review it before saving the bidder.","Scan Complete",MessageBoxButtons.OK,MessageBoxIcon.Information);
     }
 
-    private void ScanHandheldLicense(bool newCard){using var scanner=new HandheldLicenseScannerForm(newCard);if(scanner.ShowDialog(this)!=DialogResult.OK||scanner.Result is null)return;ApplyDriverLicenseScan(scanner.Result);MessageBox.Show(this,"Driver's license information was filled in. Review it before saving the bidder.","Scan Complete",MessageBoxButtons.OK,MessageBoxIcon.Information);}
+    private void ScanHandheldLicense(){using var scanner=new HandheldLicenseScannerForm();if(scanner.ShowDialog(this)!=DialogResult.OK||scanner.Result is null)return;ApplyDriverLicenseScan(scanner.Result);MessageBox.Show(this,"Driver's license information was filled in. Review it before saving the bidder.","Scan Complete",MessageBoxButtons.OK,MessageBoxIcon.Information);}
     private void ApplyDriverLicenseScan(DriverLicenseScanData result){_firstName.Text=result.FirstName;_lastName.Text=result.LastName;_driversLicense.Text=result.DriversLicense;_address.Text=result.Address;_city.Text=result.City;_state.Text=result.State;_zip.Text=result.Zip;}
 
     private void DeleteBidder()

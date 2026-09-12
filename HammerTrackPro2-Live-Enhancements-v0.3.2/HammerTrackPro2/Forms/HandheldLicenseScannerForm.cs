@@ -12,15 +12,13 @@ public sealed class HandheldLicenseScannerForm : Form
     private readonly System.Windows.Forms.Timer _completionTimer=new(){Interval=HandheldLicenseScanViewModel.InitialCompletionDelayMilliseconds};
     private bool _clearingScannerInput;
     private bool _waitingForSlowChunk;
-    private readonly bool _newPolycarbonateCard;
     public DriverLicenseScanData? Result=>_viewModel.Result;
 
-    public HandheldLicenseScannerForm(bool newPolycarbonateCard=false)
+    public HandheldLicenseScannerForm()
     {
-        _newPolycarbonateCard=newPolycarbonateCard;
         Text="HammerTrack Pro — Handheld License Scanner";Width=720;Height=410;MinimumSize=new Size(620,360);StartPosition=FormStartPosition.CenterParent;BackColor=Color.FromArgb(242,245,248);KeyPreview=true;
         var header=new Label{Text="HANDHELD DRIVER'S LICENSE SCANNER",Dock=DockStyle.Top,Height=72,Padding=new Padding(20,0,0,0),TextAlign=ContentAlignment.MiddleLeft,BackColor=Navy,ForeColor=Color.White,Font=new Font("Segoe UI",18F,FontStyle.Bold)};
-        var instructions=new Label{Text=newPolycarbonateCard?"Connect the NETUM or Zebra/Symbol scanner in USB HID keyboard mode with PDF417 enabled. For reflective IDs, enable normal/inverse decoding when supported, tilt the card slightly, and pull the trigger.":"Connect the handheld scanner in USB HID keyboard mode. Make sure PDF417 is enabled, then pull the trigger. You do not need to click a text box.",Dock=DockStyle.Top,Height=88,Padding=new Padding(24,16,24,8),TextAlign=ContentAlignment.MiddleCenter,BackColor=Color.White,ForeColor=Navy,Font=new Font("Segoe UI",11F)};
+        var instructions=new Label{Text="Connect the NETUM or Zebra/Symbol scanner in USB HID keyboard mode with PDF417 enabled, then scan the driver's license. Older and newer licenses use this same screen.",Dock=DockStyle.Top,Height=88,Padding=new Padding(24,16,24,8),TextAlign=ContentAlignment.MiddleCenter,BackColor=Color.White,ForeColor=Navy,Font=new Font("Segoe UI",11F)};
         var privacy=new Label{Text="The raw barcode is hidden and discarded after parsing. Review the filled bidder fields before saving.",Dock=DockStyle.Bottom,Height=45,TextAlign=ContentAlignment.MiddleCenter,ForeColor=Color.DimGray};
         var actions=new FlowLayoutPanel{Dock=DockStyle.Bottom,Height=62,FlowDirection=FlowDirection.LeftToRight,Padding=new Padding(155,7,0,7),BackColor=Color.White};actions.Controls.Add(Button("Reset / Scan Again",Reset,true));actions.Controls.Add(Button("Cancel",Close));
         Controls.Add(_status);Controls.Add(privacy);Controls.Add(actions);Controls.Add(instructions);Controls.Add(header);Controls.Add(_scannerInput);_scannerInput.BringToFront();

@@ -25,6 +25,7 @@ This is the approved release sequence. Do not pull work forward from a later rel
 - [x] Scroll-safe Cashier action rows plus current-auction buyer lookup by bidder number, name, or driver's-license number from Cashier and Bidder Cards (owner-approved 0.7.56 correction)
 - [x] Preserve fixed usable heights for Cashier buyer and payment action bands so full-screen and scaled layouts cannot collapse the controls (owner-approved 0.7.57 correction)
 - [x] Accept Zebra/Symbol and NETUM PDF417 streams through a private focused USB HID keyboard-wedge receiver (owner-approved 0.7.58 correction)
+- [x] Replace the separate old/new license actions with one Scan Driver's License action backed by the proven shared receiver (owner-approved 0.7.59 simplification)
 
 ## Version 0.8
 

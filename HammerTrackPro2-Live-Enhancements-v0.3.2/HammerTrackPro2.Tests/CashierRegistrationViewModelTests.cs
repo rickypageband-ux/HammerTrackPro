@@ -61,7 +61,7 @@ public sealed class CashierRegistrationViewModelTests
         Assert.Contains("Address (optional)",labels);Assert.Contains("Phone Number (optional)",labels);Assert.Contains("Email (optional)",labels);Assert.Contains("Driver's License Number (optional)",labels);
         Assert.Contains("Resale / Tax Exemption Number",labels);Assert.Contains("Exemption State",labels);Assert.Contains("Tax-Exempt Status",labels);
         var buttons=form.Controls.Cast<Control>().SelectMany(Descendants).OfType<Button>().Select(button=>button.Text).ToList();
-        Assert.DoesNotContain("Scan with Camera",buttons);Assert.Contains("Scan ID",buttons);Assert.Contains("Scan New ID",buttons);
+        Assert.DoesNotContain("Scan with Camera",buttons);Assert.DoesNotContain("Scan ID",buttons);Assert.DoesNotContain("Scan New ID",buttons);Assert.Single(buttons,text=>text=="Scan Driver's License");
     }
 
     [Fact]

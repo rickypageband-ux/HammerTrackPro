@@ -52,7 +52,7 @@ public sealed class CashierRegistrationForm : Form
         if(_viewModel.IsSeller)Add(table,"Business Name",_business);
         else
         {
-            var scanners=new FlowLayoutPanel{AutoSize=true,Dock=DockStyle.Fill};var handheld=ScanButton("Scan ID");handheld.Click+=(_,_)=>ScanHandheldLicense(false);var newId=ScanButton("Scan New ID");newId.Click+=(_,_)=>ScanHandheldLicense(true);scanners.Controls.Add(handheld);scanners.Controls.Add(newId);table.Controls.Add(scanners,1,table.RowCount++);
+            var scanners=new FlowLayoutPanel{AutoSize=true,Dock=DockStyle.Fill};var handheld=ScanButton("Scan Driver's License");handheld.Click+=(_,_)=>ScanHandheldLicense();scanners.Controls.Add(handheld);table.Controls.Add(scanners,1,table.RowCount++);
         }
         Add(table,"First Name (optional)",_first);Add(table,"Last Name (optional)",_last);
         if(!_viewModel.IsSeller){Add(table,"Address (optional)",_address);Add(table,"City (optional)",_city);Add(table,"State (optional)",_state);Add(table,"ZIP (optional)",_zip);Add(table,"Phone Number (optional)",_phone);Add(table,"Email (optional)",_email);Add(table,"Driver's License Number (optional)",_driversLicense);Add(table,"Resale / Tax Exemption Number",_resaleLicenseNumber);Add(table,"Exemption State",_resaleLicenseState);Add(table,"Tax-Exempt Status",_taxExempt);}
@@ -85,7 +85,7 @@ public sealed class CashierRegistrationForm : Form
         MessageBox.Show(this,"Driver's license information was filled in. Review it before registering the bidder.","Scan Complete",MessageBoxButtons.OK,MessageBoxIcon.Information);
     }
 
-    private void ScanHandheldLicense(bool newCard){using var scanner=new HandheldLicenseScannerForm(newCard);if(scanner.ShowDialog(this)!=DialogResult.OK||scanner.Result is null)return;ApplyScan(scanner.Result);MessageBox.Show(this,"Driver's license information was filled in. Review it before registering the bidder.","Scan Complete",MessageBoxButtons.OK,MessageBoxIcon.Information);}
+    private void ScanHandheldLicense(){using var scanner=new HandheldLicenseScannerForm();if(scanner.ShowDialog(this)!=DialogResult.OK||scanner.Result is null)return;ApplyScan(scanner.Result);MessageBox.Show(this,"Driver's license information was filled in. Review it before registering the bidder.","Scan Complete",MessageBoxButtons.OK,MessageBoxIcon.Information);}
     private void ApplyScan(DriverLicenseScanData result){_first.Text=result.FirstName;_last.Text=result.LastName;_address.Text=result.Address;_city.Text=result.City;_state.Text=result.State;_zip.Text=result.Zip;_driversLicense.Text=result.DriversLicense;}
     private static Button ScanButton(string text)=>new(){Text=text,Height=42,AutoSize=true,Padding=new Padding(10,4,10,4),BackColor=Color.FromArgb(224,168,54),ForeColor=Color.FromArgb(24,50,74),FlatStyle=FlatStyle.Flat,Font=new Font("Segoe UI",9.5F,FontStyle.Bold)};
 }
