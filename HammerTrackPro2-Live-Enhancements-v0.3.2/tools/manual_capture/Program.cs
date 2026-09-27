@@ -55,6 +55,7 @@ Capture(new CashierForm(cashierVm,cashier),"cashier.png",2000,1100,form=>{
 Capture(new HandheldLicenseScannerForm(),"license-scanner.png",800,460);
 Capture(new CashierBidderSearchForm(new CashierBidderSearchViewModel(cashier.GetRegisteredBidders())),"buyer-search.png",850,580);
 Capture(new PrinterSetupForm(new PrinterSetupViewModel(new SamplePrinter(),new SamplePrinter())),"printer-setup.png",700,410);
+Capture(new SoldItemSearchForm(new SoldItemSearchViewModel(auctionService,AuctionSaleMode.Retail)),"sold-item-search.png",1100,760);
 Capture(new AuctionSettlementForm(cashier),"end-of-night.png",1600,900);
 Capture(new WholesaleActivationForm(new WholesaleActivationViewModel(new AlwaysActivated()),"Wholesale Auction is not activated on this computer."),"wholesale-activation.png",850,560);
 Capture(new LicenseActivationForm("No HammerTrack Pro license is installed."),"license-activation.png",760,420);

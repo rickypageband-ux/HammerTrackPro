@@ -8,6 +8,8 @@ The supported two-PC topology is `Cashier -> paired HTTPS API -> live-auction ho
 
 ## Schema version 20
 
+Version 0.7.60 adds a clerk search/additional-buyer operation without a schema change. It inserts an ordinary Sale using the selected unvoided source sale's persisted price and Wholesale deal size, within a transaction that verifies current-auction scope and open status, refreshes the invoice, and appends audit entries linking source and new sale IDs. Original sale amounts/ownership, payments, and lot status are preserved on insert; the receiving buyer's invoice-wide derived Paid flags are recalculated. See [Clerk search and additional buyers](SoldItemSearch.md) for workflow, undo behavior, and compatibility.
+
 ### `Auctions`
 
 `AuctionId` is the integer primary key. `AuctionNumber` is a unique text business identifier. The record also stores name, date, time, location, staff, commercial percentages, `SalesTaxBasis`, invoice/receipt footers, status, and retained timestamps. `SalesTaxBasis` is `None`, `HammerOnly`, or `HammerPlusBuyerPremium`.

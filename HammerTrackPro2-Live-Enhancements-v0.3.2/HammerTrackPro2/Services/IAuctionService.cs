@@ -11,6 +11,8 @@ public interface IAuctionService : IAuctionSetupService
     void SaveLot(AuctionLot lot, int? originalLotNumber);
     void DeleteLot(int lotNumber);
     Sale RecordSale(int lotNumber, int bidderNumber, decimal hammerPrice, bool keepLotOpen = false, int quantity = 1, int deals = 1);
+    IReadOnlyList<SoldItem> SearchSoldItems(string query, AuctionSaleMode saleMode);
+    Sale RecordAdditionalBuyer(long auctionId, long sourceSaleId, AuctionSaleMode saleMode, int bidderNumber, int quantityOrDeals);
     void CloseLot(int lotNumber);
     void PassLot(int lotNumber);
     Sale? GetLastSale();

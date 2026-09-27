@@ -24,6 +24,8 @@ public interface IDataStore : IConsignorRepository
     void CopyConsignorAssociations(long sourceAuctionId, long destinationAuctionId);
     void CopyBidderRegistrations(long sourceAuctionId, long destinationAuctionId);
     Sale RecordSale(int lotNumber, int bidderNumber, decimal hammerPrice, bool keepLotOpen = false, int quantity = 1, int deals = 1);
+    IReadOnlyList<SoldItem> SearchSoldItems(string query, AuctionSaleMode saleMode);
+    Sale RecordAdditionalBuyer(long auctionId, long sourceSaleId, AuctionSaleMode saleMode, int bidderNumber, int quantityOrDeals);
     void CloseLot(int lotNumber);
     void PassLot(int lotNumber);
     Sale? GetLastSale();

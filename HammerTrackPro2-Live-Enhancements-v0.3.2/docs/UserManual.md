@@ -1,6 +1,6 @@
 # Customer user manual
 
-The owner-requested documentation refresh targets the current application version, **0.7.59**, and is delivered in `output/pdf/HammerTrackPro-User-Manual.pdf`.
+The owner-requested documentation refresh targets the current application version, **0.7.60**, and is delivered in `output/pdf/HammerTrackPro-User-Manual.pdf`. The 36-page manual now includes Search Sold Items and adding another buyer at the recorded price, with a current screenshot on page 22.
 
 The manual covers installation and pairing, main-license activation, auction setup, seller and bidder registration, handheld driver's-license scanning, lot preparation, Retail and Wholesale selling, pass-out entry, corrections, checkout, refunds, printing, settlements, End-of-Night, backups, and troubleshooting. The scanner instructions use the single **Scan Driver's License** action shipped in 0.7.59. Wholesale includes separate activation instructions, price-each / quantity-per-deal / deals examples, and screenshots of standard and pass-out entry. Printer selection, buyer search, and continuous live history are also documented.
 

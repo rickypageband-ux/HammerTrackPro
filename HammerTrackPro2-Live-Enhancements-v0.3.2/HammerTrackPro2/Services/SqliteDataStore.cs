@@ -839,6 +839,45 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
 
 
     public Sale RecordSale(int lotNumber, int bidderNumber, decimal hammerPrice, bool keepLotOpen = false, int quantity = 1, int deals = 1)
+        => RecordSaleCore(lotNumber, bidderNumber, hammerPrice, keepLotOpen, quantity, deals);
+
+    public IReadOnlyList<SoldItem> SearchSoldItems(string query, AuctionSaleMode saleMode)
+    {
+        lock (_sync)
+        {
+            using var connection = OpenConnection();
+            using var command = connection.CreateCommand();
+            command.CommandText = """
+                SELECT s.AuctionId,MAX(s.Id),l.LotNumber,l.Description,c.ConsignorNumber,s.HammerPrice,s.QuantityPerDeal
+                FROM Sales s JOIN AuctionLots l ON l.AuctionLotId=s.AuctionLotId AND l.AuctionId=s.AuctionId
+                JOIN Consignors c ON c.ConsignorId=l.ConsignorId
+                WHERE s.AuctionId=$auction AND s.IsVoided=0 AND l.SaleMode=$mode
+                  AND l.Status IN ('Sold','Pass-Out')
+                  AND ($query='' OR instr(lower(l.Description),lower($query))>0 OR CAST(l.LotNumber AS TEXT)=$query)
+                GROUP BY s.AuctionId,l.AuctionLotId,s.HammerPrice,s.QuantityPerDeal
+                ORDER BY MAX(s.Id) DESC LIMIT 100;
+                """;
+            command.Parameters.AddWithValue("$auction", GetCurrentAuctionId(connection));
+            command.Parameters.AddWithValue("$mode", saleMode.ToString());
+            command.Parameters.AddWithValue("$query", query.Trim());
+            using var reader = command.ExecuteReader();
+            var results = new List<SoldItem>();
+            while (reader.Read()) results.Add(new SoldItem(reader.GetInt64(0), reader.GetInt64(1), reader.GetInt32(2),
+                reader.GetString(3), reader.GetInt32(4), decimal.Parse(reader.GetString(5), CultureInfo.InvariantCulture),
+                reader.GetInt32(6), saleMode));
+            return results;
+        }
+    }
+
+    public Sale RecordAdditionalBuyer(long auctionId, long sourceSaleId, AuctionSaleMode saleMode, int bidderNumber, int quantityOrDeals)
+    {
+        if (sourceSaleId <= 0 || bidderNumber <= 0 || quantityOrDeals <= 0 || !Enum.IsDefined(saleMode))
+            throw new InvalidOperationException("Choose a sold item and enter a valid bidder and positive quantity or deals.");
+        return RecordSaleCore(0, bidderNumber, 0, false, quantityOrDeals, 1, auctionId, sourceSaleId, saleMode);
+    }
+
+    private Sale RecordSaleCore(int lotNumber, int bidderNumber, decimal hammerPrice, bool keepLotOpen, int quantity, int deals,
+        long? expectedAuctionId = null, long? sourceSaleId = null, AuctionSaleMode saleMode = AuctionSaleMode.Retail)
     {
         lock (_sync)
         {
@@ -846,6 +885,31 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
             using var transaction = connection.BeginTransaction();
 
             var auctionId = GetCurrentAuctionId(connection);
+            if (sourceSaleId.HasValue)
+            {
+                if (auctionId != expectedAuctionId) throw new InvalidOperationException("The current auction changed. Search again.");
+                using var source = connection.CreateCommand();
+                source.Transaction = transaction;
+                source.CommandText = """
+                    SELECT s.LotNumber,s.HammerPrice,s.QuantityPerDeal,a.Status
+                    FROM Sales s JOIN AuctionLots l ON l.AuctionLotId=s.AuctionLotId AND l.AuctionId=s.AuctionId
+                    JOIN Auctions a ON a.AuctionId=s.AuctionId
+                    WHERE s.Id=$source AND s.AuctionId=$auction AND s.IsVoided=0 AND l.SaleMode=$mode
+                      AND l.Status IN ('Sold','Pass-Out');
+                    """;
+                source.Parameters.AddWithValue("$source", sourceSaleId.Value);
+                source.Parameters.AddWithValue("$auction", auctionId);
+                source.Parameters.AddWithValue("$mode", saleMode.ToString());
+                using var reader = source.ExecuteReader();
+                if (!reader.Read()) throw new InvalidOperationException("That sale is no longer available. Search again and choose a current sale.");
+                if (string.Equals(reader.GetString(3), "Closed", StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidOperationException("This auction is closed. Additional purchases are locked.");
+                lotNumber = reader.GetInt32(0);
+                hammerPrice = decimal.Parse(reader.GetString(1), CultureInfo.InvariantCulture);
+                if (saleMode == AuctionSaleMode.Wholesale) { deals = quantity; quantity = reader.GetInt32(2); }
+                if (hammerPrice <= 0 || quantity <= 0) throw new InvalidOperationException("The original sale has invalid price or quantity.");
+                _ = checked(checked(quantity * deals) * hammerPrice);
+            }
             long auctionLotId;
             using (var verify = connection.CreateCommand())
             {
@@ -857,7 +921,7 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
                 if (!reader.Read()) throw new InvalidOperationException($"Lot #{lotNumber} was not found.");
                 auctionLotId = reader.GetInt64(0);
                 var status = reader.GetString(1);
-                if (string.Equals(status, "Sold", StringComparison.OrdinalIgnoreCase))
+                if (!sourceSaleId.HasValue && string.Equals(status, "Sold", StringComparison.OrdinalIgnoreCase))
                     throw new InvalidOperationException($"Lot #{lotNumber} is closed and has already been sold.");
             }
 
@@ -897,6 +961,7 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
                 saleId = Convert.ToInt64(insert.ExecuteScalar(), CultureInfo.InvariantCulture);
             }
 
+            if (!sourceSaleId.HasValue)
             using (var updateLot = connection.CreateCommand())
             {
                 updateLot.Transaction = transaction;
@@ -912,6 +977,8 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
             RefreshInvoiceTotals(connection,transaction,auctionBidderId);
             var recordedQuantity=checked(quantity*deals);
             WriteAudit(connection, transaction, "SaleRecorded", $"Lot #{lotNumber}, bidder #{bidderNumber}, quantity/deal={quantity}, deals={deals}, total quantity={recordedQuantity}, unit={hammerPrice:C2}, total={recordedQuantity*hammerPrice:C2}, pass-out={keepLotOpen}");
+            if (sourceSaleId.HasValue)
+                WriteAudit(connection, transaction, "AdditionalBuyerRecorded", $"Sale #{saleId}, source sale #{sourceSaleId.Value}, auction #{auctionId}, lot #{lotNumber}, bidder #{bidderNumber}");
             transaction.Commit();
             return new Sale
             {

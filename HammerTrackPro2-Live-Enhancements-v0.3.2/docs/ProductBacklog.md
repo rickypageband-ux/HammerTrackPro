@@ -16,6 +16,8 @@ This is the approved release sequence. Do not pull work forward from a later rel
 
 ## Version 0.7
 
+- [x] Clerk Search Sold Items and additional buyer entry at the recorded price while the auction remains open (owner-approved 0.7.60; see SoldItemSearch.md).
+
 - [x] Settlements (calculation, ledgered payouts, and printable settlement statement)
 - [ ] Check printing
 - [ ] Pickup verification

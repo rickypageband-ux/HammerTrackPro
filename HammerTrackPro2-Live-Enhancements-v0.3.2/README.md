@@ -123,3 +123,7 @@ Live Auction supports the rapid keyboard path Seller Number, Tab, Lot Descriptio
 End-of-Night uses the same branded full-screen workspace, with clear financial summary cards, organized staff-payment entry, a readable audit ledger, safer void guidance, refresh status, and print preview.
 
 Auction Setup stores optional auction-company name, address, phone, and email details. Buyer invoices/receipts and End-of-Night reports use those details with the embedded HammerTrack Pro logo, professional section styling, bidder contact information, itemized purchases/payments, financial reconciliation, and audit-ledger presentation.
+
+## Search sold items from the clerk screen
+
+Version 0.7.60 adds **SEARCH SOLD ITEMS** below Retail/Wholesale live history. Search a description or lot number, select the recorded price, enter a registered bidder and Quantity (Retail) or Deals (Wholesale), and choose **Add Buyer at This Price**. This records an additional purchase at the stored price, preserving earlier purchases and payments. The auction must remain open. See [Clerk search and additional buyers](docs/SoldItemSearch.md).

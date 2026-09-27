@@ -114,6 +114,23 @@ public sealed class AuctionService : IAuctionService
         return _dataStore.RecordSale(lotNumber, bidderNumber, hammerPrice, keepLotOpen, quantity, deals);
     }
 
+    public IReadOnlyList<SoldItem> SearchSoldItems(string query, AuctionSaleMode saleMode)
+    {
+        if (!Enum.IsDefined(saleMode)) throw new ArgumentOutOfRangeException(nameof(saleMode));
+        return _dataStore.SearchSoldItems(query?.Trim() ?? string.Empty, saleMode);
+    }
+
+    public Sale RecordAdditionalBuyer(long auctionId, long sourceSaleId, AuctionSaleMode saleMode, int bidderNumber, int quantityOrDeals)
+    {
+        EnsureCurrentAuctionOpen();
+        if (auctionId != GetCurrentAuction().AuctionId) throw new InvalidOperationException("The current auction changed. Search again.");
+        if (sourceSaleId <= 0) throw new InvalidOperationException("Choose a recorded item first.");
+        if (!Enum.IsDefined(saleMode)) throw new ArgumentOutOfRangeException(nameof(saleMode));
+        if (bidderNumber <= 0) throw new InvalidOperationException("Enter a valid bidder number.");
+        if (quantityOrDeals <= 0) throw new InvalidOperationException("Quantity or deals must be at least one.");
+        return _dataStore.RecordAdditionalBuyer(auctionId, sourceSaleId, saleMode, bidderNumber, quantityOrDeals);
+    }
+
     public void CloseLot(int lotNumber)
     {
         EnsureCurrentAuctionOpen();

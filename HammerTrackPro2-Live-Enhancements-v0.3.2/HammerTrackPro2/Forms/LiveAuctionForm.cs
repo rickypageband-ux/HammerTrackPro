@@ -271,7 +271,24 @@ public sealed class LiveAuctionForm : Form
         _salesGrid.SelectionChanged+=(_,_)=>ShowSelectedSaleDetails();_salesGrid.CellDoubleClick+=(_,e)=>{if(e.RowIndex>=0)EditSelectedSale();};panel.Controls.Add(_salesGrid,0,1);
         _historyDetails.Text="Select a sale to see its buyer and transaction details.";_historyDetails.Dock=DockStyle.Fill;_historyDetails.Padding=new Padding(8);_historyDetails.Font=new Font("Segoe UI",10F);_historyDetails.BackColor=Color.FromArgb(242,245,248);panel.Controls.Add(_historyDetails,0,2);
         ConfigureButton(_editSale,"EDIT SELECTED SALE",(_,_)=>EditSelectedSale(),true);_editSale.Enabled=false;_editSale.TabStop=false;panel.Controls.Add(_editSale,0,3);
+        panel.RowCount = 5;
+        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 58));
+        var searchSold = new Button();
+        ConfigureButton(searchSold, "SEARCH SOLD ITEMS", (_, _) => SearchSoldItems(), true);
+        searchSold.TabStop = false;
+        panel.Controls.Add(searchSold, 0, 4);
         return panel;
+    }
+
+    private void SearchSoldItems()
+    {
+        var viewModel = new SoldItemSearchViewModel(_service, _viewModel.SaleMode);
+        using var form = new SoldItemSearchForm(viewModel);
+        if (form.ShowDialog(this) != DialogResult.OK || viewModel.RecordedSale is not Sale sale) return;
+        LoadLastSale();
+        RefreshRecordedSales();
+        RefreshBuyerCount();
+        ShowStatus($"Added bidder #{sale.BidderNumber} to lot #{sale.LotNumber}: {sale.Quantity} at {sale.HammerPrice:C2} each.", true);
     }
 
     private Control BuildNotesAndQueuePanel()

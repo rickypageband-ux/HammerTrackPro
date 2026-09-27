@@ -327,3 +327,12 @@ Status: Cashier and the approved closed-auction consignor payout extension are i
 - Select the complete Hammer Price, Bidder Number, and Quantity values whenever each field receives focus, allowing immediate replacement of 0.00, 0, and 1.
 - Increase recorded-current-lot grid header and row heights and padding so cells are not clipped.
 - Package the correction as version 0.7.43.
+
+## Clerk search and additional buyers (0.7.60)
+
+- Owner approved searching previously sold items from the clerk screen and adding another bidder at the recorded price.
+- Owner confirmed bidding has finished but the auction remains open; formally closed auctions stay locked.
+- Provide description/lot search, explicit original price selection, Retail Quantity and Wholesale Deals entry with locked price/deal size.
+- Append the purchase and audit linkage, recalculate the receiving invoice, and preserve existing purchase amounts and payments.
+- Deliver MVVM presentation, automated business/persistence tests, current manual instructions/screenshots, and a version-matched installer.
+- No schema change is required; see [implementation and acceptance checks](SoldItemSearch.md).
