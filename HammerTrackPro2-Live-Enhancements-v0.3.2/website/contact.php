@@ -23,14 +23,20 @@ $token = clean('contact_token', 128);
 $now = time();
 $started = ContactSpamGuard::consumeToken($_SESSION, $token, $now);
 $validTiming = ContactSpamGuard::hasValidTiming($started, $now);
-$rateAllowed = $validTiming && ContactSpamGuard::allowRequest(
+$sessionRateAllowed = $validTiming && ContactSpamGuard::allowSessionRequest($_SESSION, $now);
+$ipRateAllowed = $sessionRateAllowed && ContactSpamGuard::allowRequest(
     __DIR__ . '/_private/contact-rate-limits.json',
     (string)($_SERVER['REMOTE_ADDR'] ?? 'unknown'),
     $now
 );
-$looksLikeSpam = !$validTiming || !$rateAllowed || ContactSpamGuard::hasTooManyLinks($message);
+$rateLimited = $validTiming && (!$sessionRateAllowed || !$ipRateAllowed);
+$looksLikeSpam = !$validTiming || ContactSpamGuard::hasTooManyLinks($message);
 
-if ($looksLikeSpam) {
+if ($rateLimited) {
+    http_response_code(429);
+    $title = 'Please wait before sending again';
+    $detail = 'We received several requests from this browser or network. Please try again in one hour or email Info@rpdavid.com directly.';
+} elseif ($looksLikeSpam) {
     // Give automated senders a normal-looking response without sending email.
     http_response_code(200);
     $title = 'Request received';

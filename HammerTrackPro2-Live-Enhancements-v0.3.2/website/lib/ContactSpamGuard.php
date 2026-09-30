@@ -4,6 +4,7 @@ declare(strict_types=1);
 final class ContactSpamGuard
 {
     private const SESSION_KEY = 'hammertrack_contact_forms';
+    private const SESSION_ATTEMPTS_KEY = 'hammertrack_contact_attempts';
 
     public static function startSession(): void
     {
@@ -56,6 +57,29 @@ final class ContactSpamGuard
     {
         $count = preg_match_all('~(?:https?://|www\.)~i', $text);
         return $count !== false && $count > $maximumLinks;
+    }
+
+    public static function allowSessionRequest(array &$session, int $now, int $limit = 5, int $windowSeconds = 3600): bool
+    {
+        $attempts = $session[self::SESSION_ATTEMPTS_KEY] ?? [];
+        if (!is_array($attempts)) {
+            $attempts = [];
+        }
+
+        $cutoff = $now - $windowSeconds;
+        $attempts = array_values(array_filter(
+            $attempts,
+            static fn (mixed $timestamp): bool => is_int($timestamp) && $timestamp > $cutoff
+        ));
+
+        if (count($attempts) >= $limit) {
+            $session[self::SESSION_ATTEMPTS_KEY] = $attempts;
+            return false;
+        }
+
+        $attempts[] = $now;
+        $session[self::SESSION_ATTEMPTS_KEY] = $attempts;
+        return true;
     }
 
     public static function allowRequest(string $storageFile, string $clientKey, int $now, int $limit = 5, int $windowSeconds = 3600): bool

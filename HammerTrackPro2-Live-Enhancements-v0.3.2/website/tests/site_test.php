@@ -64,6 +64,12 @@ expect(!ContactSpamGuard::hasValidTiming(100, 101), 'An immediate bot submission
 expect(ContactSpamGuard::hasTooManyLinks('https://one.test www.two.test http://three.test'), 'Link-heavy messages are rejected.');
 expect(!ContactSpamGuard::hasTooManyLinks('Please see https://example.com for our auction.'), 'A normal message may include a useful link.');
 
+$rateSession = [];
+for ($attempt = 0; $attempt < 5; $attempt++) {
+    expect(ContactSpamGuard::allowSessionRequest($rateSession, 200 + $attempt), 'A browser session stays below the hourly limit.');
+}
+expect(!ContactSpamGuard::allowSessionRequest($rateSession, 210), 'The sixth browser-session request is blocked.');
+
 $rateFile = tempnam(sys_get_temp_dir(), 'hammertrack-rate-');
 expect($rateFile !== false, 'A temporary rate-limit file can be created.');
 if ($rateFile !== false) {

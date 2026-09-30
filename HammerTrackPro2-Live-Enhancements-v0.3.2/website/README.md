@@ -41,6 +41,8 @@ handler. It rejects hidden-field bot submissions, requires a one-time browser
 session token, rejects forms completed in less than two seconds, limits each
 visitor to five accepted attempts per hour, and silently discards messages with
 more than two web links. No CAPTCHA account or paid anti-spam service is needed.
+The sixth submission from the same browser or network displays a clear request
+to wait one hour, making the limit easy to verify during testing.
 
 The rate limiter creates `_private/contact-rate-limits.json` automatically. The
 Plesk PHP user must be able to write to `_private`; the directory's included
