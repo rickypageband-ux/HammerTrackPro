@@ -1,4 +1,5 @@
 from pathlib import Path
+from html import escape
 from PIL import Image as PILImage
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
@@ -100,7 +101,7 @@ story += [Spacer(1,.55*inch),Image(str(LOGO),width=4.7*inch,height=2.35*inch),Sp
           p('CUSTOMER USER MANUAL','ManualH1'),p('From registration to final settlement','ManualH2'),Spacer(1,.18*inch),
           data_table([['Product','HammerTrack Pro Auction Management Software'],['Manual version',VERSION],['Applies to','Retail Auction and optional Wholesale Auction module'],['Website','https://hammertrackpro.com']], [1.65*inch,5.37*inch]),Spacer(1,.28*inch),
           callout('Purpose','This manual is written for auction owners, clerks, cashiers, and setup staff who have never used HammerTrack Pro. Follow the chapters in order when preparing your first auction.','tip'),Spacer(1,.45*inch),
-          p('Updated September 27, 2026. Screens show the current application with fictional training data. Sample percentages and amounts are examples; use your saved auction terms.', 'Caption'),
+          p('Updated September 30, 2026. Screens show the current application with fictional training data. Sample percentages and amounts are examples; use your saved auction terms.', 'Caption'),
           p('Copyright 2026 HammerTrack Pro. Customer training and operational reference.', 'Caption'),PageBreak()]
 
 # TOC
@@ -257,7 +258,24 @@ story += [h1('25. Technical Support and Update Practice'),p('For current contact
           h2('Before requesting support'),*bullets(['Record the software version shown in Apps & Features or installer filename.','Note whether the computer is Host or Cashier.','Write down the exact error message without including private license keys, scanner barcode data, buyer personal data, or payment details.','Describe the last successful action and the steps that reproduce the problem.','Create a database backup when the program can safely do so.']),
           h2('Keeping this manual current'),p(f'This manual describes version {VERSION}. The installer includes the offline PDF opened by Help / User Manual. Keep the matching manual with your software update. The screenshots use fictional training data and example auction terms; your auction names, figures, printer names, and Windows display scaling will differ.'),
           callout('Auction-day emergency rule','Protect the database and written audit trail first. Do not delete files, bypass license/network security, or edit the SQLite database manually to force an auction-day correction.','important'),Spacer(1,.2*inch),
-          p('End of HammerTrack Pro Customer User Manual','Caption')]
+          PageBreak()]
+
+# Owner-supplied agreement, with pricing omitted for the customer manual.
+import json
+agreement=json.loads((ROOT/'docs'/'manual-license-agreement.json').read_text(encoding='utf-8'))
+story += [h1('26. Software License Agreement'),p(agreement['product'],'ManualH3'),
+          data_table([['Purchaser / Company','Date'],['____________________________','____________________________'],
+                      ['Contact Name / Phone','Email'],['____________________________','____________________________'],
+                      ['Billing Address / City / State / ZIP','Software License No.'],['____________________________','____________________________']], [3.51*inch,3.51*inch])]
+for index,section in enumerate(agreement['sections'][:-1],1):
+    story += [h2(f"{index}. {escape(section['title'])}"),p(escape(section['text']))]
+acceptance=agreement['sections'][-1]
+story += [KeepTogether([h2(f"13. {escape(acceptance['title'])}"),p(escape(acceptance['text'])),Spacer(1,.15*inch),data_table([
+    ['PURCHASER / COMPANY','SOFTWARE PROVIDER'],
+    ['Signature: ____________________','Signature: ____________________'],
+    ['Printed Name: _________________','Printed Name: _________________'],
+    ['Date: ________________________','Date: ________________________']], [3.51*inch,3.51*inch])])]
+story += [Spacer(1,.2*inch),p('End of HammerTrack Pro Customer User Manual','Caption')]
 
 OUT.parent.mkdir(parents=True,exist_ok=True)
 doc=ManualDocTemplate(str(OUT));doc.multiBuild(story)

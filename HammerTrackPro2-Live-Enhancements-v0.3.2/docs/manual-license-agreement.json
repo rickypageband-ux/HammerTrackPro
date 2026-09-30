@@ -1,0 +1,61 @@
+{
+  "title": "SOFTWARE LICENSE AGREEMENT",
+  "product": "Hammer Track Pro Auction Management Software",
+  "source_filename": "Hammer_Track_Pro_Installment_Payment_and_Software_License_Agreement.pdf",
+  "source_sha256": "0f256a3de2b0794d3e6a8c5ddff8e84aa8cd9befe8c6501a0f9c65e97623a05f",
+  "editorial_note": "Owner requested this supplied agreement in the manual without pricing. Omitted source section 1 and its installment schedule; removed additional-license fee wording, annual-update price/fee wording, custom-work rate/cost wording, and the payment reference in Entire Agreement. Remaining sections renumbered; purchaser and signature fields retained. Installer agreement is unchanged.",
+  "sections": [
+    {
+      "title": "Licensed Computers",
+      "text": "The Software is licensed for use by the original Purchaser / Company on a maximum of two (2) designated computers: one (1) Clerking PC and one (1) Cashier PC. Additional computers, users, or installations are not included unless separately authorized in writing. Replacement of a licensed computer because of equipment failure, upgrade, or replacement does not transfer the license to another person or company and may require reactivation by the Software Provider."
+    },
+    {
+      "title": "Nature Of License - Software Is Licensed, Not Sold",
+      "text": "Hammer Track Pro is licensed, not sold. Payment purchases only a perpetual, limited, non-exclusive, non-transferable license to use the Software in accordance with this Agreement. The Purchaser does not acquire ownership of Hammer Track Pro, its source code, programming, design, intellectual property, documentation, trade secrets, or any other proprietary rights. All right, title, ownership, and intellectual property rights in and to Hammer Track Pro remain exclusively with the Software Provider. The license permits continued use of the licensed version for so long as the Purchaser complies with this Agreement."
+    },
+    {
+      "title": "License Ownership And Non-Transferability",
+      "text": "The license is issued exclusively to the original Purchaser / Company identified in this Agreement and is permanently associated with that Purchaser / Company. The license may not be sold, resold, assigned, traded, gifted, leased, rented, loaned, sublicensed, inherited, transferred, or otherwise conveyed to another individual, business, auction company, organization, successor, purchaser, or third party. This restriction applies whether the proposed transfer occurs separately or as part of the sale, transfer, dissolution, merger, or change of ownership of a business, unless the Software Provider expressly authorizes the transfer in writing."
+    },
+    {
+      "title": "No Transfer Through Equipment Or Media",
+      "text": "Possession or purchase of a computer, USB drive, installation media, installation files, activation credentials, license key, database, backup, or other copy of Hammer Track Pro does not create ownership of the Software or a valid license for another person or company. A computer containing Hammer Track Pro may be sold or transferred as hardware, but the Hammer Track Pro license does not transfer with that computer. Any new person or company wishing to use Hammer Track Pro must obtain its own license from the Software Provider."
+    },
+    {
+      "title": "No Resale, Distribution, Or Sharing",
+      "text": "The Purchaser shall not copy, reproduce, distribute, resell, publish, share, sublicense, or otherwise make Hammer Track Pro available to any unauthorized person or entity. The Purchaser shall not provide installation files, activation information, license credentials, or copies of the Software for the purpose of allowing another person or company to install or operate Hammer Track Pro. Backup copies, if permitted, remain subject to this Agreement and may not be used to increase the number of licensed computers."
+    },
+    {
+      "title": "Support",
+      "text": "Technical support, when offered, will be provided only to the original Purchaser / Company named in this Agreement and its authorized representatives. No support will be provided to a subsequent owner, transferee, third party, or unauthorized user."
+    },
+    {
+      "title": "Annual Updates",
+      "text": "Software updates are optional. The specific content, timing, and availability of updates may vary by version. The perpetual license to the purchased version does not require the Purchaser to buy annual updates."
+    },
+    {
+      "title": "Custom Updates And Requested Features",
+      "text": "Custom modifications, personalized updates, integrations, reports, requested features, or other development work may be available. The scope of work will be determined and approved at the time of the request before work begins."
+    },
+    {
+      "title": "Software Use And Restrictions",
+      "text": "The Purchaser agrees not to reverse engineer, decompile, disassemble, bypass licensing controls, remove proprietary notices, modify the Software for redistribution, distribute activation information, or otherwise use the Software in a manner intended to defeat or circumvent the licensing restrictions contained in this Agreement."
+    },
+    {
+      "title": "License Suspension Or Termination",
+      "text": "The Software Provider may suspend or terminate the license for unauthorized transfer, resale, copying, distribution, circumvention of licensing restrictions, non-payment when applicable, or other material breach of this Agreement, subject to applicable law. Termination does not transfer ownership of the Software and does not create any right to sell, distribute, transfer, or continue using the Software."
+    },
+    {
+      "title": "No Guarantee Of Future Features",
+      "text": "Purchase of the license does not guarantee any future feature, custom feature, compatibility change, upgrade, update, or continued compatibility with future third-party hardware or operating systems unless specifically agreed to in writing."
+    },
+    {
+      "title": "Entire Agreement",
+      "text": "This Agreement represents the understanding between the parties concerning licensing of Hammer Track Pro. Any modification, waiver, or transfer of these terms must be made in writing and authorized by the Software Provider."
+    },
+    {
+      "title": "Acknowledgment And Acceptance",
+      "text": "By signing below, the Purchaser acknowledges that the Purchaser has read, understands, and agrees to this Agreement, including the two-computer license limit and the restrictions on transfer and resale. The Purchaser specifically acknowledges: HAMMER TRACK PRO IS LICENSED, NOT SOLD. Payment grants only the right to use Hammer Track Pro under this Agreement and does not transfer ownership of the Software or its intellectual property."
+    }
+  ]
+}
