@@ -1,5 +1,9 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/lib/ContactSpamGuard.php';
+ContactSpamGuard::startSession();
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+$contactToken = ContactSpamGuard::issueToken($_SESSION, time());
 $configFile = __DIR__ . '/config.php';
 $config = is_file($configFile) ? require $configFile : [];
 $contactEmail = trim((string)($config['contact_email'] ?? 'Info@rpdavid.com'));
@@ -97,6 +101,7 @@ $contactEmail = trim((string)($config['contact_email'] ?? 'Info@rpdavid.com'));
       </div>
       <form class="contact-form" action="contact.php" method="post">
         <input type="text" name="website" tabindex="-1" autocomplete="off" class="honey" aria-hidden="true">
+        <input type="hidden" name="contact_token" value="<?= htmlspecialchars($contactToken, ENT_QUOTES) ?>">
         <label>Name<input name="name" autocomplete="name" required maxlength="100"></label>
         <label>Email<input type="email" name="email" autocomplete="email" required maxlength="200"></label>
         <label>What can we help with?

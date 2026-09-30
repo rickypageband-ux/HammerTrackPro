@@ -19,6 +19,8 @@ expect(str_contains($html, 'Whole Package — $2,500'), '$2,500 Whole Package re
 expect(str_contains($html, 'Wholesale Auction upgrade — $299'), '$299 Wholesale upgrade request option is rendered.');
 expect(str_contains($html, 'Info@rpdavid.com'), 'The configured sales email is displayed.');
 expect(str_contains($html, 'name="machine_id"'), 'Order request captures the Machine ID needed for activation.');
+expect(str_contains($html, 'name="website"'), 'The contact form includes a bot-trap field.');
+expect(str_contains($html, 'name="contact_token"'), 'The contact form includes a one-time session token.');
 
 ob_start();
 require dirname(__DIR__) . '/pricing.php';
@@ -51,5 +53,25 @@ try {
     $incompleteConfigRejected = true;
 }
 expect($incompleteConfigRejected, 'SMTP refuses to send while the password placeholder is present.');
+
+require_once dirname(__DIR__) . '/lib/ContactSpamGuard.php';
+$session = [];
+$token = ContactSpamGuard::issueToken($session, 100);
+expect(ContactSpamGuard::consumeToken($session, $token, 103) === 100, 'A valid contact token can be consumed once.');
+expect(ContactSpamGuard::consumeToken($session, $token, 103) === null, 'A contact token cannot be reused.');
+expect(ContactSpamGuard::hasValidTiming(100, 102), 'A human-speed form submission is accepted.');
+expect(!ContactSpamGuard::hasValidTiming(100, 101), 'An immediate bot submission is rejected.');
+expect(ContactSpamGuard::hasTooManyLinks('https://one.test www.two.test http://three.test'), 'Link-heavy messages are rejected.');
+expect(!ContactSpamGuard::hasTooManyLinks('Please see https://example.com for our auction.'), 'A normal message may include a useful link.');
+
+$rateFile = tempnam(sys_get_temp_dir(), 'hammertrack-rate-');
+expect($rateFile !== false, 'A temporary rate-limit file can be created.');
+if ($rateFile !== false) {
+    for ($attempt = 0; $attempt < 5; $attempt++) {
+        expect(ContactSpamGuard::allowRequest($rateFile, '192.0.2.1', 200 + $attempt), 'An allowed request stays below the hourly limit.');
+    }
+    expect(!ContactSpamGuard::allowRequest($rateFile, '192.0.2.1', 210), 'The sixth hourly request is blocked.');
+    unlink($rateFile);
+}
 
 fwrite(STDOUT, "Website tests passed.\n");

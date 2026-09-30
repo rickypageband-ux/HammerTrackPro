@@ -34,6 +34,19 @@ Do not email, publish, or commit the completed password. If Plesk offers file
 permissions, keep the configuration readable only by the subscription's system
 user.
 
+### Contact-form spam protection
+
+Every sales, pricing, and upgrade request uses the same protected contact
+handler. It rejects hidden-field bot submissions, requires a one-time browser
+session token, rejects forms completed in less than two seconds, limits each
+visitor to five accepted attempts per hour, and silently discards messages with
+more than two web links. No CAPTCHA account or paid anti-spam service is needed.
+
+The rate limiter creates `_private/contact-rate-limits.json` automatically. The
+Plesk PHP user must be able to write to `_private`; the directory's included
+`.htaccess` continues to prevent browser access. The file stores only a SHA-256
+hash of the visitor address and recent timestamps, not the original address.
+
 ## Publish with Plesk
 
 1. In Plesk, open the domain's **Hosting & DNS → Hosting** settings and set PHP to a currently supported 8.x release.
@@ -42,7 +55,7 @@ user.
 4. Visit `/health.php`; it should return `{"status":"ok","service":"hammertrackpro.com"}`.
 5. Complete the IONOS password step above, submit one test contact request, and confirm delivery at `Info@rpdavid.com`.
 
-Before publishing, run `php tests/site_test.php` and PHP's syntax check against each `.php` file. The test confirms the brand asset, every published price, the request workflow, the Machine ID field, and safe handling of an incomplete SMTP configuration.
+Before publishing, run `php tests/site_test.php` and PHP's syntax check against each `.php` file. The test confirms the brand asset, every published price, the request workflow, the Machine ID field, spam controls, rate limiting, and safe handling of an incomplete SMTP configuration.
 
 ## Checkout and fulfillment
 

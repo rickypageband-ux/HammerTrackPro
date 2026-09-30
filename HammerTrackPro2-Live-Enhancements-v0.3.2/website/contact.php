@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') { header('Location: /#contact', true, 303); exit; }
+require_once __DIR__ . '/lib/ContactSpamGuard.php';
+ContactSpamGuard::startSession();
 $configFile = __DIR__ . '/config.php';
 $config = is_file($configFile) ? require $configFile : [];
 $recipient = trim((string)($config['contact_email'] ?? ''));
@@ -17,7 +19,23 @@ $email = filter_var(clean('email', 200), FILTER_VALIDATE_EMAIL);
 $topic = clean('topic', 100);
 $machineId = clean('machine_id', 200);
 $message = clean('message', 3000);
-if ($recipient === '' || $name === '' || $email === false || $message === '') {
+$token = clean('contact_token', 128);
+$now = time();
+$started = ContactSpamGuard::consumeToken($_SESSION, $token, $now);
+$validTiming = ContactSpamGuard::hasValidTiming($started, $now);
+$rateAllowed = $validTiming && ContactSpamGuard::allowRequest(
+    __DIR__ . '/_private/contact-rate-limits.json',
+    (string)($_SERVER['REMOTE_ADDR'] ?? 'unknown'),
+    $now
+);
+$looksLikeSpam = !$validTiming || !$rateAllowed || ContactSpamGuard::hasTooManyLinks($message);
+
+if ($looksLikeSpam) {
+    // Give automated senders a normal-looking response without sending email.
+    http_response_code(200);
+    $title = 'Request received';
+    $detail = 'Thank you. We will follow up using the email address you provided.';
+} elseif ($recipient === '' || $name === '' || $email === false || $message === '') {
     http_response_code(422);
     $title = $recipient === '' ? 'Contact form setup needed' : 'Please check your information';
     $detail = $recipient === '' ? 'The site owner needs to add the contact email in config.php.' : 'Name, a valid email, and a message are required.';
