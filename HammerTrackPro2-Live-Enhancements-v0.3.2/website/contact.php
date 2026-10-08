@@ -35,7 +35,7 @@ $looksLikeSpam = !$validTiming || ContactSpamGuard::hasTooManyLinks($message);
 if ($rateLimited) {
     http_response_code(429);
     $title = 'Please wait before sending again';
-    $detail = 'We received several requests from this browser or network. Please try again in one hour or email Info@rpdavid.com directly.';
+    $detail = 'We received several requests from this browser or network. Please try again in one hour or email ' . $recipient . ' directly.';
 } elseif ($looksLikeSpam) {
     // Give automated senders a normal-looking response without sending email.
     http_response_code(200);
@@ -61,4 +61,4 @@ if ($rateLimited) {
     $detail = $sent ? 'Thank you. We will follow up using the email address you provided.' : 'Please try again later or contact HammerTrack Pro directly.';
 }
 ?>
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?= htmlspecialchars($title) ?> | HammerTrack Pro</title><link rel="stylesheet" href="assets/styles.css"></head><body><main class="section"><div class="section-heading"><p class="eyebrow">HammerTrack Pro</p><h2><?= htmlspecialchars($title) ?></h2><p><?= htmlspecialchars($detail) ?></p><a class="button button-primary" href="/#contact">Return to the website</a></div></main></body></html>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?= htmlspecialchars($title) ?> | HammerTrack Pro</title><link rel="stylesheet" href="assets/styles.css?v=20261008"></head><body><main class="section"><div class="section-heading"><p class="eyebrow">HammerTrack Pro</p><h2><?= htmlspecialchars($title) ?></h2><p><?= htmlspecialchars($detail) ?></p><a class="button button-primary" href="/#contact">Return to the website</a></div></main></body></html>

@@ -6,7 +6,7 @@ header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 $contactToken = ContactSpamGuard::issueToken($_SESSION, time());
 $configFile = __DIR__ . '/config.php';
 $config = is_file($configFile) ? require $configFile : [];
-$contactEmail = trim((string)($config['contact_email'] ?? 'Info@rpdavid.com'));
+$contactEmail = trim((string)($config['contact_email'] ?? 'sales@hammertrackpro.com'));
 ?>
 <!doctype html>
 <html lang="en">
@@ -16,7 +16,7 @@ $contactEmail = trim((string)($config['contact_email'] ?? 'Info@rpdavid.com'));
   <meta name="description" content="HammerTrack Pro auction management software—from bidder registration through final invoice and seller settlement.">
   <meta name="theme-color" content="#a40000">
   <title>HammerTrack Pro | One Powerful Auction System</title>
-  <link rel="stylesheet" href="assets/styles.css">
+  <link rel="stylesheet" href="assets/styles.css?v=20261008">
   <script src="assets/site.js" defer></script>
 </head>
 <body>
@@ -28,8 +28,9 @@ $contactEmail = trim((string)($config['contact_email'] ?? 'Info@rpdavid.com'));
       <a href="index.php#features">Features</a>
       <a href="index.php#workflow">How it works</a>
       <a href="pricing.php">Pricing</a>
+      <a href="demo.php">7-Day Demo</a>
       <a href="index.php#contact">Contact</a>
-      <a class="nav-cta" href="pricing.php">View plans</a>
+      <a class="nav-cta" href="demo.php">Try it free</a>
     </nav>
   </header>
 
@@ -41,7 +42,7 @@ $contactEmail = trim((string)($config['contact_email'] ?? 'Info@rpdavid.com'));
         <p class="hero-lede">From registration to final invoice, HammerTrack Pro gives auction teams one focused system for live sale entry, cashiering, payments, and seller settlements.</p>
         <div class="hero-actions">
           <a class="button button-red" href="pricing.php">Explore pricing</a>
-          <a class="button button-outline" href="#features">See what it does</a>
+          <a class="button button-outline" href="demo.php">Try the 7-day demo</a>
         </div>
         <div class="proof-strip"><span>Works offline</span><span>Local data ownership</span><span>Built for Windows</span></div>
       </div>
@@ -106,6 +107,7 @@ $contactEmail = trim((string)($config['contact_email'] ?? 'Info@rpdavid.com'));
         <label>Email<input type="email" name="email" autocomplete="email" required maxlength="200"></label>
         <label>What can we help with?
           <select name="topic" id="topic">
+            <option value="7-Day Demo">7-Day Demo</option>
             <option value="Auction Software">Auction Software — $999</option>
             <option value="Whole Package">Whole Package — $2,500</option>
             <option value="Wholesale Auction upgrade">Wholesale Auction upgrade — $299</option>
@@ -114,7 +116,7 @@ $contactEmail = trim((string)($config['contact_email'] ?? 'Info@rpdavid.com'));
             <option value="Upgrade or Feature Request">Upgrade or Feature Request — quoted per request</option>
           </select>
         </label>
-        <label>Machine ID <span>(only for Wholesale activation)</span><input name="machine_id" maxlength="200" placeholder="Shown in the Wholesale activation window"></label>
+        <label>Machine ID <span>(for Demo or Wholesale activation)</span><input name="machine_id" maxlength="200" placeholder="Shown on the HammerTrack Pro activation screen"></label>
         <label>Tell us what you need<textarea name="message" rows="5" required maxlength="3000"></textarea></label>
         <button class="button button-red" type="submit">Send request</button>
         <p class="form-note">Your information is used only to respond to this request.</p>
@@ -125,7 +127,7 @@ $contactEmail = trim((string)($config['contact_email'] ?? 'Info@rpdavid.com'));
   <footer>
     <img src="assets/hammertrack-pro-logo.png" alt="HammerTrack Pro">
     <p>From registration to final invoice—one powerful auction system.</p>
-    <nav aria-label="Footer navigation"><a href="index.php">Home</a><a href="pricing.php">Pricing</a><a href="index.php#contact">Contact</a></nav>
+    <nav aria-label="Footer navigation"><a href="index.php">Home</a><a href="demo.php">7-Day Demo</a><a href="pricing.php">Pricing</a><a href="index.php#contact">Contact</a></nav>
     <small>&copy; <?= date('Y') ?> HammerTrack Pro. All rights reserved.</small>
   </footer>
 </body>

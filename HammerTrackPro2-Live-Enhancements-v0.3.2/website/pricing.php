@@ -2,7 +2,7 @@
 declare(strict_types=1);
 $configFile = __DIR__ . '/config.php';
 $config = is_file($configFile) ? require $configFile : [];
-$contactEmail = trim((string)($config['contact_email'] ?? 'Info@rpdavid.com'));
+$contactEmail = trim((string)($config['contact_email'] ?? 'sales@hammertrackpro.com'));
 ?>
 <!doctype html>
 <html lang="en">
@@ -12,7 +12,7 @@ $contactEmail = trim((string)($config['contact_email'] ?? 'Info@rpdavid.com'));
   <meta name="description" content="HammerTrack Pro software, complete package, Wholesale upgrade, updates, support, and custom feature pricing.">
   <meta name="theme-color" content="#a40000">
   <title>Pricing | HammerTrack Pro</title>
-  <link rel="stylesheet" href="assets/styles.css">
+  <link rel="stylesheet" href="assets/styles.css?v=20261008">
   <script src="assets/site.js" defer></script>
 </head>
 <body>
@@ -21,7 +21,7 @@ $contactEmail = trim((string)($config['contact_email'] ?? 'Info@rpdavid.com'));
     <a class="brand-logo" href="index.php" aria-label="HammerTrack Pro home"><img src="assets/hammertrack-pro-logo.png" alt="HammerTrack Pro Auction Management Software"></a>
     <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav">Menu</button>
     <nav id="site-nav" class="site-nav" aria-label="Main navigation">
-      <a href="index.php#features">Features</a><a href="index.php#workflow">How it works</a><a class="active" href="pricing.php">Pricing</a><a href="index.php#contact">Contact</a><a class="nav-cta" href="index.php#contact">Request pricing</a>
+      <a href="index.php#features">Features</a><a href="index.php#workflow">How it works</a><a class="active" href="pricing.php">Pricing</a><a href="demo.php">7-Day Demo</a><a href="index.php#contact">Contact</a><a class="nav-cta" href="demo.php">Try it free</a>
     </nav>
   </header>
 
@@ -61,14 +61,14 @@ $contactEmail = trim((string)($config['contact_email'] ?? 'Info@rpdavid.com'));
         <article><div><p class="plan-label">Built for your workflow</p><h2>Upgrades & Feature Requests</h2><p>Tell us what your operation needs. Scope and pricing are confirmed before work begins.</p></div><div class="service-price text">TBD<span>per request</span></div><a href="index.php?topic=Upgrade+or+Feature+Request#contact">Request a quote →</a></article>
       </div>
 
-      <div class="pricing-note"><div><h2>Not sure which option fits?</h2><p>Tell us how you run auctions today and what you want to improve.</p></div><a class="button button-red" href="index.php#contact">Talk with us</a></div>
+      <div class="pricing-note"><div><h2>See it work before you buy.</h2><p>Try the complete Retail auction workflow with a signed seven-day demo.</p></div><a class="button button-red" href="demo.php">Explore the demo</a></div>
     </section>
   </main>
 
   <footer>
     <img src="assets/hammertrack-pro-logo.png" alt="HammerTrack Pro">
     <p>From registration to final invoice—one powerful auction system.</p>
-    <nav aria-label="Footer navigation"><a href="index.php">Home</a><a href="pricing.php">Pricing</a><a href="index.php#contact">Contact</a></nav>
+    <nav aria-label="Footer navigation"><a href="index.php">Home</a><a href="demo.php">7-Day Demo</a><a href="pricing.php">Pricing</a><a href="index.php#contact">Contact</a></nav>
     <small>&copy; <?= date('Y') ?> HammerTrack Pro. All rights reserved.</small>
   </footer>
 </body>

@@ -17,10 +17,23 @@ expect(str_contains($html, 'assets/hammertrack-pro-logo.png'), 'The supplied Ham
 expect(str_contains($html, 'Auction Software — $999'), '$999 Auction Software request option is rendered.');
 expect(str_contains($html, 'Whole Package — $2,500'), '$2,500 Whole Package request option is rendered.');
 expect(str_contains($html, 'Wholesale Auction upgrade — $299'), '$299 Wholesale upgrade request option is rendered.');
-expect(str_contains($html, 'Info@rpdavid.com'), 'The configured sales email is displayed.');
+expect(str_contains($html, 'sales@hammertrackpro.com'), 'The configured sales email is displayed.');
 expect(str_contains($html, 'name="machine_id"'), 'Order request captures the Machine ID needed for activation.');
 expect(str_contains($html, 'name="website"'), 'The contact form includes a bot-trap field.');
 expect(str_contains($html, 'name="contact_token"'), 'The contact form includes a one-time session token.');
+expect(str_contains($html, '<option value="7-Day Demo">7-Day Demo</option>'), 'The contact form includes the seven-day demo request topic.');
+expect(str_contains($html, 'href="demo.php"'), 'The home page links to the demo page.');
+
+ob_start();
+require dirname(__DIR__) . '/demo.php';
+$demo = (string)ob_get_clean();
+expect(str_contains($demo, 'Seven-day HammerTrack Pro demo'), 'The demo page clearly presents the seven-day offer.');
+expect(str_contains($demo, 'hammertrack-pro-package.png'), 'The supplied demo artwork is used.');
+expect(str_contains($demo, 'Begins when your key is issued'), 'The demo start rule is disclosed.');
+expect(str_contains($demo, 'driver’s-license scanning'), 'Demo scanner restrictions are disclosed.');
+expect(str_contains($demo, 'optional Wholesale module'), 'Demo Wholesale restrictions are disclosed.');
+expect(str_contains($demo, 'Upgrade without starting over'), 'The paid-upgrade data-preservation benefit is presented.');
+expect(str_contains($demo, 'sales@hammertrackpro.com'), 'The demo page displays the configured sales email.');
 
 ob_start();
 require dirname(__DIR__) . '/pricing.php';
