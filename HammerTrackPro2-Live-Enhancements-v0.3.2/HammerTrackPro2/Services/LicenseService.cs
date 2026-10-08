@@ -1,11 +1,13 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.Win32;
 
 namespace HammerTrackPro2.Services;
 
-public sealed record LicensePayload(string LicenseId,string CustomerName,string[] MachineIds,DateTime IssuedUtc,DateTime? ExpiresUtc);
+public sealed record LicensePayload(string LicenseId,string CustomerName,string[] MachineIds,DateTime IssuedUtc,DateTime? ExpiresUtc,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Edition = null);
 public sealed record LicenseDocument(LicensePayload Payload,string Signature);
 
 public static class LicenseService
@@ -44,9 +46,24 @@ public static class LicenseService
 
     public static LicensePayload InstallLicense(string sourceFile)
     {
+        var license=InstallLicenseFile(sourceFile,LicenseFile,GetMachineId(),PublicKeyPem,DateTime.UtcNow);
+        LicenseSession.Current?.Replace(license);
+        return license;
+    }
+
+    internal static LicensePayload InstallLicenseFile(string sourceFile,string targetFile,string machineId,string publicKeyPem,DateTime nowUtc)
+    {
         var json=File.ReadAllText(sourceFile);
-        if(!ValidateDocument(json,GetMachineId(),PublicKeyPem,DateTime.UtcNow,out var license,out var error))throw new InvalidOperationException(error);
-        Directory.CreateDirectory(ApplicationDataLayoutService.SettingsFolder); File.Copy(sourceFile,LicenseFile,true); return license!;
+        if(!ValidateDocument(json,machineId,publicKeyPem,nowUtc,out var license,out var error))throw new InvalidOperationException(error);
+        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(targetFile))!);
+        var temporaryFile=targetFile + ".new";
+        try
+        {
+            File.WriteAllText(temporaryFile,json);
+            File.Move(temporaryFile,targetFile,true);
+        }
+        finally { if(File.Exists(temporaryFile))File.Delete(temporaryFile); }
+        return license!;
     }
 
     internal static bool ValidateDocument(string json,string machineId,string publicKeyPem,DateTime nowUtc,out LicensePayload? license,out string error)
@@ -58,7 +75,13 @@ public static class LicenseService
         try { signatureValid=rsa.VerifyData(Encoding.UTF8.GetBytes(payloadJson),Convert.FromBase64String(document.Signature),HashAlgorithmName.SHA256,RSASignaturePadding.Pkcs1); }
         catch(FormatException) { signatureValid=false; }
         if(!signatureValid) { error="The license signature is invalid."; return false; }
-        if(document.Payload.ExpiresUtc.HasValue&&document.Payload.ExpiresUtc.Value.ToUniversalTime()<nowUtc) { error="This HammerTrack Pro license has expired."; return false; }
+        if(document.Payload.Edition is not null and not "Demo") { error="Unknown license edition."; return false; }
+        if(document.Payload.Edition == "Demo" && (document.Payload.ExpiresUtc is null
+            || document.Payload.ExpiresUtc.Value.ToUniversalTime() != document.Payload.IssuedUtc.ToUniversalTime().AddDays(7)
+            || nowUtc < document.Payload.IssuedUtc.ToUniversalTime()))
+        { error="The demo license dates are invalid or the computer clock is incorrect."; return false; }
+        if(document.Payload.MachineIds is null) { error="The license has no machines."; return false; }
+        if(document.Payload.ExpiresUtc.HasValue&&document.Payload.ExpiresUtc.Value.ToUniversalTime()<=nowUtc) { error="This HammerTrack Pro license has expired."; return false; }
         if(!document.Payload.MachineIds.Contains(machineId,StringComparer.OrdinalIgnoreCase)) { error=$"This PC is not included in the license. Machine ID: {machineId}"; return false; }
         license=document.Payload; error=string.Empty; return true;
     }

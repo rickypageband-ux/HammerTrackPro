@@ -33,11 +33,13 @@ public sealed class RemoteCashierService : ICashierService,IDisposable
     public StaffPayment VoidStaffPayment(long id,string reason,StaffPayment? replacement)=>Post<object,StaffPayment>($"/api/staff-payments/{id}/void",new{reason,replacement});
     public ConsignorSettlement RecordConsignorPayout(int consignorNumber,ConsignorPayoutRequest payout)
     {
+        LicenseSession.Current?.EnsureActive();
         try { using var response=_client.PostAsJsonAsync($"/api/settlements/{consignorNumber}/payouts",payout,JsonOptions).GetAwaiter().GetResult(); return Read<ConsignorSettlement>(response); }
         catch(HttpRequestException exception) { throw Unavailable(exception); } catch(TaskCanceledException exception) { throw Unavailable(exception); }
     }
     public Invoice RecordPayments(int bidderNumber,IReadOnlyList<PaymentRequest> payments)
     {
+        LicenseSession.Current?.EnsureActive();
         try { using var response=_client.PostAsJsonAsync($"/api/invoices/{bidderNumber}/payments",payments,JsonOptions).GetAwaiter().GetResult(); return Read<Invoice>(response); }
         catch(HttpRequestException exception) { throw Unavailable(exception); } catch(TaskCanceledException exception) { throw Unavailable(exception); }
     }
@@ -50,10 +52,11 @@ public sealed class RemoteCashierService : ICashierService,IDisposable
     }
     private T Get<T>(string path)
     {
+        LicenseSession.Current?.EnsureActive();
         try { using var response=_client.GetAsync(path).GetAwaiter().GetResult(); return Read<T>(response); }
         catch(HttpRequestException exception) { throw Unavailable(exception); } catch(TaskCanceledException exception) { throw Unavailable(exception); }
     }
-    private TResponse Post<TRequest,TResponse>(string path,TRequest request){try{using var response=_client.PostAsJsonAsync(path,request,JsonOptions).GetAwaiter().GetResult();return Read<TResponse>(response);}catch(HttpRequestException exception){throw Unavailable(exception);}catch(TaskCanceledException exception){throw Unavailable(exception);}}
+    private TResponse Post<TRequest,TResponse>(string path,TRequest request){LicenseSession.Current?.EnsureActive();try{using var response=_client.PostAsJsonAsync(path,request,JsonOptions).GetAwaiter().GetResult();return Read<TResponse>(response);}catch(HttpRequestException exception){throw Unavailable(exception);}catch(TaskCanceledException exception){throw Unavailable(exception);}}
     private static T Read<T>(HttpResponseMessage response)
     {
         if(response.IsSuccessStatusCode) return response.Content.ReadFromJsonAsync<T>(JsonOptions).GetAwaiter().GetResult() ?? throw new InvalidOperationException("The host returned an empty response.");

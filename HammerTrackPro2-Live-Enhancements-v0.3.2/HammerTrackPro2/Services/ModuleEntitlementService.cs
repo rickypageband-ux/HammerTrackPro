@@ -25,6 +25,8 @@ public sealed class ModuleEntitlementService : IModuleEntitlementService
 
     public bool IsActivated(string module,out string reason)
     {
+        try { LicenseSession.Current?.EnsureFullFeature("Wholesale"); }
+        catch(InvalidOperationException exception) { reason=exception.Message; return false; }
         ApplicationDataLayoutService.EnsureAndMigrateLegacyData();
         var path=ActivationFile(module);
         if(!File.Exists(path)){reason=$"The {module} Auction module has not been activated on this computer.";return false;}
@@ -34,6 +36,7 @@ public sealed class ModuleEntitlementService : IModuleEntitlementService
 
     public ModuleActivationPayload Activate(string activationKey,string module)
     {
+        LicenseSession.Current?.EnsureFullFeature("Wholesale");
         if(!ValidateKey(activationKey,module,LicenseService.GetMachineId(),LicenseService.PublicKeyPem,DateTime.UtcNow,out var payload,out var reason))throw new InvalidOperationException(reason);
         Directory.CreateDirectory(ApplicationDataLayoutService.SettingsFolder);
         File.WriteAllText(ActivationFile(module),activationKey.Trim());

@@ -16,6 +16,8 @@ This is the approved release sequence. Do not pull work forward from a later rel
 
 ## Version 0.7
 
+- [x] Issuer-keyed seven-day Retail demo, scanner/Wholesale restrictions, and data-preserving paid upgrade (owner-approved 0.7.61; see DemoLicensing.md).
+
 - [x] Clerk Search Sold Items and additional buyer entry at the recorded price while the auction remains open (owner-approved 0.7.60; see SoldItemSearch.md).
 
 - [x] Settlements (calculation, ledgered payouts, and printable settlement statement)

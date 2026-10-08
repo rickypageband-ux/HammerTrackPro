@@ -41,6 +41,7 @@ public sealed class AuctionService : IAuctionService
     {
         EnsureCurrentAuctionOpen();
         ValidateLot(lot);
+        if(lot.SaleMode == AuctionSaleMode.Wholesale) LicenseSession.Current?.EnsureFullFeature("Wholesale");
         _dataStore.SaveLot(lot, originalLotNumber);
     }
 
@@ -106,6 +107,7 @@ public sealed class AuctionService : IAuctionService
         var data = _dataStore.Load();
         var lot = data.Lots.FirstOrDefault(item => item.LotNumber == lotNumber)
             ?? throw new InvalidOperationException($"Lot #{lotNumber} was not found.");
+        if(lot.SaleMode == AuctionSaleMode.Wholesale) LicenseSession.Current?.EnsureFullFeature("Wholesale");
         if (string.Equals(lot.Status, "Sold", StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException($"Lot #{lotNumber} is closed and has already been sold.");
         if (!data.Bidders.Any(item => item.BidderNumber == bidderNumber))
@@ -116,6 +118,7 @@ public sealed class AuctionService : IAuctionService
 
     public IReadOnlyList<SoldItem> SearchSoldItems(string query, AuctionSaleMode saleMode)
     {
+        if(saleMode == AuctionSaleMode.Wholesale) LicenseSession.Current?.EnsureFullFeature("Wholesale");
         if (!Enum.IsDefined(saleMode)) throw new ArgumentOutOfRangeException(nameof(saleMode));
         return _dataStore.SearchSoldItems(query?.Trim() ?? string.Empty, saleMode);
     }
@@ -125,6 +128,7 @@ public sealed class AuctionService : IAuctionService
         EnsureCurrentAuctionOpen();
         if (auctionId != GetCurrentAuction().AuctionId) throw new InvalidOperationException("The current auction changed. Search again.");
         if (sourceSaleId <= 0) throw new InvalidOperationException("Choose a recorded item first.");
+        if(saleMode == AuctionSaleMode.Wholesale) LicenseSession.Current?.EnsureFullFeature("Wholesale");
         if (!Enum.IsDefined(saleMode)) throw new ArgumentOutOfRangeException(nameof(saleMode));
         if (bidderNumber <= 0) throw new InvalidOperationException("Enter a valid bidder number.");
         if (quantityOrDeals <= 0) throw new InvalidOperationException("Quantity or deals must be at least one.");

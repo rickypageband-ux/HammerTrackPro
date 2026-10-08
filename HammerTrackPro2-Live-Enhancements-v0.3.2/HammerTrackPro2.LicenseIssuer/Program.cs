@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 if(args.Length==0) return Usage();
 try
@@ -9,6 +10,7 @@ try
     {
         "keygen"=>GenerateKeys(args),
         "issue"=>IssueLicense(args),
+        "issue-demo"=>IssueLicense(args, true),
         "issue-module"=>IssueModule(args),
         _=>Usage()
     };
@@ -27,14 +29,17 @@ static int GenerateKeys(string[] arguments)
     Console.WriteLine($"Private key: {privatePath}"); Console.WriteLine($"Public key: {publicPath}"); return 0;
 }
 
-static int IssueLicense(string[] arguments)
+static int IssueLicense(string[] arguments, bool demo = false)
 {
     var options=Parse(arguments.Skip(1));
     var key=Required(options,"key"); var customer=Required(options,"customer"); var machines=Required(options,"machines").Split(',',StringSplitOptions.RemoveEmptyEntries|StringSplitOptions.TrimEntries).Select(value=>value.ToUpperInvariant()).Distinct().ToArray(); var output=Required(options,"output");
     if(machines.Length==0)throw new InvalidOperationException("At least one Machine ID is required.");
-    var payload=new LicensePayload(Guid.NewGuid().ToString("D"),customer,machines,DateTime.UtcNow,options.TryGetValue("expires",out var expires)?DateTime.Parse(expires).ToUniversalTime():null);
+    if(demo && options.ContainsKey("expires"))throw new InvalidOperationException("Demo licenses always last seven days; do not supply --expires.");
+    var issuedUtc=DateTime.UtcNow;
+    var payload=new LicensePayload(Guid.NewGuid().ToString("D"),customer,machines,issuedUtc,demo?issuedUtc.AddDays(7):options.TryGetValue("expires",out var expires)?DateTime.Parse(expires).ToUniversalTime():null,demo?"Demo":null);
     var payloadJson=JsonSerializer.Serialize(payload,IssuerJson.Options); using var rsa=RSA.Create(); rsa.ImportFromPem(File.ReadAllText(key)); var signature=rsa.SignData(Encoding.UTF8.GetBytes(payloadJson),HashAlgorithmName.SHA256,RSASignaturePadding.Pkcs1);
     Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(output))!); File.WriteAllText(output,JsonSerializer.Serialize(new LicenseDocument(payload,Convert.ToBase64String(signature)),IssuerJson.Options));
+    if(demo)Console.WriteLine($"Seven-day demo expires {payload.ExpiresUtc:O}. Scanner and Wholesale are disabled.");
     Console.WriteLine($"Issued {payload.LicenseId} to {customer} for {machines.Length} PC(s): {output}"); return 0;
 }
 
@@ -57,9 +62,9 @@ static Dictionary<string,string> Parse(IEnumerable<string> arguments)
     return values;
 }
 static string Required(Dictionary<string,string> values,string name)=>values.TryGetValue(name,out var value)&&!string.IsNullOrWhiteSpace(value)?value:throw new InvalidOperationException($"Missing --{name}.");
-static int Usage() { Console.WriteLine("HammerTrack Pro License Issuer\n  keygen <secure-output-folder>\n  issue --key <private.pem> --customer <name> --machines <id,id> --output <license.htplicense> [--expires <date>]\n  issue-module --key <private.pem> --module Wholesale --customer <name> --machines <id,id> --output <activation.txt> [--expires <date>]"); return 1; }
+static int Usage() { Console.WriteLine("HammerTrack Pro License Issuer\n  keygen <secure-output-folder>\n  issue --key <private.pem> --customer <name> --machines <id,id> --output <license.htplicense> [--expires <date>]\n  issue-demo --key <private.pem> --customer <name> --machines <id,id> --output <demo.htplicense>\n  issue-module --key <private.pem> --module Wholesale --customer <name> --machines <id,id> --output <activation.txt> [--expires <date>]"); return 1; }
 
-internal sealed record LicensePayload(string LicenseId,string CustomerName,string[] MachineIds,DateTime IssuedUtc,DateTime? ExpiresUtc);
+internal sealed record LicensePayload(string LicenseId,string CustomerName,string[] MachineIds,DateTime IssuedUtc,DateTime? ExpiresUtc,[property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Edition=null);
 internal sealed record LicenseDocument(LicensePayload Payload,string Signature);
 internal sealed record ModuleActivationPayload(string ActivationId,string Module,string CustomerName,string[] MachineIds,DateTime IssuedUtc,DateTime? ExpiresUtc);
 internal sealed record ModuleActivationDocument(ModuleActivationPayload Payload,string Signature);

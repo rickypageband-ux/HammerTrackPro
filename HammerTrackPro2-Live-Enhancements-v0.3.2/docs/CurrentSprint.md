@@ -336,3 +336,12 @@ Status: Cashier and the approved closed-auction consignor payout extension are i
 - Append the purchase and audit linkage, recalculate the receiving invoice, and preserve existing purchase amounts and payments.
 - Deliver MVVM presentation, automated business/persistence tests, current manual instructions/screenshots, and a version-matched installer.
 - No schema change is required; see [implementation and acceptance checks](SoldItemSearch.md).
+
+## Completed owner-approved demo licensing (0.7.61)
+
+- Seven-day signed demo key required; clock starts at issuance.
+- All other auction capabilities retained; scanner and Wholesale blocked.
+- Paid license import upgrades in place with data preserved.
+- Startup and running-session expiration checks cover host and remote cashier operations.
+- MVVM license presentation, signature/expiry/import/persistence/network tests; no schema change.
+- See [DemoLicensing.md](DemoLicensing.md) for issuance, offline-clock limitations and compatibility.

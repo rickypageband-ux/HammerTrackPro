@@ -1,3 +1,4 @@
+using HammerTrackPro2.Services;
 using HammerTrackPro2.Models;
 using HammerTrackPro2.ViewModels;
 
@@ -79,13 +80,14 @@ public sealed class CashierRegistrationForm : Form
 
     private void ScanDriverLicense()
     {
+        if(!LicenseMonitor.AllowFeature(this,"Driver's license scanner"))return;
         using var scanner=new DriverLicenseScannerForm();
         if(scanner.ShowDialog(this)!=DialogResult.OK||scanner.Result is null)return;
         ApplyScan(scanner.Result);
         MessageBox.Show(this,"Driver's license information was filled in. Review it before registering the bidder.","Scan Complete",MessageBoxButtons.OK,MessageBoxIcon.Information);
     }
 
-    private void ScanHandheldLicense(){using var scanner=new HandheldLicenseScannerForm();if(scanner.ShowDialog(this)!=DialogResult.OK||scanner.Result is null)return;ApplyScan(scanner.Result);MessageBox.Show(this,"Driver's license information was filled in. Review it before registering the bidder.","Scan Complete",MessageBoxButtons.OK,MessageBoxIcon.Information);}
+    private void ScanHandheldLicense(){if(!LicenseMonitor.AllowFeature(this,"Driver's license scanner"))return;using var scanner=new HandheldLicenseScannerForm();if(scanner.ShowDialog(this)!=DialogResult.OK||scanner.Result is null)return;ApplyScan(scanner.Result);MessageBox.Show(this,"Driver's license information was filled in. Review it before registering the bidder.","Scan Complete",MessageBoxButtons.OK,MessageBoxIcon.Information);}
     private void ApplyScan(DriverLicenseScanData result){_first.Text=result.FirstName;_last.Text=result.LastName;_address.Text=result.Address;_city.Text=result.City;_state.Text=result.State;_zip.Text=result.Zip;_driversLicense.Text=result.DriversLicense;}
     private static Button ScanButton(string text)=>new(){Text=text,Height=42,AutoSize=true,Padding=new Padding(10,4,10,4),BackColor=Color.FromArgb(224,168,54),ForeColor=Color.FromArgb(24,50,74),FlatStyle=FlatStyle.Flat,Font=new Font("Segoe UI",9.5F,FontStyle.Bold)};
 }

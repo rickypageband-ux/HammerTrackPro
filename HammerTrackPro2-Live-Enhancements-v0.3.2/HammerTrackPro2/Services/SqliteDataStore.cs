@@ -1826,6 +1826,7 @@ public sealed class SqliteDataStore : IDataStore, IConsignorRepository
 
     private SqliteConnection OpenConnection()
     {
+        LicenseSession.Current?.EnsureActive();
         var connection = new SqliteConnection(_connectionString);
         connection.Open();
 

@@ -56,3 +56,7 @@ dotnet run --project .\HammerTrackPro2.LicenseIssuer\HammerTrackPro.LicenseIssue
 ```
 
 The generated text is pasted into the Wholesale Auction activation window. The signed activation is saved under `%ProgramData%\HammerTrackPro\Settings`; its signature prevents alteration. It does not contain or expose the private issuer key.
+
+## Demo distribution (0.7.61)
+
+The same installer supports paid and issuer-keyed seven-day demo licenses. Distribute the MSI and customer-specific demo `.htplicense` only, never the issuer or private key. See [Demo issuing and upgrade instructions](DemoLicensing.md). Production code signing remains pending.

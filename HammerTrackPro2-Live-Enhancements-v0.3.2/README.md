@@ -127,3 +127,7 @@ Auction Setup stores optional auction-company name, address, phone, and email de
 ## Search sold items from the clerk screen
 
 Version 0.7.60 adds **SEARCH SOLD ITEMS** below Retail/Wholesale live history. Search a description or lot number, select the recorded price, enter a registered bidder and Quantity (Retail) or Deals (Wholesale), and choose **Add Buyer at This Price**. This records an additional purchase at the stored price, preserving earlier purchases and payments. The auction must remain open. See [Clerk search and additional buyers](docs/SoldItemSearch.md).
+
+## Seven-day demo licenses (0.7.61)
+
+Issuer-provided seven-day demo licenses run complete Retail auctions without bidder/lot limits. Driver's-license scanning and Wholesale are disabled. A paid license upgrades the same installation and preserves auction data; Wholesale still needs its module key. See [Demo issuing and upgrade instructions](docs/DemoLicensing.md).

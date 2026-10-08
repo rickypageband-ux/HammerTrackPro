@@ -546,6 +546,7 @@ public sealed class MainForm : Form
 
     private void OpenWholesaleAuction()
     {
+        if(!LicenseMonitor.AllowFeature(this,"Wholesale"))return;
         if(!_moduleEntitlements.IsActivated(ProductModules.Wholesale,out var reason))
         {
             using var activation=new WholesaleActivationForm(new WholesaleActivationViewModel(_moduleEntitlements),reason);
@@ -658,13 +659,14 @@ public sealed class MainForm : Form
 
     private void ScanDriverLicense()
     {
+        if(!LicenseMonitor.AllowFeature(this,"Driver's license scanner"))return;
         using var scanner=new DriverLicenseScannerForm();
         if(scanner.ShowDialog(this)!=DialogResult.OK||scanner.Result is null)return;
         ApplyDriverLicenseScan(scanner.Result);
         MessageBox.Show(this,"Driver's license information was filled in. Review it before saving the bidder.","Scan Complete",MessageBoxButtons.OK,MessageBoxIcon.Information);
     }
 
-    private void ScanHandheldLicense(){using var scanner=new HandheldLicenseScannerForm();if(scanner.ShowDialog(this)!=DialogResult.OK||scanner.Result is null)return;ApplyDriverLicenseScan(scanner.Result);MessageBox.Show(this,"Driver's license information was filled in. Review it before saving the bidder.","Scan Complete",MessageBoxButtons.OK,MessageBoxIcon.Information);}
+    private void ScanHandheldLicense(){if(!LicenseMonitor.AllowFeature(this,"Driver's license scanner"))return;using var scanner=new HandheldLicenseScannerForm();if(scanner.ShowDialog(this)!=DialogResult.OK||scanner.Result is null)return;ApplyDriverLicenseScan(scanner.Result);MessageBox.Show(this,"Driver's license information was filled in. Review it before saving the bidder.","Scan Complete",MessageBoxButtons.OK,MessageBoxIcon.Information);}
     private void ApplyDriverLicenseScan(DriverLicenseScanData result){_firstName.Text=result.FirstName;_lastName.Text=result.LastName;_driversLicense.Text=result.DriversLicense;_address.Text=result.Address;_city.Text=result.City;_state.Text=result.State;_zip.Text=result.Zip;}
 
     private void DeleteBidder()

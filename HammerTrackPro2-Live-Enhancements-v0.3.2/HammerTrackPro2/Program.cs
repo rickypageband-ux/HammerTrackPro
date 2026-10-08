@@ -17,6 +17,8 @@ internal static class Program
                 using var activation=new LicenseActivationForm(licenseError);
                 if(activation.ShowDialog()!=DialogResult.OK)return;
             }
+            if(!LicenseService.TryLoadValidLicense(out var installedLicense,out licenseError))throw new InvalidOperationException(licenseError);
+            LicenseSession.Current=new LicenseAccess(installedLicense!);
             var configuration=WorkstationConfigurationService.Load();
             if(WorkstationConfigurationService.RequiresSetup(WorkstationConfigurationService.Exists,configuration))
             {
@@ -27,7 +29,9 @@ internal static class Program
             if(configuration.Role==WorkstationRole.Cashier)
             {
                 using var remote=new RemoteCashierService(configuration);
-                Application.Run(new CashierForm(new HammerTrackPro2.ViewModels.CashierViewModel(remote),remote,configuration));
+                using var cashierForm=new CashierForm(new HammerTrackPro2.ViewModels.CashierViewModel(remote),remote,configuration);
+                using var monitor=new LicenseMonitor(cashierForm);
+                Application.Run(cashierForm);
                 return;
             }
             WorkstationConfigurationService.Save(configuration);
@@ -37,7 +41,7 @@ internal static class Program
             var consignorService = new ConsignorService((IConsignorRepository)dataStore);
             ICashierService cashierService = new CashierService(dataStore);
             var networkHost=CashierNetworkHost.StartAsync(cashierService,configuration).GetAwaiter().GetResult();
-            try { Application.Run(new MainForm(auctionService,consignorService,cashierService,configuration,new ModuleEntitlementService())); }
+            try { using var main=new MainForm(auctionService,consignorService,cashierService,configuration,new ModuleEntitlementService()); using var monitor=new LicenseMonitor(main); Application.Run(main); }
             finally { networkHost.DisposeAsync().AsTask().GetAwaiter().GetResult(); }
         }
         catch (Exception ex)
