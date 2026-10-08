@@ -83,6 +83,24 @@ for ($attempt = 0; $attempt < 5; $attempt++) {
 }
 expect(!ContactSpamGuard::allowSessionRequest($rateSession, 210), 'The sixth browser-session request is blocked.');
 
+require_once dirname(__DIR__) . '/lib/OneTimeDownloadStore.php';
+$downloadStoreFile = tempnam(sys_get_temp_dir(), 'hammertrack-download-');
+expect($downloadStoreFile !== false, 'A temporary one-time download store can be created.');
+if ($downloadStoreFile !== false) {
+    $downloadStore = new OneTimeDownloadStore($downloadStoreFile);
+    $downloadToken = $downloadStore->create('Test Auction Company', 500, 100);
+    expect(strlen($downloadToken) === 64, 'A strong one-time download token is generated.');
+    expect($downloadStore->status($downloadToken, 200) === 'ok', 'Opening the download landing page does not consume the token.');
+    expect($downloadStore->consume($downloadToken, 200) === 'ok', 'A valid download token works once.');
+    expect($downloadStore->status($downloadToken, 201) === 'used', 'The token status changes after download.');
+    expect($downloadStore->consume($downloadToken, 201) === 'used', 'A consumed download token cannot be reused.');
+    $expiredToken = $downloadStore->create('Expired Test', 300, 100);
+    expect($downloadStore->status($expiredToken, 301) === 'expired', 'The landing page rejects an expired token.');
+    expect($downloadStore->consume($expiredToken, 301) === 'expired', 'An unused expired download token is rejected.');
+    expect($downloadStore->consume('not-a-token', 200) === 'invalid', 'A malformed download token is rejected.');
+    unlink($downloadStoreFile);
+}
+
 $rateFile = tempnam(sys_get_temp_dir(), 'hammertrack-rate-');
 expect($rateFile !== false, 'A temporary rate-limit file can be created.');
 if ($rateFile !== false) {

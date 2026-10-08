@@ -67,6 +67,30 @@ Before publishing, run `php tests/site_test.php` and PHP's syntax check against 
 
 The Wholesale module is a one-time $299 upgrade, but its signed machine-bound activation key must still be issued through the private offline license process. Never upload the private signing key or the issuer utility to the web server. If a payment link is configured, its success page should tell the buyer to send the Machine ID displayed in HammerTrack Pro.
 
+## One-time demo installer links
+
+The site includes a private link generator at `/download-admin/` and a
+single-use download handler at `/download.php`. The installer must remain
+outside `httpdocs` in the domain-level `private` folder:
+
+`private/HammerTrackPro-Demo-x64.msi`
+
+In Plesk, use **Password-Protected Directories** to protect
+`/download-admin`. The admin page refuses to run unless Plesk supplies an
+authenticated user. It creates a 64-character random token, stores only its
+SHA-256 hash in `private/demo-download-tokens.json`, and displays the complete
+customer link once. Opening the link shows a confirmation page without using
+the token, which protects it from automated email link scanners. Pressing the
+Download button marks it used before the file is streamed, preventing
+concurrent reuse. Unused links can expire after
+1, 3, 7, or 14 days; old records are removed after 30 days.
+
+The installer download and the signed demo license are separate. Downloading
+the MSI does not start the seven-day product demo. The product period still
+starts when the signed `.htplicense` demo key is issued. Never place the private
+license-signing key, issuer utility, or issued customer license files on the
+web server.
+
 ## Availability
 
 The site exposes `/health.php` for an external uptime monitor. Configure Plesk Monitoring or an independent monitor to request this URL every five minutes and alert on non-200 responses. This distinguishes a website failure from a browser or DNS problem.
