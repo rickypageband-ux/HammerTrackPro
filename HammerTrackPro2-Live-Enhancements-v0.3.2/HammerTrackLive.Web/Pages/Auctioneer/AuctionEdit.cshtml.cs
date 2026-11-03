@@ -17,6 +17,7 @@ public sealed class AuctionEditModel(ApplicationDbContext dbContext, UserManager
     [BindProperty] public AuctionInput Input { get; set; } = new();
     [TempData] public string? StatusMessage { get; set; }
     public bool IsDraft { get; private set; } = true;
+    public bool CanManageLots { get; private set; }
     public IReadOnlyList<LotView> Lots { get; private set; } = [];
     public IReadOnlyList<(string Id, string Name)> TimeZones => AuctionTimeZones.Supported;
     public IReadOnlyList<string> PublicationErrors { get; private set; } = [];
@@ -82,13 +83,14 @@ public sealed class AuctionEditModel(ApplicationDbContext dbContext, UserManager
         var auction = await dbContext.OnlineAuctions.AsNoTracking().SingleOrDefaultAsync(item => item.Id == AuctionId && item.OrganizationId == OrganizationId, HttpContext.RequestAborted);
         if (auction is null) return false;
         IsDraft = auction.Status == AuctionStatuses.Draft;
+        CanManageLots = AuctionCatalogEditingPolicy.CanManageLots(auction.Status);
         Input = new AuctionInput { Title = auction.Title, Slug = auction.Slug, Description = auction.Description, Location = auction.Location, TimeZoneId = auction.TimeZoneId,
             StartsLocal = AuctionTimeZones.ToLocal(auction.StartsUtc, auction.TimeZoneId), EndsLocal = AuctionTimeZones.ToLocal(auction.EndsUtc, auction.TimeZoneId),
             BuyerPremiumPercent = auction.BuyerPremiumPercent, SalesTaxPercent = auction.SalesTaxPercent, TaxBasis = auction.TaxBasis,
             PaymentInstructions = auction.PaymentInstructions, PickupInstructions = auction.PickupInstructions, ShippingAvailable = auction.ShippingAvailable, ShippingInstructions = auction.ShippingInstructions };
         await LoadLotsAsync(); return true;
     }
-    private async Task LoadLotsAsync() => Lots = await dbContext.OnlineLots.AsNoTracking().Where(item => item.AuctionId == AuctionId && item.IsActive).OrderBy(item => item.LotNumber).Select(item => new LotView(item.Id, item.LotNumber, item.Title, item.Media.Count)).ToListAsync(HttpContext.RequestAborted);
+    private async Task LoadLotsAsync() => Lots = await dbContext.OnlineLots.AsNoTracking().Where(item => item.AuctionId == AuctionId && item.IsActive).OrderBy(item => item.LotNumber).Select(item => new LotView(item.Id, item.LotNumber, item.Title, item.Category, item.Condition, item.Media.Count)).ToListAsync(HttpContext.RequestAborted);
     private async Task<bool> CanAdministerAsync() { var user = await userManager.GetUserAsync(User); return user is not null && await authorization.CanAdministerAsync(user.Id, OrganizationId, await userManager.IsInRoleAsync(user, PlatformRoles.Administrator), HttpContext.RequestAborted); }
 
     public sealed class AuctionInput
@@ -108,5 +110,5 @@ public sealed class AuctionEditModel(ApplicationDbContext dbContext, UserManager
         [Display(Name = "Shipping available")] public bool ShippingAvailable { get; set; }
         [StringLength(3000), Display(Name = "Shipping instructions")] public string ShippingInstructions { get; set; } = string.Empty;
     }
-    public sealed record LotView(Guid Id, int LotNumber, string Title, int MediaCount);
+    public sealed record LotView(Guid Id, int LotNumber, string Title, string Category, string Condition, int MediaCount);
 }

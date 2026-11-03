@@ -35,9 +35,14 @@
         @foreach (var lot in Model.Details.Lots)
         {
             <article class="public-lot-card">
-                @{ var image = lot.Media.FirstOrDefault(media => media.Kind == "Image"); }
-                @if (image is not null) { <img src="/Media/Download?id=@image.Id" alt="@lot.Title" /> }
-                <div><span>LOT @lot.LotNumber</span><h3>@lot.Title</h3><p>@lot.Description</p><strong>Starts at @lot.StartingBid.ToString("C") · @lot.Quantity item(s)</strong>
+                @{ var images = lot.Media.Where(media => media.Kind == "Image").ToList(); }
+                @if (images.Count > 0)
+                {
+                    <div class="public-lot-gallery">
+                        @foreach (var image in images) { <a href="/Media/Download?id=@image.Id" target="_blank" rel="noopener"><img src="/Media/Download?id=@image.Id" alt="@lot.Title — Lot @lot.LotNumber photo" loading="lazy" /></a> }
+                    </div>
+                }
+                <div><span>LOT @lot.LotNumber</span><h3>@lot.Title</h3><div class="lot-badges">@if (!string.IsNullOrWhiteSpace(lot.Category)) { <b>@lot.Category</b> }@if (!string.IsNullOrWhiteSpace(lot.Condition)) { <b>@lot.Condition</b> }<b>@images.Count photo(s)</b></div><p>@lot.Description</p><strong>Starts at @lot.StartingBid.ToString("C") · @lot.Quantity item(s)</strong>
                 @foreach (var document in lot.Media.Where(media => media.Kind == "Document")) { <a href="/Media/Download?id=@document.Id">PDF · @document.OriginalFileName</a> }</div>
             </article>
         }

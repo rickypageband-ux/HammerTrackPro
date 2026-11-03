@@ -10,23 +10,29 @@ using Microsoft.EntityFrameworkCore;
 namespace HammerTrackLive.Web.Pages.Auctioneer;
 
 [Authorize]
-[RequestSizeLimit(16 * 1024 * 1024)]
+[RequestSizeLimit(64 * 1024 * 1024)]
 public sealed class LotEditModel(ApplicationDbContext dbContext, UserManager<ApplicationUser> userManager, IOrganizationAdministrationService authorization, ILotMediaStorage storage) : PageModel
 {
     [BindProperty(SupportsGet = true)] public Guid OrganizationId { get; set; }
     [BindProperty(SupportsGet = true)] public Guid AuctionId { get; set; }
     [BindProperty(SupportsGet = true)] public Guid LotId { get; set; }
     [BindProperty] public LotInput Input { get; set; } = new();
-    [BindProperty] public IFormFile? Upload { get; set; }
+    [BindProperty] public List<IFormFile> Uploads { get; set; } = [];
     [TempData] public string? StatusMessage { get; set; }
     public IReadOnlyList<MediaView> Media { get; private set; } = [];
+    public IReadOnlyList<string> Categories => LotCatalogChoices.Categories;
+    public IReadOnlyList<string> Conditions => LotCatalogChoices.Conditions;
+    public int MaximumFilesPerLot => LotCatalogChoices.MaximumFilesPerLot;
+    public string AuctionTitle { get; private set; } = string.Empty;
+    public string AuctionStatus { get; private set; } = string.Empty;
 
     public async Task<IActionResult> OnGetAsync()
     {
         if (!await CanEditAuctionAsync()) return Forbid();
         if (LotId == Guid.Empty)
         {
-            Input.LotNumber = (await dbContext.OnlineLots.Where(item => item.AuctionId == AuctionId).MaxAsync(item => (int?)item.LotNumber, HttpContext.RequestAborted) ?? 0) + 1;
+            var existingLotNumbers = await dbContext.OnlineLots.Where(item => item.AuctionId == AuctionId && item.IsActive).Select(item => item.LotNumber).ToListAsync(HttpContext.RequestAborted);
+            Input.LotNumber = LotCatalogChoices.GetNextAvailableLotNumber(existingLotNumbers);
             return Page();
         }
         return await LoadAsync() ? Page() : NotFound();
@@ -52,24 +58,49 @@ public sealed class LotEditModel(ApplicationDbContext dbContext, UserManager<App
     public async Task<IActionResult> OnPostUploadAsync()
     {
         if (!await CanEditAuctionAsync()) return Forbid();
-        if (Upload is null || Upload.Length == 0) { StatusMessage = "Choose a JPG, PNG, WebP, or PDF file."; return RedirectToPage(new { organizationId = OrganizationId, auctionId = AuctionId, lotId = LotId }); }
+        if (Uploads.Count == 0 || Uploads.All(file => file.Length == 0)) { StatusMessage = "Choose one or more JPG, PNG, WebP, or PDF files."; return RedirectToPage(new { organizationId = OrganizationId, auctionId = AuctionId, lotId = LotId }); }
+        if (Uploads.Count > LotCatalogChoices.MaximumFilesPerUpload) { StatusMessage = $"Upload no more than {LotCatalogChoices.MaximumFilesPerUpload} files at one time."; return RedirectToPage(new { organizationId = OrganizationId, auctionId = AuctionId, lotId = LotId }); }
         var lotExists = await dbContext.OnlineLots.AnyAsync(item => item.Id == LotId && item.AuctionId == AuctionId, HttpContext.RequestAborted);
         if (!lotExists) return NotFound();
-        StoredMedia? stored = null;
+        var existingCount = await dbContext.OnlineLotMedia.CountAsync(item => item.LotId == LotId, HttpContext.RequestAborted);
+        var files = Uploads.Where(file => file.Length > 0).ToList();
+        if (existingCount + files.Count > LotCatalogChoices.MaximumFilesPerLot) { StatusMessage = $"Each lot can have up to {LotCatalogChoices.MaximumFilesPerLot} photos and documents."; return RedirectToPage(new { organizationId = OrganizationId, auctionId = AuctionId, lotId = LotId }); }
+        var storedFiles = new List<StoredMedia>();
         try
         {
-            await using var stream = Upload.OpenReadStream();
-            stored = await storage.SaveAsync(stream, Upload.ContentType, Upload.FileName, HttpContext.RequestAborted);
             var sortOrder = (await dbContext.OnlineLotMedia.Where(item => item.LotId == LotId).MaxAsync(item => (int?)item.SortOrder, HttpContext.RequestAborted) ?? -1) + 1;
-            dbContext.OnlineLotMedia.Add(new OnlineLotMedia { Id = Guid.NewGuid(), LotId = LotId, StorageKey = stored.StorageKey, OriginalFileName = stored.OriginalFileName, ContentType = stored.ContentType, SizeBytes = stored.SizeBytes, Kind = stored.Kind, SortOrder = sortOrder, CreatedUtc = DateTimeOffset.UtcNow });
+            foreach (var file in files)
+            {
+                await using var stream = file.OpenReadStream();
+                var stored = await storage.SaveAsync(stream, file.ContentType, file.FileName, HttpContext.RequestAborted);
+                storedFiles.Add(stored);
+                dbContext.OnlineLotMedia.Add(new OnlineLotMedia { Id = Guid.NewGuid(), LotId = LotId, StorageKey = stored.StorageKey, OriginalFileName = stored.OriginalFileName, ContentType = stored.ContentType, SizeBytes = stored.SizeBytes, Kind = stored.Kind, SortOrder = sortOrder++, CreatedUtc = DateTimeOffset.UtcNow });
+            }
             await dbContext.SaveChangesAsync(HttpContext.RequestAborted);
-            StatusMessage = "File uploaded.";
+            StatusMessage = files.Count == 1 ? "File added to this lot." : $"{files.Count} files added to this lot.";
         }
         catch (Exception exception) when (exception is InvalidOperationException or IOException or DbUpdateException)
         {
-            if (stored is not null) await storage.DeleteAsync(stored.StorageKey, HttpContext.RequestAborted);
+            foreach (var stored in storedFiles) await storage.DeleteAsync(stored.StorageKey, HttpContext.RequestAborted);
             StatusMessage = exception.Message;
         }
+        return RedirectToPage(new { organizationId = OrganizationId, auctionId = AuctionId, lotId = LotId });
+    }
+
+    public async Task<IActionResult> OnPostMakePrimaryAsync(Guid mediaId)
+    {
+        if (!await CanEditAuctionAsync()) return Forbid();
+        var media = await dbContext.OnlineLotMedia.Where(item => item.LotId == LotId).OrderBy(item => item.SortOrder).ToListAsync(HttpContext.RequestAborted);
+        var selected = media.SingleOrDefault(item => item.Id == mediaId && item.Kind == "Image");
+        if (selected is null) return NotFound();
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(HttpContext.RequestAborted);
+        foreach (var item in media) item.SortOrder += 1000;
+        await dbContext.SaveChangesAsync(HttpContext.RequestAborted);
+        var ordered = media.Where(item => item.Id != selected.Id).Prepend(selected).ToList();
+        for (var index = 0; index < ordered.Count; index++) ordered[index].SortOrder = index;
+        await dbContext.SaveChangesAsync(HttpContext.RequestAborted);
+        await transaction.CommitAsync(HttpContext.RequestAborted);
+        StatusMessage = "Cover photo updated for this lot.";
         return RedirectToPage(new { organizationId = OrganizationId, auctionId = AuctionId, lotId = LotId });
     }
 
@@ -89,8 +120,8 @@ public sealed class LotEditModel(ApplicationDbContext dbContext, UserManager<App
         Input = new LotInput { LotNumber = lot.LotNumber, Title = lot.Title, Description = lot.Description, Category = lot.Category, Condition = lot.Condition, StartingBid = lot.StartingBid, BidIncrement = lot.BidIncrement, ReservePrice = lot.ReservePrice, Quantity = lot.Quantity };
         await LoadMediaAsync(); return true;
     }
-    private async Task LoadMediaAsync() => Media = await dbContext.OnlineLotMedia.AsNoTracking().Where(item => item.LotId == LotId).OrderBy(item => item.SortOrder).Select(item => new MediaView(item.Id, item.OriginalFileName, item.Kind)).ToListAsync(HttpContext.RequestAborted);
-    private async Task<bool> CanEditAuctionAsync() { var user = await userManager.GetUserAsync(User); if (user is null || !await authorization.CanAdministerAsync(user.Id, OrganizationId, await userManager.IsInRoleAsync(user, PlatformRoles.Administrator), HttpContext.RequestAborted)) return false; var status = await dbContext.OnlineAuctions.Where(item => item.Id == AuctionId && item.OrganizationId == OrganizationId).Select(item => item.Status).SingleOrDefaultAsync(HttpContext.RequestAborted); return status is not null && AuctionCatalogEditingPolicy.CanManageLots(status); }
+    private async Task LoadMediaAsync() => Media = await dbContext.OnlineLotMedia.AsNoTracking().Where(item => item.LotId == LotId).OrderBy(item => item.SortOrder).Select(item => new MediaView(item.Id, item.OriginalFileName, item.Kind, item.SortOrder == 0 && item.Kind == "Image")).ToListAsync(HttpContext.RequestAborted);
+    private async Task<bool> CanEditAuctionAsync() { var user = await userManager.GetUserAsync(User); if (user is null || !await authorization.CanAdministerAsync(user.Id, OrganizationId, await userManager.IsInRoleAsync(user, PlatformRoles.Administrator), HttpContext.RequestAborted)) return false; var auction = await dbContext.OnlineAuctions.AsNoTracking().Where(item => item.Id == AuctionId && item.OrganizationId == OrganizationId).Select(item => new { item.Title, item.Status }).SingleOrDefaultAsync(HttpContext.RequestAborted); if (auction is null) return false; AuctionTitle = auction.Title; AuctionStatus = auction.Status; return AuctionCatalogEditingPolicy.CanManageLots(auction.Status); }
 
     public sealed class LotInput
     {
@@ -104,5 +135,5 @@ public sealed class LotEditModel(ApplicationDbContext dbContext, UserManager<App
         [Range(0, 999999999), Display(Name = "Reserve price")] public decimal? ReservePrice { get; set; }
         [Range(1, int.MaxValue)] public int Quantity { get; set; } = 1;
     }
-    public sealed record MediaView(Guid Id, string OriginalFileName, string Kind);
+    public sealed record MediaView(Guid Id, string OriginalFileName, string Kind, bool IsPrimary);
 }

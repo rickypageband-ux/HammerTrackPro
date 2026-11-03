@@ -34,8 +34,8 @@
 - Let organization administrators maintain the public company profile and manage only auctions owned by their organization.
 - Create timed-auction drafts with UTC opening/closing instants derived from an explicitly selected US time zone.
 - Persist buyer premium, sales tax, tax basis, payment, pickup, and shipping terms from each auction; never use hard-coded runtime commercial terms.
-- Create auction-scoped lots with unique positive lot numbers, descriptions, category, condition, quantity, starting bid, increment, and optional reserve.
-- Accept JPG, PNG, WebP, and PDF uploads up to 15 MB after file-signature validation; use random storage keys outside the deployment tree and authorization-aware delivery.
+- Create auction-scoped lots with unique positive lot numbers, descriptions, category and condition dropdowns, quantity, starting bid, increment, and optional reserve. Keep each lot's editor and media visibly identified by auction, lot number, and title.
+- Accept up to five JPG, PNG, WebP, or PDF uploads at once and up to twenty files per lot, with each file limited to 15 MB after signature validation; use random storage keys outside the deployment tree and authorization-aware delivery. Allow the auctioneer to select a lot cover photo and show every lot image in its public gallery.
 - Validate required auction, terms, date, and lot data before publishing. Publishing creates an immutable one-to-one terms snapshot and exposes the catalog publicly.
 - Allow organization administrators to maintain lot details and media while an auction is Draft or Published so catalog corrections appear publicly. Closed auctions remain locked, and publication never rewrites the immutable commercial-terms snapshot.
 - Keep bidder registration, bidding, cards, and payments disabled.

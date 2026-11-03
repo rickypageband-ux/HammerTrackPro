@@ -9,6 +9,14 @@
         <h1>@ViewData["Title"]</h1>
         @if (!string.IsNullOrWhiteSpace(Model.StatusMessage)) { <div class="account-notice">@Model.StatusMessage</div> }
         @if (Model.PublicationErrors.Count > 0) { <div class="validation-summary"><strong>Not ready to publish:</strong><ul>@foreach (var error in Model.PublicationErrors) { <li>@error</li> }</ul></div> }
+        @if (Model.AuctionId != Guid.Empty)
+        {
+            <nav class="auction-quick-actions" aria-label="Auction setup shortcuts">
+                <a class="button button-light" href="#lot-setup">Manage existing lots</a>
+                @if (Model.CanManageLots) { <a class="button button-dark" asp-page="/Auctioneer/LotEdit" asp-route-organizationId="@Model.OrganizationId" asp-route-auctionId="@Model.AuctionId">Add another lot</a> }
+                @if (!string.IsNullOrWhiteSpace(Model.Input.Slug)) { <a class="button button-light" asp-page="/Auctions/Details" asp-route-slug="@Model.Input.Slug">View public auction</a> }
+            </nav>
+        }
         <form method="post" asp-page-handler="Save">
             <div asp-validation-summary="ModelOnly" class="validation-summary"></div>
             <input asp-for="OrganizationId" type="hidden" /><input asp-for="AuctionId" type="hidden" />
@@ -36,9 +44,13 @@
 
         @if (Model.AuctionId != Guid.Empty)
         {
-            <div class="workspace-heading"><h2>Lots (@Model.Lots.Count)</h2>@if (Model.IsDraft) { <a class="button button-dark" asp-page="/Auctioneer/LotEdit" asp-route-organizationId="@Model.OrganizationId" asp-route-auctionId="@Model.AuctionId">Add lot</a> }</div>
-            <div class="membership-list">
-                @foreach (var lot in Model.Lots) { <div><strong>Lot @lot.LotNumber · @lot.Title</strong><span>@lot.MediaCount files · <a asp-page="/Auctioneer/LotEdit" asp-route-organizationId="@Model.OrganizationId" asp-route-auctionId="@Model.AuctionId" asp-route-lotId="@lot.Id">Open</a></span></div> }
+            <div class="workspace-heading" id="lot-setup"><div><h2>Lots (@Model.Lots.Count)</h2><p>Every lot has its own description, category, condition, pricing, and photo gallery.</p></div>@if (Model.CanManageLots) { <a class="button button-dark" asp-page="/Auctioneer/LotEdit" asp-route-organizationId="@Model.OrganizationId" asp-route-auctionId="@Model.AuctionId">Add another lot</a> }</div>
+            <div class="lot-setup-list">
+                @foreach (var lot in Model.Lots)
+                {
+                    <article><div><span class="lot-number">LOT @lot.LotNumber</span><h3>@lot.Title</h3><p>@(string.IsNullOrWhiteSpace(lot.Category) ? "No category selected" : lot.Category) · @(string.IsNullOrWhiteSpace(lot.Condition) ? "No condition selected" : lot.Condition) · @lot.MediaCount file(s)</p></div><a class="button button-light" asp-page="/Auctioneer/LotEdit" asp-route-organizationId="@Model.OrganizationId" asp-route-auctionId="@Model.AuctionId" asp-route-lotId="@lot.Id">Edit lot and photos</a></article>
+                }
+                @if (Model.Lots.Count == 0) { <div class="empty-state"><strong>No lots yet.</strong><span>Add the first lot, save its details, and then attach its photos.</span></div> }
             </div>
             @if (Model.IsDraft)
             {

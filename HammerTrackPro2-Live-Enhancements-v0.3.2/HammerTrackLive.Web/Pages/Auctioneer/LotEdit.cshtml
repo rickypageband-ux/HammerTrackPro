@@ -4,37 +4,44 @@
     ViewData["Title"] = Model.LotId == Guid.Empty ? "Add lot" : "Edit lot";
 }
 <section class="account-section">
-    <div class="account-card account-card-wide">
-        <div class="eyebrow">AUCTION CATALOG</div><h1>@ViewData["Title"]</h1>
+    <div class="account-card account-card-wide lot-workspace">
+        <div class="eyebrow">@Model.AuctionStatus.ToUpperInvariant() AUCTION · @Model.AuctionTitle</div><h1>@ViewData["Title"]</h1>
+        <p class="workflow-help">Each lot has its own description, category, condition, pricing, photos, and PDF documents. Save the lot details first, then add its photos below.</p>
         @if (!string.IsNullOrWhiteSpace(Model.StatusMessage)) { <div class="account-notice">@Model.StatusMessage</div> }
         <form method="post" asp-page-handler="Save">
             <div asp-validation-summary="All" class="validation-summary"></div>
             <input asp-for="OrganizationId" type="hidden" /><input asp-for="AuctionId" type="hidden" /><input asp-for="LotId" type="hidden" />
-            <div class="form-grid-3"><div><label asp-for="Input.LotNumber"></label><input asp-for="Input.LotNumber" /><span asp-validation-for="Input.LotNumber"></span></div><div><label asp-for="Input.Quantity"></label><input asp-for="Input.Quantity" /><span asp-validation-for="Input.Quantity"></span></div><div><label asp-for="Input.Condition"></label><input asp-for="Input.Condition" /><span asp-validation-for="Input.Condition"></span></div></div>
+            <div class="form-grid-3"><div><label asp-for="Input.LotNumber"></label><input asp-for="Input.LotNumber" /><span asp-validation-for="Input.LotNumber"></span></div><div><label asp-for="Input.Quantity"></label><input asp-for="Input.Quantity" /><span asp-validation-for="Input.Quantity"></span></div><div><label asp-for="Input.Condition"></label><select asp-for="Input.Condition"><option value="">Select condition</option>@foreach (var condition in Model.Conditions) { <option value="@condition">@condition</option> }</select><span asp-validation-for="Input.Condition"></span></div></div>
             <label asp-for="Input.Title"></label><input asp-for="Input.Title" /><span asp-validation-for="Input.Title"></span>
             <label asp-for="Input.Description"></label><textarea asp-for="Input.Description" rows="5"></textarea><span asp-validation-for="Input.Description"></span>
-            <label asp-for="Input.Category"></label><input asp-for="Input.Category" /><span asp-validation-for="Input.Category"></span>
+            <label asp-for="Input.Category"></label><select asp-for="Input.Category"><option value="">Select category</option>@foreach (var category in Model.Categories) { <option value="@category">@category</option> }</select><span asp-validation-for="Input.Category"></span>
             <div class="form-grid-3"><div><label asp-for="Input.StartingBid"></label><input asp-for="Input.StartingBid" /><span asp-validation-for="Input.StartingBid"></span></div><div><label asp-for="Input.BidIncrement"></label><input asp-for="Input.BidIncrement" /><span asp-validation-for="Input.BidIncrement"></span></div><div><label asp-for="Input.ReservePrice"></label><input asp-for="Input.ReservePrice" /><span asp-validation-for="Input.ReservePrice"></span></div></div>
-            <button class="button button-red" type="submit">Save lot</button>
+            <button class="button button-red" type="submit">@(Model.LotId == Guid.Empty ? "Save lot and add photos" : "Save lot details")</button>
         </form>
         @if (Model.LotId != Guid.Empty)
         {
-            <h2>Photos and PDF documents</h2>
-            <form method="post" asp-page-handler="Upload" enctype="multipart/form-data">
-                <input asp-for="OrganizationId" type="hidden" /><input asp-for="AuctionId" type="hidden" /><input asp-for="LotId" type="hidden" />
-                <label asp-for="Upload"></label><input asp-for="Upload" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" />
-                <button class="button button-dark" type="submit">Upload file</button>
-            </form>
-            <div class="media-grid">
+            <section class="lot-media-section">
+                <div class="workspace-heading"><div><h2>Photos for Lot @Model.Input.LotNumber · @Model.Input.Title</h2><p>Add up to five files at a time. The cover photo appears first in the public catalog.</p></div><span class="file-count">@Model.Media.Count / @Model.MaximumFilesPerLot files</span></div>
+                <form method="post" asp-page-handler="Upload" enctype="multipart/form-data" class="upload-panel">
+                    <input asp-for="OrganizationId" type="hidden" /><input asp-for="AuctionId" type="hidden" /><input asp-for="LotId" type="hidden" />
+                    <label asp-for="Uploads">Add photos or PDF documents to this lot</label><input asp-for="Uploads" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" multiple />
+                    <button class="button button-dark" type="submit">Add selected files to Lot @Model.Input.LotNumber</button>
+                </form>
+                <div class="media-grid lot-media-grid">
                 @foreach (var media in Model.Media)
                 {
-                    <article>
-                        @if (media.Kind == "Image") { <img src="/Media/Download?id=@media.Id" alt="@media.OriginalFileName" /> } else { <a href="/Media/Download?id=@media.Id">PDF · @media.OriginalFileName</a> }
-                        <form method="post" asp-page-handler="RemoveMedia"><input asp-for="OrganizationId" type="hidden" /><input asp-for="AuctionId" type="hidden" /><input asp-for="LotId" type="hidden" /><input name="mediaId" value="@media.Id" type="hidden" /><button type="submit">Remove</button></form>
+                    <article class="lot-media-card">
+                        @if (media.Kind == "Image") { <img src="/Media/Download?id=@media.Id" alt="Photo for Lot @Model.Input.LotNumber: @Model.Input.Title" /> } else { <a class="document-tile" href="/Media/Download?id=@media.Id">PDF document</a> }
+                        <div class="media-meta"><strong>Lot @Model.Input.LotNumber</strong><span title="@media.OriginalFileName">@media.OriginalFileName</span>@if (media.IsPrimary) { <b>Cover photo</b> }</div>
+                        <div class="media-actions">
+                            @if (media.Kind == "Image" && !media.IsPrimary) { <form method="post" asp-page-handler="MakePrimary"><input asp-for="OrganizationId" type="hidden" /><input asp-for="AuctionId" type="hidden" /><input asp-for="LotId" type="hidden" /><input name="mediaId" value="@media.Id" type="hidden" /><button type="submit">Make cover</button></form> }
+                            <form method="post" asp-page-handler="RemoveMedia"><input asp-for="OrganizationId" type="hidden" /><input asp-for="AuctionId" type="hidden" /><input asp-for="LotId" type="hidden" /><input name="mediaId" value="@media.Id" type="hidden" /><button type="submit">Remove</button></form>
+                        </div>
                     </article>
                 }
-            </div>
+                </div>
+            </section>
         }
-        <p><a asp-page="/Auctioneer/AuctionEdit" asp-route-organizationId="@Model.OrganizationId" asp-route-auctionId="@Model.AuctionId">← Back to auction</a></p>
+        <div class="lot-navigation"><a class="button button-light" asp-page="/Auctioneer/AuctionEdit" asp-route-organizationId="@Model.OrganizationId" asp-route-auctionId="@Model.AuctionId">← Back to auction setup</a>@if (Model.LotId != Guid.Empty) { <a class="button button-dark" asp-page="/Auctioneer/LotEdit" asp-route-organizationId="@Model.OrganizationId" asp-route-auctionId="@Model.AuctionId">Add another lot</a> }</div>
     </div>
 </section>

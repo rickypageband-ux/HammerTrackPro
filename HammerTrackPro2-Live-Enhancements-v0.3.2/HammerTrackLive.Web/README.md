@@ -1,6 +1,6 @@
 # HammerTrackOnline.com web application
 
-This is the owner-approved HammerTrack Online web platform for an Ubuntu/Plesk server. HammerTrack Live is the live-event mode within this platform. The controlled release uses PostgreSQL-backed invite-only accounts, organization administration, auction/lot catalog management, controlled media, and publishing. Authorized auction-company administrators can maintain lots and media on Draft and Published auctions; Closed auctions are locked, and published commercial terms remain an immutable snapshot. It does not yet accept auction registrations, bids, cards, or payments.
+This is the owner-approved HammerTrack Online web platform for an Ubuntu/Plesk server. HammerTrack Live is the live-event mode within this platform. The controlled release uses PostgreSQL-backed invite-only accounts, organization administration, auction/lot catalog management, category and condition choices, lot-specific multi-file media with cover-photo selection, public lot galleries, and publishing. Authorized auction-company administrators can maintain lots and media on Draft and Published auctions; Closed auctions are locked, and published commercial terms remain an immutable snapshot. It does not yet accept auction registrations, bids, cards, or payments.
 
 ## Local verification
 
