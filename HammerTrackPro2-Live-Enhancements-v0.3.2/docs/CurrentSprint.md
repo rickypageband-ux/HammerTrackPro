@@ -37,6 +37,7 @@
 - Create auction-scoped lots with unique positive lot numbers, descriptions, category, condition, quantity, starting bid, increment, and optional reserve.
 - Accept JPG, PNG, WebP, and PDF uploads up to 15 MB after file-signature validation; use random storage keys outside the deployment tree and authorization-aware delivery.
 - Validate required auction, terms, date, and lot data before publishing. Publishing creates an immutable one-to-one terms snapshot and exposes the catalog publicly.
+- Allow organization administrators to maintain lot details and media while an auction is Draft or Published so catalog corrections appear publicly. Closed auctions remain locked, and publication never rewrites the immutable commercial-terms snapshot.
 - Keep bidder registration, bidding, cards, and payments disabled.
 - Apply ordered idempotent migration `003_AuctionCatalogAndPublishing` after a PostgreSQL backup. Existing organizations receive safe blank profile defaults.
 - Use protected server-local media storage only for controlled development; external object storage and independent media backup remain production requirements.

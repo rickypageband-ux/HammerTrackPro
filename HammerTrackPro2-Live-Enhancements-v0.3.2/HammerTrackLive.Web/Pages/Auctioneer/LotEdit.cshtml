@@ -8,13 +8,13 @@
         <div class="eyebrow">AUCTION CATALOG</div><h1>@ViewData["Title"]</h1>
         @if (!string.IsNullOrWhiteSpace(Model.StatusMessage)) { <div class="account-notice">@Model.StatusMessage</div> }
         <form method="post" asp-page-handler="Save">
-            <div asp-validation-summary="ModelOnly" class="validation-summary"></div>
+            <div asp-validation-summary="All" class="validation-summary"></div>
             <input asp-for="OrganizationId" type="hidden" /><input asp-for="AuctionId" type="hidden" /><input asp-for="LotId" type="hidden" />
-            <div class="form-grid-3"><div><label asp-for="Input.LotNumber"></label><input asp-for="Input.LotNumber" /></div><div><label asp-for="Input.Quantity"></label><input asp-for="Input.Quantity" /></div><div><label asp-for="Input.Condition"></label><input asp-for="Input.Condition" /></div></div>
+            <div class="form-grid-3"><div><label asp-for="Input.LotNumber"></label><input asp-for="Input.LotNumber" /><span asp-validation-for="Input.LotNumber"></span></div><div><label asp-for="Input.Quantity"></label><input asp-for="Input.Quantity" /><span asp-validation-for="Input.Quantity"></span></div><div><label asp-for="Input.Condition"></label><input asp-for="Input.Condition" /><span asp-validation-for="Input.Condition"></span></div></div>
             <label asp-for="Input.Title"></label><input asp-for="Input.Title" /><span asp-validation-for="Input.Title"></span>
-            <label asp-for="Input.Description"></label><textarea asp-for="Input.Description" rows="5"></textarea>
-            <label asp-for="Input.Category"></label><input asp-for="Input.Category" />
-            <div class="form-grid-3"><div><label asp-for="Input.StartingBid"></label><input asp-for="Input.StartingBid" /></div><div><label asp-for="Input.BidIncrement"></label><input asp-for="Input.BidIncrement" /></div><div><label asp-for="Input.ReservePrice"></label><input asp-for="Input.ReservePrice" /></div></div>
+            <label asp-for="Input.Description"></label><textarea asp-for="Input.Description" rows="5"></textarea><span asp-validation-for="Input.Description"></span>
+            <label asp-for="Input.Category"></label><input asp-for="Input.Category" /><span asp-validation-for="Input.Category"></span>
+            <div class="form-grid-3"><div><label asp-for="Input.StartingBid"></label><input asp-for="Input.StartingBid" /><span asp-validation-for="Input.StartingBid"></span></div><div><label asp-for="Input.BidIncrement"></label><input asp-for="Input.BidIncrement" /><span asp-validation-for="Input.BidIncrement"></span></div><div><label asp-for="Input.ReservePrice"></label><input asp-for="Input.ReservePrice" /><span asp-validation-for="Input.ReservePrice"></span></div></div>
             <button class="button button-red" type="submit">Save lot</button>
         </form>
         @if (Model.LotId != Guid.Empty)

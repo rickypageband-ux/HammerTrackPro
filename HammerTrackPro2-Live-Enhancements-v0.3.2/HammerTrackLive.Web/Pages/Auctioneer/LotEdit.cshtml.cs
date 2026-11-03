@@ -41,8 +41,8 @@ public sealed class LotEditModel(ApplicationDbContext dbContext, UserManager<App
         OnlineLot lot;
         if (LotId == Guid.Empty) { lot = new OnlineLot { Id = Guid.NewGuid(), AuctionId = AuctionId, CreatedUtc = DateTimeOffset.UtcNow }; dbContext.OnlineLots.Add(lot); }
         else { lot = await dbContext.OnlineLots.SingleOrDefaultAsync(item => item.Id == LotId && item.AuctionId == AuctionId, HttpContext.RequestAborted) ?? throw new InvalidOperationException("Lot not found."); }
-        lot.LotNumber = Input.LotNumber; lot.Title = Input.Title.Trim(); lot.Description = Input.Description.Trim(); lot.Category = Input.Category.Trim();
-        lot.Condition = Input.Condition.Trim(); lot.StartingBid = Input.StartingBid; lot.BidIncrement = Input.BidIncrement; lot.ReservePrice = Input.ReservePrice;
+        lot.LotNumber = Input.LotNumber; lot.Title = Input.Title.Trim(); lot.Description = Input.Description?.Trim() ?? string.Empty; lot.Category = Input.Category?.Trim() ?? string.Empty;
+        lot.Condition = Input.Condition?.Trim() ?? string.Empty; lot.StartingBid = Input.StartingBid; lot.BidIncrement = Input.BidIncrement; lot.ReservePrice = Input.ReservePrice;
         lot.Quantity = Input.Quantity; lot.IsActive = true; lot.UpdatedUtc = DateTimeOffset.UtcNow;
         await dbContext.SaveChangesAsync(HttpContext.RequestAborted);
         StatusMessage = "Lot saved.";
@@ -90,15 +90,15 @@ public sealed class LotEditModel(ApplicationDbContext dbContext, UserManager<App
         await LoadMediaAsync(); return true;
     }
     private async Task LoadMediaAsync() => Media = await dbContext.OnlineLotMedia.AsNoTracking().Where(item => item.LotId == LotId).OrderBy(item => item.SortOrder).Select(item => new MediaView(item.Id, item.OriginalFileName, item.Kind)).ToListAsync(HttpContext.RequestAborted);
-    private async Task<bool> CanEditAuctionAsync() { var user = await userManager.GetUserAsync(User); if (user is null || !await authorization.CanAdministerAsync(user.Id, OrganizationId, await userManager.IsInRoleAsync(user, PlatformRoles.Administrator), HttpContext.RequestAborted)) return false; return await dbContext.OnlineAuctions.AnyAsync(item => item.Id == AuctionId && item.OrganizationId == OrganizationId && item.Status == AuctionStatuses.Draft, HttpContext.RequestAborted); }
+    private async Task<bool> CanEditAuctionAsync() { var user = await userManager.GetUserAsync(User); if (user is null || !await authorization.CanAdministerAsync(user.Id, OrganizationId, await userManager.IsInRoleAsync(user, PlatformRoles.Administrator), HttpContext.RequestAborted)) return false; var status = await dbContext.OnlineAuctions.Where(item => item.Id == AuctionId && item.OrganizationId == OrganizationId).Select(item => item.Status).SingleOrDefaultAsync(HttpContext.RequestAborted); return status is not null && AuctionCatalogEditingPolicy.CanManageLots(status); }
 
     public sealed class LotInput
     {
         [Range(1, int.MaxValue), Display(Name = "Lot number")] public int LotNumber { get; set; }
         [Required, StringLength(200)] public string Title { get; set; } = string.Empty;
-        [StringLength(5000)] public string Description { get; set; } = string.Empty;
-        [StringLength(100)] public string Category { get; set; } = string.Empty;
-        [StringLength(100)] public string Condition { get; set; } = string.Empty;
+        [StringLength(5000)] public string? Description { get; set; }
+        [StringLength(100)] public string? Category { get; set; }
+        [StringLength(100)] public string? Condition { get; set; }
         [Range(0, 999999999), Display(Name = "Starting bid")] public decimal StartingBid { get; set; }
         [Range(0.01, 999999999), Display(Name = "Bid increment")] public decimal BidIncrement { get; set; } = 1;
         [Range(0, 999999999), Display(Name = "Reserve price")] public decimal? ReservePrice { get; set; }
