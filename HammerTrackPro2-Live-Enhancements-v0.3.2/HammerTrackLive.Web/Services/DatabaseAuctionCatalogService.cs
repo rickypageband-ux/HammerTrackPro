@@ -8,7 +8,7 @@ public sealed class DatabaseAuctionCatalogService(ApplicationDbContext dbContext
 {
     public async Task<IReadOnlyList<AuctionSummary>> GetFeaturedAuctionsAsync(CancellationToken cancellationToken = default)
     {
-        return await Query().OrderBy(auction => auction.EndsAt).ToListAsync(cancellationToken);
+        return await Query().ToListAsync(cancellationToken);
     }
 
     public async Task<AuctionDetails?> GetBySlugAsync(string slug, CancellationToken cancellationToken = default)
@@ -36,6 +36,7 @@ public sealed class DatabaseAuctionCatalogService(ApplicationDbContext dbContext
         return dbContext.OnlineAuctions
             .AsNoTracking()
             .Where(auction => auction.Status == AuctionStatuses.Published && auction.Organization.IsActive)
+            .OrderBy(auction => auction.EndsUtc)
             .Select(auction => new AuctionSummary(
                 auction.Slug,
                 auction.Title,
