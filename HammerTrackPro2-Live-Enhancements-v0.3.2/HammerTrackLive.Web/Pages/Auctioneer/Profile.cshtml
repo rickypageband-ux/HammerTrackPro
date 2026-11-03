@@ -9,19 +9,19 @@
         <h1>Company profile</h1>
         @if (!string.IsNullOrWhiteSpace(Model.StatusMessage)) { <div class="account-notice">@Model.StatusMessage</div> }
         <form method="post">
-            <div asp-validation-summary="ModelOnly" class="validation-summary"></div>
+            <div asp-validation-summary="All" class="validation-summary"></div>
             <input asp-for="OrganizationId" type="hidden" />
             <label asp-for="Input.Name"></label><input asp-for="Input.Name" /><span asp-validation-for="Input.Name"></span>
             <label asp-for="Input.Address"></label><input asp-for="Input.Address" /><span asp-validation-for="Input.Address"></span>
             <div class="form-grid-3">
-                <div><label asp-for="Input.City"></label><input asp-for="Input.City" /></div>
-                <div><label asp-for="Input.State"></label><input asp-for="Input.State" /></div>
-                <div><label asp-for="Input.PostalCode"></label><input asp-for="Input.PostalCode" /></div>
+                <div><label asp-for="Input.City"></label><input asp-for="Input.City" /><span asp-validation-for="Input.City"></span></div>
+                <div><label asp-for="Input.State"></label><input asp-for="Input.State" /><span asp-validation-for="Input.State"></span></div>
+                <div><label asp-for="Input.PostalCode"></label><input asp-for="Input.PostalCode" /><span asp-validation-for="Input.PostalCode"></span></div>
             </div>
-            <label asp-for="Input.Phone"></label><input asp-for="Input.Phone" />
-            <label asp-for="Input.PublicEmail"></label><input asp-for="Input.PublicEmail" type="email" />
-            <label asp-for="Input.Website"></label><input asp-for="Input.Website" type="url" />
-            <label asp-for="Input.Description"></label><textarea asp-for="Input.Description" rows="6"></textarea>
+            <label asp-for="Input.Phone"></label><input asp-for="Input.Phone" /><span asp-validation-for="Input.Phone"></span>
+            <label asp-for="Input.PublicEmail"></label><input asp-for="Input.PublicEmail" type="email" /><span asp-validation-for="Input.PublicEmail"></span>
+            <label asp-for="Input.Website"></label><input asp-for="Input.Website" placeholder="hammertrackonline.com" /><span asp-validation-for="Input.Website"></span>
+            <label asp-for="Input.Description"></label><textarea asp-for="Input.Description" rows="6"></textarea><span asp-validation-for="Input.Description"></span>
             <button class="button button-red" type="submit">Save company profile</button>
         </form>
     </div>

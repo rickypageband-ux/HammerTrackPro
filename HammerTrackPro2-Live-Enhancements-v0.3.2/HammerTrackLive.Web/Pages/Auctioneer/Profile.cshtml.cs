@@ -33,12 +33,16 @@ public sealed class ProfileModel(ApplicationDbContext dbContext, UserManager<App
     public async Task<IActionResult> OnPostAsync()
     {
         if (!await CanAdministerAsync()) return Forbid();
+        if (!OrganizationProfileInputNormalizer.TryNormalizeWebsite(Input.Website, out var normalizedWebsite))
+        {
+            ModelState.AddModelError("Input.Website", "Enter a valid website address, such as hammertrackonline.com.");
+        }
         if (!ModelState.IsValid) return Page();
         var organization = await dbContext.Organizations.SingleOrDefaultAsync(item => item.Id == OrganizationId, HttpContext.RequestAborted);
         if (organization is null) return NotFound();
-        organization.Name = Input.Name.Trim(); organization.Address = Input.Address.Trim(); organization.City = Input.City.Trim();
-        organization.State = Input.State.Trim(); organization.PostalCode = Input.PostalCode.Trim(); organization.Phone = Input.Phone.Trim();
-        organization.PublicEmail = Input.PublicEmail.Trim(); organization.Website = Input.Website.Trim(); organization.Description = Input.Description.Trim();
+        organization.Name = Input.Name.Trim(); organization.Address = Input.Address?.Trim() ?? string.Empty; organization.City = Input.City?.Trim() ?? string.Empty;
+        organization.State = Input.State?.Trim() ?? string.Empty; organization.PostalCode = Input.PostalCode?.Trim() ?? string.Empty; organization.Phone = Input.Phone?.Trim() ?? string.Empty;
+        organization.PublicEmail = Input.PublicEmail?.Trim() ?? string.Empty; organization.Website = normalizedWebsite; organization.Description = Input.Description?.Trim() ?? string.Empty;
         await dbContext.SaveChangesAsync(HttpContext.RequestAborted);
         StatusMessage = "Company profile saved.";
         return RedirectToPage(new { organizationId = OrganizationId });
@@ -53,13 +57,13 @@ public sealed class ProfileModel(ApplicationDbContext dbContext, UserManager<App
     public sealed class ProfileInput
     {
         [Required, StringLength(160)] public string Name { get; set; } = string.Empty;
-        [StringLength(200)] public string Address { get; set; } = string.Empty;
-        [StringLength(100)] public string City { get; set; } = string.Empty;
-        [StringLength(50)] public string State { get; set; } = string.Empty;
-        [StringLength(20), Display(Name = "ZIP / postal code")] public string PostalCode { get; set; } = string.Empty;
-        [Phone, StringLength(30)] public string Phone { get; set; } = string.Empty;
-        [EmailAddress, StringLength(256), Display(Name = "Public email")] public string PublicEmail { get; set; } = string.Empty;
-        [Url, StringLength(300)] public string Website { get; set; } = string.Empty;
-        [StringLength(2000)] public string Description { get; set; } = string.Empty;
+        [StringLength(200)] public string? Address { get; set; }
+        [StringLength(100)] public string? City { get; set; }
+        [StringLength(50)] public string? State { get; set; }
+        [StringLength(20), Display(Name = "ZIP / postal code")] public string? PostalCode { get; set; }
+        [Phone, StringLength(30)] public string? Phone { get; set; }
+        [EmailAddress, StringLength(256), Display(Name = "Public email")] public string? PublicEmail { get; set; }
+        [StringLength(300)] public string? Website { get; set; }
+        [StringLength(2000)] public string? Description { get; set; }
     }
 }
