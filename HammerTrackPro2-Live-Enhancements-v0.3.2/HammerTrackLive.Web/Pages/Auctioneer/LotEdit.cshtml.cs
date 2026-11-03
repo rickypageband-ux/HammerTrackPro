@@ -32,7 +32,7 @@ public sealed class LotEditModel(ApplicationDbContext dbContext, UserManager<App
         if (LotId == Guid.Empty)
         {
             var existingLotNumbers = await dbContext.OnlineLots.Where(item => item.AuctionId == AuctionId && item.IsActive).Select(item => item.LotNumber).ToListAsync(HttpContext.RequestAborted);
-            Input.LotNumber = LotCatalogChoices.GetNextAvailableLotNumber(existingLotNumbers);
+            Input.LotNumber = LotCatalogChoices.GetNextLotNumber(existingLotNumbers);
             return Page();
         }
         return await LoadAsync() ? Page() : NotFound();

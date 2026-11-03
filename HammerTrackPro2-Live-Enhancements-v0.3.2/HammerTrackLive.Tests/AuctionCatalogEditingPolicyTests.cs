@@ -20,11 +20,12 @@ public sealed class AuctionCatalogEditingPolicyTests
 
     [Theory]
     [InlineData(new int[] { }, 1)]
-    [InlineData(new[] { 2 }, 1)]
-    [InlineData(new[] { 1, 2, 4 }, 3)]
-    public void NewLotUsesFirstAvailablePositiveNumber(int[] existing, int expected)
+    [InlineData(new[] { 2 }, 3)]
+    [InlineData(new[] { 1, 2, 3, 4 }, 5)]
+    [InlineData(new[] { 1, 2, 4 }, 5)]
+    public void NewLotContinuesAfterHighestExistingNumber(int[] existing, int expected)
     {
-        Assert.Equal(expected, LotCatalogChoices.GetNextAvailableLotNumber(existing));
+        Assert.Equal(expected, LotCatalogChoices.GetNextLotNumber(existing));
     }
 
     [Theory]

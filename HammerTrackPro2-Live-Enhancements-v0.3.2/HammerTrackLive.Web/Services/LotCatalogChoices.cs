@@ -36,11 +36,9 @@ public static class LotCatalogChoices
     public const int MaximumFilesPerUpload = 5;
     public const int MaximumFilesPerLot = 20;
 
-    public static int GetNextAvailableLotNumber(IEnumerable<int> existingLotNumbers)
+    public static int GetNextLotNumber(IEnumerable<int> existingLotNumbers)
     {
-        var used = existingLotNumbers.Where(number => number > 0).ToHashSet();
-        var candidate = 1;
-        while (used.Contains(candidate)) candidate++;
-        return candidate;
+        var highest = existingLotNumbers.Where(number => number > 0).DefaultIfEmpty(0).Max();
+        return checked(highest + 1);
     }
 }
