@@ -1,0 +1,74 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Online and live auctions";
+}
+
+<section class="hero">
+    <div class="shell hero-grid">
+        <div class="hero-copy">
+            <div class="eyebrow">BUILT FOR AUCTION DAY</div>
+            <h1>Bid online.<br /><span>Feel the room.</span></h1>
+            <p class="hero-lead">HammerTrack Online connects professional auction companies with bidders through timed online auctions and camera-enabled live events.</p>
+            <div class="button-row">
+                <a class="button button-red" asp-page="/Auctions/Index">Explore auctions</a>
+                <a class="button button-outline" asp-page="/ForAuctioneers">Run an auction</a>
+            </div>
+            <div class="trust-row" aria-label="Platform benefits">
+                <span><b>01</b> Verified registration</span>
+                <span><b>02</b> Transparent bidding</span>
+                <span><b>03</b> Auctioneer control</span>
+            </div>
+        </div>
+        <div class="live-panel" aria-label="Demonstration live bidding panel">
+            <div class="live-panel-top"><span class="live-dot"></span> LIVE AUCTION PREVIEW <span>DEMO</span></div>
+            <div class="lot-kicker">CURRENT LOT · 184</div>
+            <h2>Commercial tool assortment</h2>
+            <div class="bid-display">
+                <div><small>HIGH BID</small><strong>$1,850</strong></div>
+                <div><small>BIDDER</small><strong>#427</strong></div>
+            </div>
+            <button type="button" class="demo-bid" disabled>Demo preview · bidding disabled</button>
+            <p>Production bidding will require registration, auction approval, and acceptance of the auction company's terms.</p>
+        </div>
+    </div>
+</section>
+
+<section class="section shell">
+    <div class="section-heading">
+        <div><div class="eyebrow">FEATURED AUCTIONS</div><h2>Find your next opportunity.</h2></div>
+        <a asp-page="/Auctions/Index">View all auctions →</a>
+    </div>
+    <div class="auction-grid">
+        @foreach (var auction in Model.Auctions)
+        {
+            <article class="auction-card">
+                <a class="auction-image" asp-page="/Auctions/Details" asp-route-slug="@auction.Slug">
+                    <img src="@auction.ImagePath" alt="" />
+                    <span>@auction.Status</span>
+                </a>
+                <div class="auction-card-body">
+                    <div class="auction-format">@auction.Format · @auction.LotCount lots</div>
+                    <h3><a asp-page="/Auctions/Details" asp-route-slug="@auction.Slug">@auction.Title</a></h3>
+                    <p>@auction.Location</p>
+                    <div class="auction-meta"><span>Ends @auction.EndsAt.ToString("MMM d · h:mm tt")</span><span>@(auction.ShippingAvailable ? "Shipping available" : "Pickup only")</span></div>
+                </div>
+            </article>
+        }
+    </div>
+</section>
+
+<section class="split-feature">
+    <div class="shell split-grid">
+        <div>
+            <div class="eyebrow">TWO WAYS TO SELL</div>
+            <h2>Timed online or live on camera.</h2>
+            <p>Choose the format that fits the merchandise and the audience. HammerTrack Online manages timed bidding and checkout. HammerTrack Live brings remote bidders into a scheduled live event while the auctioneer remains in control.</p>
+            <a class="text-link" asp-page="/HowItWorks">Compare auction formats →</a>
+        </div>
+        <div class="feature-stack">
+            <div><span>ONLINE</span><h3>Competitive bidding around the clock</h3><p>Maximum bids, automatic increments, watchlists, soft closing, invoices, and connected card checkout.</p></div>
+            <div><span>LIVE</span><h3>Remote paddles in the room</h3><p>Camera verification, assigned bidder numbers, a raise-paddle queue, and auctioneer-confirmed winning bids.</p></div>
+        </div>
+    </div>
+</section>

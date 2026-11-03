@@ -1,0 +1,25 @@
+[Unit]
+Description=HammerTrack Online ASP.NET Core web application
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+WorkingDirectory=/var/www/vhosts/hammertrackonline.com/app
+ExecStart=/usr/bin/dotnet /var/www/vhosts/hammertrackonline.com/app/HammerTrackLive.Web.dll
+Restart=always
+RestartSec=5
+KillSignal=SIGINT
+SyslogIdentifier=hammertrackonline
+User=hammertrackonline.co_4wggkn4o9rh
+Group=psacln
+Environment=ASPNETCORE_ENVIRONMENT=Production
+Environment=ASPNETCORE_URLS=http://127.0.0.1:5080
+EnvironmentFile=/etc/hammertrackonline/database.env
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ReadWritePaths=/var/lib/hammertrackonline
+UMask=0027
+
+[Install]
+WantedBy=multi-user.target

@@ -13,3 +13,4 @@
 *.msi
 *.wixpdb
 website/_private/contact-rate-limits.json
+.local-secrets/

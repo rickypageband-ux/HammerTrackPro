@@ -1,0 +1,33 @@
+@page "{slug}"
+@model HammerTrackLive.Web.Pages.Auctions.DetailsModel
+@{
+    ViewData["Title"] = Model.Auction.Title;
+}
+
+<section class="detail-hero">
+    <div class="shell detail-grid">
+        <div class="detail-image"><img src="@Model.Auction.ImagePath" alt="" /></div>
+        <div>
+            <div class="eyebrow">@Model.Auction.Format.ToUpperInvariant() · DEVELOPMENT PREVIEW</div>
+            <h1>@Model.Auction.Title</h1>
+            <p>@Model.Auction.Description</p>
+            <dl class="detail-facts">
+                <div><dt>Auction company</dt><dd>@Model.Auction.AuctionCompany</dd></div>
+                <div><dt>Location</dt><dd>@Model.Auction.Location</dd></div>
+                <div><dt>Lots</dt><dd>@Model.Auction.LotCount</dd></div>
+                <div><dt>Closes</dt><dd>@Model.Auction.EndsAt.ToString("MMMM d, yyyy · h:mm tt zzz")</dd></div>
+            </dl>
+            <button class="button button-red" type="button" disabled>Registration opens in a later release</button>
+        </div>
+    </div>
+</section>
+<section class="section shell narrow">
+    <div class="notice"><strong>No real auction is being conducted.</strong> This page proves the catalog and routing foundation only. It does not accept registrations, bids, cards, or payments.</div>
+    <h2>Planned auction capabilities</h2>
+    <div class="capability-grid">
+        <div><b>Maximum bidding</b><span>Set the most you are willing to pay while the platform bids by the configured increment.</span></div>
+        <div><b>Soft closing</b><span>Late bids extend the lot according to the auction company's published rules.</span></div>
+        <div><b>Clear terms</b><span>Buyer premium, taxes, pickup, shipping, and payment terms appear before registration.</span></div>
+        <div><b>Auditable results</b><span>Accepted bids, close events, invoices, and payment records remain traceable.</span></div>
+    </div>
+</section>

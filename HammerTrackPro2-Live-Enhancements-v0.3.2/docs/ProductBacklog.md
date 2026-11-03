@@ -1,5 +1,19 @@
 # Product Backlog
 
+## HammerTrack Online web platform
+
+- [x] Owner-approved public web foundation for HammerTrackOnline.com with fictional demonstration catalog, responsive branding, service boundaries, health endpoint, tests, and Plesk-oriented architecture documentation. HammerTrack Live remains its camera-enabled live-event mode.
+- [ ] PostgreSQL tenancy, organizations, roles, authentication, and ordered initial migration.
+  - [x] PostgreSQL 16 loopback deployment, initial identity/organization migration, durable roles, invite-only login, lockout, protected account page, and secure cookie foundation.
+  - [ ] Confirmation email, password recovery, administrator invitation/provisioning, and organization-management workflow.
+- [ ] Auctioneer onboarding, catalog creation, image/document storage, auction terms, and publishing workflow.
+- [ ] Bidder identity, auction registration, approval, watchlist, and notification workflow.
+- [ ] Timed online bidding with append-only bid events, maximum/proxy bidding, increments, reserves, soft closing, and audited closeout.
+- [ ] Stripe Connect onboarding, checkout, signed/idempotent webhooks, refunds, disputes, invoices, and fee ledger.
+- [ ] HammerTrack Pro bridge/outbox upload and result synchronization without sharing the desktop SQLite database.
+- [ ] Camera-enabled live-event room, bidder-number overlay, Raise Paddle queue, auctioneer acceptance, and managed WebRTC infrastructure.
+- [ ] Production load, security, accessibility, backup/restore, monitoring, outage, and pilot acceptance testing.
+
 This is the approved release sequence. Do not pull work forward from a later release without an explicit product decision. Functional architecture, database integrity, business logic, and tests take priority over UI styling until the feature set is complete.
 
 ## Version 0.5

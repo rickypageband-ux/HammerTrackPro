@@ -10,6 +10,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HammerTrackPro.LicenseIssue
 EndProject
 Project("{930C7802-8A8C-48F9-8165-68863BCCD9DD}") = "HammerTrackPro2.Installer", "HammerTrackPro2.Installer\HammerTrackPro2.Installer.wixproj", "{7B270822-8D15-4B41-909A-E5F2716F713F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HammerTrackLive.Web", "HammerTrackLive.Web\HammerTrackLive.Web.csproj", "{8F31F54A-23F2-42A8-A33F-403EDB9D2142}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HammerTrackLive.Tests", "HammerTrackLive.Tests\HammerTrackLive.Tests.csproj", "{A3B8B70B-72FC-456F-9B2D-65E3B926D78B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -32,6 +36,14 @@ Global
 		{7B270822-8D15-4B41-909A-E5F2716F713F}.Debug|Any CPU.Build.0 = Debug|x64
 		{7B270822-8D15-4B41-909A-E5F2716F713F}.Release|Any CPU.ActiveCfg = Release|x64
 		{7B270822-8D15-4B41-909A-E5F2716F713F}.Release|Any CPU.Build.0 = Release|x64
+		{8F31F54A-23F2-42A8-A33F-403EDB9D2142}.Debug|Any CPU.ActiveCfg = Debug|AnyCPU
+		{8F31F54A-23F2-42A8-A33F-403EDB9D2142}.Debug|Any CPU.Build.0 = Debug|AnyCPU
+		{8F31F54A-23F2-42A8-A33F-403EDB9D2142}.Release|Any CPU.ActiveCfg = Release|AnyCPU
+		{8F31F54A-23F2-42A8-A33F-403EDB9D2142}.Release|Any CPU.Build.0 = Release|AnyCPU
+		{A3B8B70B-72FC-456F-9B2D-65E3B926D78B}.Debug|Any CPU.ActiveCfg = Debug|AnyCPU
+		{A3B8B70B-72FC-456F-9B2D-65E3B926D78B}.Debug|Any CPU.Build.0 = Debug|AnyCPU
+		{A3B8B70B-72FC-456F-9B2D-65E3B926D78B}.Release|Any CPU.ActiveCfg = Release|AnyCPU
+		{A3B8B70B-72FC-456F-9B2D-65E3B926D78B}.Release|Any CPU.Build.0 = Release|AnyCPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

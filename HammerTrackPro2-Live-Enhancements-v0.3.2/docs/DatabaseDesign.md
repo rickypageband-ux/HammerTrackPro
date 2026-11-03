@@ -103,3 +103,11 @@ Verification covers a new database, a representative version-3 upgrade, retained
 - Administrator/authentication policy for reopening closed auctions.
 - Deletion/renumbering policy once financial history exists.
 - Privacy, retention, restore drills, and multi-workstation concurrency targets.
+
+## HammerTrack Online PostgreSQL database
+
+The web platform uses a separate PostgreSQL database and never opens, copies, or shares the HammerTrack Pro desktop SQLite file. Migration `001_InitialIdentityAndOrganizations` creates ASP.NET Core Identity tables, `Organizations`, `OrganizationMemberships`, indexes, foreign keys, and the organization-role check constraint. It seeds only the durable platform roles `PlatformAdministrator` and `Bidder`; it does not seed a password or user account.
+
+`ApplicationUser` is the global web identity. `OrganizationMembership` assigns an existing user to an auction company as either `Administrator` or `Staff`; its primary key is `(OrganizationId, UserId)`. Organization slugs are unique, and active/name plus organization/role and user membership lookup paths are indexed. All creation timestamps are UTC `DateTimeOffset` values.
+
+Production PostgreSQL 16 listens only on server loopback. The application connection string is stored in `/etc/hammertrackonline/database.env`, readable only by root and loaded by systemd. The migration is deployed as an idempotent SQL script and recorded in `__EFMigrationsHistory`. Rollback is application rollback plus restoration of the pre-migration database backup once the database contains customer data; destructive down-migration is not a production rollback strategy.

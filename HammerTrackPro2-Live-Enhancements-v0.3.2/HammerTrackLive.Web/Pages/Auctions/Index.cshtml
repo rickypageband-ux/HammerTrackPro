@@ -1,0 +1,35 @@
+@page
+@model HammerTrackLive.Web.Pages.Auctions.IndexModel
+@{
+    ViewData["Title"] = "Auctions";
+}
+
+<section class="page-hero compact">
+    <div class="shell">
+        <div class="eyebrow">AUCTION MARKETPLACE</div>
+        <h1>Auctions worth showing up for.</h1>
+        <p>Browse the demonstration catalog for the first HammerTrack Online web-development release.</p>
+    </div>
+</section>
+<section class="section shell">
+    <div class="notice"><strong>Development preview:</strong> These auctions and prices are fictional. Bidding and registration are intentionally disabled.</div>
+    <div class="filter-bar" aria-label="Auction filters coming in the marketplace release">
+        <span>All formats</span><span>All locations</span><span>Shipping available</span><span>Ending soon</span>
+    </div>
+    <div class="auction-grid">
+        @foreach (var auction in Model.Auctions)
+        {
+            <article class="auction-card">
+                <a class="auction-image" asp-page="/Auctions/Details" asp-route-slug="@auction.Slug">
+                    <img src="@auction.ImagePath" alt="" /><span>@auction.Status</span>
+                </a>
+                <div class="auction-card-body">
+                    <div class="auction-format">@auction.Format · @auction.LotCount lots</div>
+                    <h2><a asp-page="/Auctions/Details" asp-route-slug="@auction.Slug">@auction.Title</a></h2>
+                    <p>@auction.Description</p>
+                    <div class="auction-meta"><span>@auction.Location</span><span>Ends @auction.EndsAt.ToString("MMM d · h:mm tt")</span></div>
+                </div>
+            </article>
+        }
+    </div>
+</section>

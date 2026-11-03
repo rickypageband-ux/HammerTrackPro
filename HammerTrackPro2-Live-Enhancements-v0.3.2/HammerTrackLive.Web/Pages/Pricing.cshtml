@@ -1,0 +1,20 @@
+@page
+@model PricingModel
+@{
+    ViewData["Title"] = "Pricing";
+}
+<section class="page-hero"><div class="shell"><div class="eyebrow">PLANNED LAUNCH PRICING</div><h1>Clear costs. No surprise bid fees.</h1><p>Pricing remains subject to final payment-provider and infrastructure agreements before public launch.</p></div></section>
+<section class="section shell narrow">
+    <div class="pricing-grid">
+        @foreach (var plan in Model.Plans)
+        {
+            <article class="price-card @(plan.Featured ? "featured" : string.Empty)">
+                @if (plan.Featured) { <span class="price-label">RECOMMENDED</span> }
+                <h2>@plan.Name</h2><div class="price">@plan.Price</div><p>@plan.Description</p>
+                <ul>@foreach (var feature in plan.Features) { <li>@feature</li> }</ul>
+                <a class="button @(plan.Featured ? "button-red" : "button-dark")" asp-page="/ForAuctioneers">Join the pilot list</a>
+            </article>
+        }
+    </div>
+    <div class="notice"><strong>Payment processing:</strong> HammerTrack Online will use connected merchant accounts so auction proceeds go to the auction company. Processor rates, disputes, refunds, and chargebacks will be disclosed before activation.</div>
+</section>

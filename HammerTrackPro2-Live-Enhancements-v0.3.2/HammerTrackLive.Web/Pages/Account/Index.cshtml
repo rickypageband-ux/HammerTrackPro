@@ -1,0 +1,27 @@
+@page
+@model HammerTrackLive.Web.Pages.Account.IndexModel
+@{
+    ViewData["Title"] = "My account";
+}
+
+<section class="account-section">
+    <div class="account-card account-card-wide">
+        <div class="eyebrow">MY ACCOUNT</div>
+        <h1>@Model.DisplayName</h1>
+        <p>@Model.Email</p>
+        @if (Model.Memberships.Count == 0)
+        {
+            <div class="account-notice">Your account has not been assigned to an auction company yet.</div>
+        }
+        else
+        {
+            <h2>Auction companies</h2>
+            <div class="membership-list">
+                @foreach (var membership in Model.Memberships)
+                {
+                    <div><strong>@membership.OrganizationName</strong><span>@membership.Role</span></div>
+                }
+            </div>
+        }
+    </div>
+</section>

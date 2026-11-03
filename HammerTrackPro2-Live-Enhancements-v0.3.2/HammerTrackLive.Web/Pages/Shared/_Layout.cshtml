@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="HammerTrack Online brings professional timed and camera-enabled live auctions to auction companies and bidders." />
+    <title>@ViewData["Title"] · HammerTrack Online</title>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/account.css" asp-append-version="true" />
+</head>
+<body>
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    <header class="site-header">
+        <div class="shell nav-shell">
+            <a class="brand" asp-page="/Index" aria-label="HammerTrack Online home">
+                <img src="~/images/hammertrack-pro-logo.png" alt="HammerTrack Pro" />
+                <span class="brand-live">ONLINE</span>
+            </a>
+            <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="main-nav">Menu</button>
+            <nav id="main-nav" class="main-nav" aria-label="Primary navigation">
+                <a asp-page="/Auctions/Index">Auctions</a>
+                <a asp-page="/HowItWorks">How it works</a>
+                <a asp-page="/Pricing">Pricing</a>
+                <a asp-page="/ForAuctioneers">For auctioneers</a>
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <a asp-page="/Account/Index">My account</a>
+                    <form method="post" asp-page="/Account/Logout" class="nav-form">
+                        <button type="submit" class="nav-link-button">Sign out</button>
+                    </form>
+                }
+                else
+                {
+                    <a asp-page="/Account/Login">Sign in</a>
+                }
+                <a class="button button-dark" asp-page="/Auctions/Index">Browse auctions</a>
+            </nav>
+        </div>
+    </header>
+    <main id="main-content">
+        @RenderBody()
+    </main>
+    <footer class="site-footer">
+        <div class="shell footer-grid">
+            <div>
+                <div class="footer-brand">HAMMERTRACK <span>ONLINE</span></div>
+                <p>Online bidding built for working auction companies.</p>
+            </div>
+            <div>
+                <strong>Explore</strong>
+                <a asp-page="/Auctions/Index">Auctions</a>
+                <a asp-page="/HowItWorks">How it works</a>
+                <a asp-page="/Pricing">Pricing</a>
+            </div>
+            <div>
+                <strong>Auction companies</strong>
+                <a asp-page="/ForAuctioneers">Sell with HammerTrack</a>
+                <span>Payment providers coming in a later secured release</span>
+            </div>
+        </div>
+        <div class="shell footer-bottom">© @DateTime.UtcNow.Year HammerTrack Online. Demonstration auctions are clearly identified.</div>
+    </footer>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+</body>
+</html>

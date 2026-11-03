@@ -1,5 +1,51 @@
 # Current Sprint
 
+## HammerTrack Online web-platform foundation
+
+- Establish HammerTrackOnline.com as a separate self-hosted .NET 8 web application for Ubuntu/Plesk without changing the existing desktop application's offline behavior or database. HammerTrack Live is the live-event mode within the platform.
+- Publish a responsive branded public foundation with home, catalog, auction detail, auction-format, pricing, and auctioneer pages.
+- Keep all sample auctions visibly fictional and disable accounts, bidding, cards, and payments until their secure persistence and audit features ship.
+- Introduce testable catalog and pricing service boundaries, a health endpoint, deployment architecture, and automated tests.
+- Define HammerTrack Online as timed marketplace bidding with connected checkout and HammerTrack Live as camera-enabled live bidding with seller-arranged payment after the event.
+- Plan Stripe Connect as the first provider behind an internal payment boundary; never commit or store raw card data or provider secrets.
+- Require a separate ordered web-database migration in the feature that introduces durable accounts, auctions, or bidding.
+
+## HammerTrack Online identity and tenancy foundation
+
+- Run PostgreSQL 16 on server loopback only and load its generated connection secret from a root-readable systemd environment file.
+- Introduce global web users, unique organizations, organization-specific Administrator/Staff memberships, and seeded PlatformAdministrator/Bidder roles.
+- Apply ordered idempotent migration `001_InitialIdentityAndOrganizations` without changing or sharing the desktop SQLite database.
+- Provide rate-limited invite-only login, lockout, secure authentication cookies, protected account pages, and sign-out; keep public registration disabled until confirmation email and recovery delivery are configured.
+- Require unique confirmed email accounts and strong 12-character passwords when accounts are provisioned.
+
+## Per-workstation printer setup
+
+- Add Printer Setup to both the host dashboard and Cashier workstation.
+- List installed Windows printers, default to the saved selection or current Windows default, and save the operator's choice locally on that PC.
+- Apply the saved printer to invoices, bidder cards, seller settlements, seller item summaries, and end-of-night reports.
+- Provide a test-page action and actionable errors when a saved printer is no longer installed or usable.
+- Keep the setting out of the shared auction database; no schema migration is required and old workstation configuration files remain compatible.
+- Package this owner-approved operational usability update as version 0.7.55.
+
+## Continuous live-sale history and corrections
+
+- Narrow the Retail and Wholesale entry workspace and reserve the right side for a continuously scrollable current-auction sale history.
+- Show sale time, lot, buyer number and name, quantity, price, and total; preserve quantity-per-deal and deals for Wholesale corrections.
+- Allow the clerk to select or double-click any visible transaction and correct its bidder, quantity/deals, or price with a required reason.
+- Reuse the existing audited correction ledger, retain original rows as voided history, refresh affected invoice totals, and preserve paid-sale refund safeguards.
+- Keep history scoped to the current auction and Retail/Wholesale mode.
+- No schema migration is required because migrations 17 and 20 already provide correction history and Wholesale deal fields.
+- Package this owner-approved live-selling workflow as version 0.7.54.
+
+## Reflective driver's-license scanner behavior
+
+- Keep the proven Scan ID handheld workflow unchanged.
+- In Scan New ID, retain NETUM PDF417 Decode Both guidance for reflective polycarbonate cards.
+- Do not display a scanner error merely because the operator has not scanned within five seconds.
+- Keep the desktop workflow scanner-based because auction workstations may not have cameras.
+- Capture handheld-scanner keystrokes across the entire scanner dialog instead of relying on a hidden field retaining focus.
+- Package the corrected scanner receiver as version 0.7.53.
+
 ## Professional buyer and seller print documents
 
 - Prevent the buyer invoice Quantity header from clipping by widening and separating all numeric columns.
