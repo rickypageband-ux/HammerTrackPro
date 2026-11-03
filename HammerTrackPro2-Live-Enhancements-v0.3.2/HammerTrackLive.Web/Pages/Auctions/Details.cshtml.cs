@@ -7,17 +7,18 @@ namespace HammerTrackLive.Web.Pages.Auctions;
 
 public sealed class DetailsModel(IAuctionCatalogService catalog) : PageModel
 {
-    public AuctionSummary Auction { get; private set; } = null!;
+    public AuctionDetails Details { get; private set; } = null!;
+    public AuctionSummary Auction => Details.Summary;
 
-    public IActionResult OnGet(string slug)
+    public async Task<IActionResult> OnGetAsync(string slug)
     {
-        var auction = catalog.GetBySlug(slug);
+        var auction = await catalog.GetBySlugAsync(slug, HttpContext.RequestAborted);
         if (auction is null)
         {
             return NotFound();
         }
 
-        Auction = auction;
+        Details = auction;
         return Page();
     }
 }

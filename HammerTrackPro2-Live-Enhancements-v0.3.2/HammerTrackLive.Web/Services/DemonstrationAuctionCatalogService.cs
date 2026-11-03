@@ -47,12 +47,12 @@ public sealed class DemonstrationAuctionCatalogService : IAuctionCatalogService
             "A timed online catalog demonstrating maximum bids, watchlists, and shipping filters.")
     ];
 
-    public IReadOnlyList<AuctionSummary> GetFeaturedAuctions() => Auctions;
+    public Task<IReadOnlyList<AuctionSummary>> GetFeaturedAuctionsAsync(CancellationToken cancellationToken = default) => Task.FromResult(Auctions);
 
-    public AuctionSummary? GetBySlug(string slug)
+    public Task<AuctionDetails?> GetBySlugAsync(string slug, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(slug);
-        return Auctions.FirstOrDefault(auction =>
-            string.Equals(auction.Slug, slug, StringComparison.OrdinalIgnoreCase));
+        var summary = Auctions.FirstOrDefault(auction => string.Equals(auction.Slug, slug, StringComparison.OrdinalIgnoreCase));
+        return Task.FromResult(summary is null ? null : new AuctionDetails(summary, 0, 0, "None", "Demonstration only", "Demonstration only", string.Empty, []));
     }
 }

@@ -9,7 +9,10 @@ using Microsoft.EntityFrameworkCore;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddRazorPages();
-builder.Services.AddSingleton<IAuctionCatalogService, DemonstrationAuctionCatalogService>();
+builder.Services.AddScoped<IAuctionCatalogService, DatabaseAuctionCatalogService>();
+builder.Services.AddScoped<IAuctionPublishingService, AuctionPublishingService>();
+builder.Services.Configure<MediaStorageOptions>(builder.Configuration.GetSection(MediaStorageOptions.SectionName));
+builder.Services.AddSingleton<ILotMediaStorage, LocalLotMediaStorage>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.Configure<AccountEmailOptions>(builder.Configuration.GetSection(AccountEmailOptions.SectionName));
 builder.Services.AddScoped<IAccountEmailSender, SmtpAccountEmailSender>();

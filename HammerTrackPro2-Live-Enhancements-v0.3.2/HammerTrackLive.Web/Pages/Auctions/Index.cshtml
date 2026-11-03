@@ -8,15 +8,19 @@
     <div class="shell">
         <div class="eyebrow">AUCTION MARKETPLACE</div>
         <h1>Auctions worth showing up for.</h1>
-        <p>Browse the demonstration catalog for the first HammerTrack Online web-development release.</p>
+        <p>Browse published timed auctions from HammerTrack auction companies.</p>
     </div>
 </section>
 <section class="section shell">
-    <div class="notice"><strong>Development preview:</strong> These auctions and prices are fictional. Bidding and registration are intentionally disabled.</div>
+    <div class="notice"><strong>Controlled marketplace preview:</strong> Published catalogs are real, but bidder registration and bidding remain disabled until the secured bidding release.</div>
     <div class="filter-bar" aria-label="Auction filters coming in the marketplace release">
         <span>All formats</span><span>All locations</span><span>Shipping available</span><span>Ending soon</span>
     </div>
     <div class="auction-grid">
+        @if (Model.Auctions.Count == 0)
+        {
+            <div class="account-notice">No auctions are published yet. Please check back soon.</div>
+        }
         @foreach (var auction in Model.Auctions)
         {
             <article class="auction-card">

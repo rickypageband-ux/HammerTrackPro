@@ -1,6 +1,6 @@
 # HammerTrackOnline.com web application
 
-This is the owner-approved HammerTrack Online web platform for an Ubuntu/Plesk server. HammerTrack Live is the live-event mode within this platform. The controlled release uses PostgreSQL-backed invite-only accounts and organization administration. It does not yet accept auction registrations, bids, cards, or payments.
+This is the owner-approved HammerTrack Online web platform for an Ubuntu/Plesk server. HammerTrack Live is the live-event mode within this platform. The controlled release uses PostgreSQL-backed invite-only accounts, organization administration, auction/lot catalog management, controlled media, and publishing. It does not yet accept auction registrations, bids, cards, or payments.
 
 ## Local verification
 
@@ -25,6 +25,7 @@ Before installation, confirm the HammerTrackOnline.com subscription has:
 - PostgreSQL 16 bound only to loopback, with the application connection string supplied as `HAMMERTRACKONLINE_DB` from a root-readable systemd environment file.
 - Authenticated SMTP, with account-delivery settings supplied from `/etc/hammertrackonline/account-email.env` and never committed or placed in the web root.
 - External monitoring of `/health`.
+- A service-account-writable `/var/lib/hammertrackonline/media` directory. This controlled-development store must be included in backups and replaced by external object storage before production approval.
 
 Do not place future Stripe secrets, database passwords, SMTP passwords, private license-signing keys, uploaded images, or backups in the deployment archive or public web root.
 

@@ -8,5 +8,5 @@ public sealed class IndexModel(IAuctionCatalogService catalog) : PageModel
 {
     public IReadOnlyList<AuctionSummary> Auctions { get; private set; } = [];
 
-    public void OnGet() => Auctions = catalog.GetFeaturedAuctions();
+    public async Task OnGetAsync() => Auctions = await catalog.GetFeaturedAuctionsAsync(HttpContext.RequestAborted);
 }

@@ -1,0 +1,54 @@
+@page "/Auctioneer/Organizations/{organizationId:guid}/Auctions/Edit/{auctionId:guid?}"
+@model HammerTrackLive.Web.Pages.Auctioneer.AuctionEditModel
+@{
+    ViewData["Title"] = Model.AuctionId == Guid.Empty ? "New auction" : "Edit auction";
+}
+<section class="account-section">
+    <div class="account-card account-card-wide auctioneer-workspace">
+        <div class="eyebrow">AUCTION CATALOG</div>
+        <h1>@ViewData["Title"]</h1>
+        @if (!string.IsNullOrWhiteSpace(Model.StatusMessage)) { <div class="account-notice">@Model.StatusMessage</div> }
+        @if (Model.PublicationErrors.Count > 0) { <div class="validation-summary"><strong>Not ready to publish:</strong><ul>@foreach (var error in Model.PublicationErrors) { <li>@error</li> }</ul></div> }
+        <form method="post" asp-page-handler="Save">
+            <div asp-validation-summary="ModelOnly" class="validation-summary"></div>
+            <input asp-for="OrganizationId" type="hidden" /><input asp-for="AuctionId" type="hidden" />
+            <label asp-for="Input.Title"></label><input asp-for="Input.Title" /><span asp-validation-for="Input.Title"></span>
+            <label asp-for="Input.Slug"></label><input asp-for="Input.Slug" placeholder="spring-equipment-auction" /><span asp-validation-for="Input.Slug"></span>
+            <label asp-for="Input.Description"></label><textarea asp-for="Input.Description" rows="5"></textarea>
+            <label asp-for="Input.Location"></label><input asp-for="Input.Location" />
+            <div class="form-grid-3">
+                <div><label asp-for="Input.StartsLocal"></label><input asp-for="Input.StartsLocal" type="datetime-local" /></div>
+                <div><label asp-for="Input.EndsLocal"></label><input asp-for="Input.EndsLocal" type="datetime-local" /></div>
+                <div><label asp-for="Input.TimeZoneId"></label><select asp-for="Input.TimeZoneId">@foreach (var zone in Model.TimeZones) { <option value="@zone.Id">@zone.Name</option> }</select></div>
+            </div>
+            <h2>Commercial terms</h2>
+            <div class="form-grid-3">
+                <div><label asp-for="Input.BuyerPremiumPercent"></label><input asp-for="Input.BuyerPremiumPercent" /></div>
+                <div><label asp-for="Input.SalesTaxPercent"></label><input asp-for="Input.SalesTaxPercent" /></div>
+                <div><label asp-for="Input.TaxBasis"></label><select asp-for="Input.TaxBasis"><option>None</option><option>HammerOnly</option><option>HammerPlusBuyerPremium</option></select></div>
+            </div>
+            <label asp-for="Input.PaymentInstructions"></label><textarea asp-for="Input.PaymentInstructions" rows="3"></textarea>
+            <label asp-for="Input.PickupInstructions"></label><textarea asp-for="Input.PickupInstructions" rows="3"></textarea>
+            <label class="checkbox-row"><input asp-for="Input.ShippingAvailable" /> Shipping is available</label>
+            <label asp-for="Input.ShippingInstructions"></label><textarea asp-for="Input.ShippingInstructions" rows="3"></textarea>
+            @if (Model.IsDraft) { <button class="button button-red" type="submit">Save draft</button> }
+        </form>
+
+        @if (Model.AuctionId != Guid.Empty)
+        {
+            <div class="workspace-heading"><h2>Lots (@Model.Lots.Count)</h2>@if (Model.IsDraft) { <a class="button button-dark" asp-page="/Auctioneer/LotEdit" asp-route-organizationId="@Model.OrganizationId" asp-route-auctionId="@Model.AuctionId">Add lot</a> }</div>
+            <div class="membership-list">
+                @foreach (var lot in Model.Lots) { <div><strong>Lot @lot.LotNumber · @lot.Title</strong><span>@lot.MediaCount files · <a asp-page="/Auctioneer/LotEdit" asp-route-organizationId="@Model.OrganizationId" asp-route-auctionId="@Model.AuctionId" asp-route-lotId="@lot.Id">Open</a></span></div> }
+            </div>
+            @if (Model.IsDraft)
+            {
+                <form method="post" asp-page-handler="Publish" class="publish-form">
+                    <input asp-for="OrganizationId" type="hidden" /><input asp-for="AuctionId" type="hidden" />
+                    <button class="button button-red" type="submit">Validate and publish auction</button>
+                </form>
+            }
+            else { <div class="account-notice">This auction is published. Its commercial terms snapshot is locked for auditability. <a asp-page="/Auctions/Details" asp-route-slug="@Model.Input.Slug">View public page</a></div> }
+        }
+        <p><a asp-page="/Auctioneer/Index">← Back to auctioneer workspace</a></p>
+    </div>
+</section>

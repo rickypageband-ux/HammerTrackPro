@@ -8,7 +8,7 @@
     <div class="shell detail-grid">
         <div class="detail-image"><img src="@Model.Auction.ImagePath" alt="" /></div>
         <div>
-            <div class="eyebrow">@Model.Auction.Format.ToUpperInvariant() · DEVELOPMENT PREVIEW</div>
+            <div class="eyebrow">@Model.Auction.Format.ToUpperInvariant() · PUBLISHED CATALOG</div>
             <h1>@Model.Auction.Title</h1>
             <p>@Model.Auction.Description</p>
             <dl class="detail-facts">
@@ -22,12 +22,24 @@
     </div>
 </section>
 <section class="section shell narrow">
-    <div class="notice"><strong>No real auction is being conducted.</strong> This page proves the catalog and routing foundation only. It does not accept registrations, bids, cards, or payments.</div>
-    <h2>Planned auction capabilities</h2>
+    <div class="notice"><strong>Catalog preview only:</strong> Bidder registration, bids, cards, and payments are not accepted in this controlled release.</div>
+    <h2>Auction information</h2>
     <div class="capability-grid">
-        <div><b>Maximum bidding</b><span>Set the most you are willing to pay while the platform bids by the configured increment.</span></div>
-        <div><b>Soft closing</b><span>Late bids extend the lot according to the auction company's published rules.</span></div>
-        <div><b>Clear terms</b><span>Buyer premium, taxes, pickup, shipping, and payment terms appear before registration.</span></div>
-        <div><b>Auditable results</b><span>Accepted bids, close events, invoices, and payment records remain traceable.</span></div>
+        <div><b>Buyer premium</b><span>@Model.Details.BuyerPremiumPercent.ToString("0.##")%</span></div>
+        <div><b>Sales tax</b><span>@Model.Details.SalesTaxPercent.ToString("0.##")% · @Model.Details.TaxBasis</span></div>
+        <div><b>Payment</b><span>@Model.Details.PaymentInstructions</span></div>
+        <div><b>Pickup</b><span>@Model.Details.PickupInstructions</span></div>
+    </div>
+    <h2>Catalog</h2>
+    <div class="public-lot-grid">
+        @foreach (var lot in Model.Details.Lots)
+        {
+            <article class="public-lot-card">
+                @{ var image = lot.Media.FirstOrDefault(media => media.Kind == "Image"); }
+                @if (image is not null) { <img src="/Media/Download?id=@image.Id" alt="@lot.Title" /> }
+                <div><span>LOT @lot.LotNumber</span><h3>@lot.Title</h3><p>@lot.Description</p><strong>Starts at @lot.StartingBid.ToString("C") · @lot.Quantity item(s)</strong>
+                @foreach (var document in lot.Media.Where(media => media.Kind == "Document")) { <a href="/Media/Download?id=@document.Id">PDF · @document.OriginalFileName</a> }</div>
+            </article>
+        }
     </div>
 </section>

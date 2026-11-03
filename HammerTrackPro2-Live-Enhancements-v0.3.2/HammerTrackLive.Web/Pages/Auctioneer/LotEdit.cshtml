@@ -1,0 +1,40 @@
+@page "/Auctioneer/Organizations/{organizationId:guid}/Auctions/{auctionId:guid}/Lots/Edit/{lotId:guid?}"
+@model HammerTrackLive.Web.Pages.Auctioneer.LotEditModel
+@{
+    ViewData["Title"] = Model.LotId == Guid.Empty ? "Add lot" : "Edit lot";
+}
+<section class="account-section">
+    <div class="account-card account-card-wide">
+        <div class="eyebrow">AUCTION CATALOG</div><h1>@ViewData["Title"]</h1>
+        @if (!string.IsNullOrWhiteSpace(Model.StatusMessage)) { <div class="account-notice">@Model.StatusMessage</div> }
+        <form method="post" asp-page-handler="Save">
+            <div asp-validation-summary="ModelOnly" class="validation-summary"></div>
+            <input asp-for="OrganizationId" type="hidden" /><input asp-for="AuctionId" type="hidden" /><input asp-for="LotId" type="hidden" />
+            <div class="form-grid-3"><div><label asp-for="Input.LotNumber"></label><input asp-for="Input.LotNumber" /></div><div><label asp-for="Input.Quantity"></label><input asp-for="Input.Quantity" /></div><div><label asp-for="Input.Condition"></label><input asp-for="Input.Condition" /></div></div>
+            <label asp-for="Input.Title"></label><input asp-for="Input.Title" /><span asp-validation-for="Input.Title"></span>
+            <label asp-for="Input.Description"></label><textarea asp-for="Input.Description" rows="5"></textarea>
+            <label asp-for="Input.Category"></label><input asp-for="Input.Category" />
+            <div class="form-grid-3"><div><label asp-for="Input.StartingBid"></label><input asp-for="Input.StartingBid" /></div><div><label asp-for="Input.BidIncrement"></label><input asp-for="Input.BidIncrement" /></div><div><label asp-for="Input.ReservePrice"></label><input asp-for="Input.ReservePrice" /></div></div>
+            <button class="button button-red" type="submit">Save lot</button>
+        </form>
+        @if (Model.LotId != Guid.Empty)
+        {
+            <h2>Photos and PDF documents</h2>
+            <form method="post" asp-page-handler="Upload" enctype="multipart/form-data">
+                <input asp-for="OrganizationId" type="hidden" /><input asp-for="AuctionId" type="hidden" /><input asp-for="LotId" type="hidden" />
+                <label asp-for="Upload"></label><input asp-for="Upload" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" />
+                <button class="button button-dark" type="submit">Upload file</button>
+            </form>
+            <div class="media-grid">
+                @foreach (var media in Model.Media)
+                {
+                    <article>
+                        @if (media.Kind == "Image") { <img src="/Media/Download?id=@media.Id" alt="@media.OriginalFileName" /> } else { <a href="/Media/Download?id=@media.Id">PDF · @media.OriginalFileName</a> }
+                        <form method="post" asp-page-handler="RemoveMedia"><input asp-for="OrganizationId" type="hidden" /><input asp-for="AuctionId" type="hidden" /><input asp-for="LotId" type="hidden" /><input name="mediaId" value="@media.Id" type="hidden" /><button type="submit">Remove</button></form>
+                    </article>
+                }
+            </div>
+        }
+        <p><a asp-page="/Auctioneer/AuctionEdit" asp-route-organizationId="@Model.OrganizationId" asp-route-auctionId="@Model.AuctionId">← Back to auction</a></p>
+    </div>
+</section>

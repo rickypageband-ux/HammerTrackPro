@@ -4,7 +4,7 @@ namespace HammerTrackLive.Web.Services;
 
 public interface IAuctionCatalogService
 {
-    IReadOnlyList<AuctionSummary> GetFeaturedAuctions();
+    Task<IReadOnlyList<AuctionSummary>> GetFeaturedAuctionsAsync(CancellationToken cancellationToken = default);
 
-    AuctionSummary? GetBySlug(string slug);
+    Task<AuctionDetails?> GetBySlugAsync(string slug, CancellationToken cancellationToken = default);
 }

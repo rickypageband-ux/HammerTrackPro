@@ -24,6 +24,7 @@
                 <a asp-page="/ForAuctioneers">For auctioneers</a>
                 @if (User.Identity?.IsAuthenticated == true)
                 {
+                    <a asp-page="/Auctioneer/Index">Auctioneer workspace</a>
                     <a asp-page="/Account/Index">My account</a>
                     <form method="post" asp-page="/Account/Logout" class="nav-form">
                         <button type="submit" class="nav-link-button">Sign out</button>

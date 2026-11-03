@@ -1,0 +1,39 @@
+@page "/Auctioneer"
+@model HammerTrackLive.Web.Pages.Auctioneer.IndexModel
+@{
+    ViewData["Title"] = "Auctioneer workspace";
+}
+<section class="account-section">
+    <div class="account-card account-card-wide auctioneer-workspace">
+        <div class="eyebrow">AUCTIONEER WORKSPACE</div>
+        <h1>Manage auctions</h1>
+        @foreach (var organization in Model.Organizations)
+        {
+            <section class="organization-panel">
+                <div class="workspace-heading">
+                    <div><h2>@organization.Name</h2><span>@organization.Auctions.Count auction(s)</span></div>
+                    <div>
+                        <a class="button button-dark" asp-page="/Auctioneer/Profile" asp-route-organizationId="@organization.Id">Company profile</a>
+                        <a class="button button-red" asp-page="/Auctioneer/AuctionEdit" asp-route-organizationId="@organization.Id">New auction</a>
+                    </div>
+                </div>
+                @if (organization.Auctions.Count == 0)
+                {
+                    <div class="account-notice">No auctions yet. Create a draft to begin building the catalog.</div>
+                }
+                else
+                {
+                    <div class="membership-list">
+                        @foreach (var auction in organization.Auctions)
+                        {
+                            <div>
+                                <strong>@auction.Title</strong>
+                                <span>@auction.Status · @auction.LotCount lots · <a asp-page="/Auctioneer/AuctionEdit" asp-route-organizationId="@organization.Id" asp-route-auctionId="@auction.Id">Open</a></span>
+                            </div>
+                        }
+                    </div>
+                }
+            </section>
+        }
+    </div>
+</section>

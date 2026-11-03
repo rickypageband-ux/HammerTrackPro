@@ -9,6 +9,10 @@
         <div class="eyebrow">MY ACCOUNT</div>
         <h1>@Model.DisplayName</h1>
         <p>@Model.Email</p>
+        @if (Model.Memberships.Count > 0 || Model.IsPlatformAdministrator)
+        {
+            <p><a class="button button-dark" asp-page="/Auctioneer/Index">Open auctioneer workspace</a></p>
+        }
         @if (Model.IsPlatformAdministrator)
         {
             <p><a class="button button-red" asp-page="/Platform/Organizations">Manage auction companies</a></p>

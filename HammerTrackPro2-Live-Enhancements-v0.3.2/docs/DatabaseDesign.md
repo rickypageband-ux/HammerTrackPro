@@ -114,4 +114,12 @@ Migration `002_AccountInvitations` additively creates `AccountInvitations`. Each
 
 Invitation acceptance creates the confirmed user and organization membership in one database transaction and marks the invitation accepted. A seven-day application expiry is enforced in addition to single-use acceptance. Production migration uses the checked-in idempotent SQL script after a PostgreSQL custom-format backup; rollback is application rollback plus database restore if the additive table must be removed.
 
+Migration `003_AuctionCatalogAndPublishing` additively extends `Organizations` with public profile fields and creates `OnlineAuctions`, `OnlineAuctionTermsSnapshots`, `OnlineLots`, and `OnlineLotMedia`. Existing organizations receive blank profile defaults and retain every identity/membership value.
+
+`OnlineAuctions` belongs to one Organization, has a globally unique public slug, UTC dates plus the originating IANA time-zone identifier, lifecycle status, and auction-specific commercial terms. Organization/status/date and public status/end-date indexes support administrative and marketplace views. Date, percentage, and lifecycle check constraints protect invalid state.
+
+`OnlineLots` belongs to one OnlineAuction. `(AuctionId, LotNumber)` is unique, with positive lot/quantity and nonnegative monetary constraints. Auction/active and category indexes support catalog paths. `OnlineLotMedia` belongs to one lot, stores only random storage key and file metadata, and has unique key plus lot/sort indexes; bytes live outside PostgreSQL and the deployment tree.
+
+Publishing validates the complete draft and transactionally creates exactly one `OnlineAuctionTermsSnapshot`, copying the auction's persisted premium, tax, tax basis, payment, pickup, and shipping terms before changing status to Published. Public catalog reads the immutable snapshot. Rollback is application rollback plus restoration of the pre-migration database backup; destructive down-migration is not the production rollback strategy.
+
 Production PostgreSQL 16 listens only on server loopback. The application connection string is stored in `/etc/hammertrackonline/database.env`, readable only by root and loaded by systemd. The migration is deployed as an idempotent SQL script and recorded in `__EFMigrationsHistory`. Rollback is application rollback plus restoration of the pre-migration database backup once the database contains customer data; destructive down-migration is not a production rollback strategy.

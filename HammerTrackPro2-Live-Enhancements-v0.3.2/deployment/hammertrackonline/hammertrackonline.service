@@ -16,6 +16,8 @@ Environment=ASPNETCORE_ENVIRONMENT=Production
 Environment=ASPNETCORE_URLS=http://127.0.0.1:5080
 EnvironmentFile=/etc/hammertrackonline/database.env
 EnvironmentFile=-/etc/hammertrackonline/account-email.env
+Environment=MediaStorage__RootPath=/var/lib/hammertrackonline/media
+Environment=MediaStorage__MaximumFileBytes=15728640
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=full

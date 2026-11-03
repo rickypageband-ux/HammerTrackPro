@@ -29,6 +29,18 @@
 - Deliver account email through authenticated SMTP configured only in a root-readable systemd environment file.
 - Apply ordered idempotent migration `002_AccountInvitations`; back up PostgreSQL before applying it.
 
+## HammerTrack Online auctioneer onboarding and publishing
+
+- Let organization administrators maintain the public company profile and manage only auctions owned by their organization.
+- Create timed-auction drafts with UTC opening/closing instants derived from an explicitly selected US time zone.
+- Persist buyer premium, sales tax, tax basis, payment, pickup, and shipping terms from each auction; never use hard-coded runtime commercial terms.
+- Create auction-scoped lots with unique positive lot numbers, descriptions, category, condition, quantity, starting bid, increment, and optional reserve.
+- Accept JPG, PNG, WebP, and PDF uploads up to 15 MB after file-signature validation; use random storage keys outside the deployment tree and authorization-aware delivery.
+- Validate required auction, terms, date, and lot data before publishing. Publishing creates an immutable one-to-one terms snapshot and exposes the catalog publicly.
+- Keep bidder registration, bidding, cards, and payments disabled.
+- Apply ordered idempotent migration `003_AuctionCatalogAndPublishing` after a PostgreSQL backup. Existing organizations receive safe blank profile defaults.
+- Use protected server-local media storage only for controlled development; external object storage and independent media backup remain production requirements.
+
 ## Per-workstation printer setup
 
 - Add Printer Setup to both the host dashboard and Cashier workstation.

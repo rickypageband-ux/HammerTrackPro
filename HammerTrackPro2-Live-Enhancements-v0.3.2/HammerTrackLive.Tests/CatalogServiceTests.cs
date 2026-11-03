@@ -5,11 +5,11 @@ namespace HammerTrackLive.Tests;
 public sealed class CatalogServiceTests
 {
     [Fact]
-    public void FeaturedAuctions_AreClearlyDemonstrationContent()
+    public async Task FeaturedAuctions_AreClearlyDemonstrationContent()
     {
         var service = new DemonstrationAuctionCatalogService();
 
-        var auctions = service.GetFeaturedAuctions();
+        var auctions = await service.GetFeaturedAuctionsAsync();
 
         Assert.NotEmpty(auctions);
         Assert.All(auctions, auction =>
@@ -20,11 +20,11 @@ public sealed class CatalogServiceTests
     }
 
     [Fact]
-    public void GetBySlug_IsCaseInsensitiveAndRejectsUnknownAuction()
+    public async Task GetBySlug_IsCaseInsensitiveAndRejectsUnknownAuction()
     {
         var service = new DemonstrationAuctionCatalogService();
 
-        Assert.NotNull(service.GetBySlug("CAROLINA-ESTATE-AND-TOOLS"));
-        Assert.Null(service.GetBySlug("not-a-real-auction"));
+        Assert.NotNull(await service.GetBySlugAsync("CAROLINA-ESTATE-AND-TOOLS"));
+        Assert.Null(await service.GetBySlugAsync("not-a-real-auction"));
     }
 }

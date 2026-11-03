@@ -22,6 +22,8 @@ The existing HammerTrack Pro desktop application remains capable of operating a 
 
 The deployed controlled-development release now has PostgreSQL-backed invite-only identity, organization membership, durable roles, rate-limited login, lockout, protected account pages, private email-confirming invitations, password recovery, platform provisioning, and organization-scoped team administration. Public registration remains disabled. It does **not** accept auction registrations, bids, cards, or payments; those actions remain disabled until their authorization, auditing, payment onboarding, webhook validation, and production terms are implemented and tested.
 
+Organization administrators can now maintain their company profile, create timed-auction drafts and lots, upload signature-validated images/PDFs, preview readiness, and publish after validation. Publishing snapshots auction-specific commercial terms and moves the auction into the PostgreSQL-backed public catalog. Controlled-development media is stored under `/var/lib/hammertrackonline/media`; production still requires S3-compatible object storage and independent backup.
+
 ## Target production topology
 
 ```text

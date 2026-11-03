@@ -6,7 +6,7 @@
 - [ ] PostgreSQL tenancy, organizations, roles, authentication, and ordered initial migration.
   - [x] PostgreSQL 16 loopback deployment, initial identity/organization migration, durable roles, invite-only login, lockout, protected account page, and secure cookie foundation.
   - [x] Invite-confirmed email, password recovery, administrator invitation/provisioning, and organization-management workflow.
-- [ ] Auctioneer onboarding, catalog creation, image/document storage, auction terms, and publishing workflow.
+- [x] Auctioneer onboarding, catalog creation, controlled-development image/document storage, auction terms snapshots, and publishing workflow. External production object storage remains part of production hardening.
 - [ ] Bidder identity, auction registration, approval, watchlist, and notification workflow.
 - [ ] Timed online bidding with append-only bid events, maximum/proxy bidding, increments, reserves, soft closing, and audited closeout.
 - [ ] Stripe Connect onboarding, checkout, signed/idempotent webhooks, refunds, disputes, invoices, and fee ledger.

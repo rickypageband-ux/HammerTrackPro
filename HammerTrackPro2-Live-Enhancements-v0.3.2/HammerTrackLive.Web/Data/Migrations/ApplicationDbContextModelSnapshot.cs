@@ -161,14 +161,300 @@ namespace HammerTrackLive.Web.Data.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
+            modelBuilder.Entity("HammerTrackLive.Web.Data.OnlineAuction", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("BuyerPremiumPercent")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)");
+
+                    b.Property<DateTimeOffset>("CreatedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(5000)
+                        .HasColumnType("character varying(5000)");
+
+                    b.Property<DateTimeOffset>("EndsUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Location")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PaymentInstructions")
+                        .IsRequired()
+                        .HasMaxLength(3000)
+                        .HasColumnType("character varying(3000)");
+
+                    b.Property<string>("PickupInstructions")
+                        .IsRequired()
+                        .HasMaxLength(3000)
+                        .HasColumnType("character varying(3000)");
+
+                    b.Property<DateTimeOffset?>("PublishedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("SalesTaxPercent")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)");
+
+                    b.Property<bool>("ShippingAvailable")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ShippingInstructions")
+                        .IsRequired()
+                        .HasMaxLength(3000)
+                        .HasColumnType("character varying(3000)");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<DateTimeOffset>("StartsUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("TaxBasis")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("TimeZoneId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTimeOffset>("UpdatedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Slug")
+                        .IsUnique();
+
+                    b.HasIndex("Status", "EndsUtc");
+
+                    b.HasIndex("OrganizationId", "Status", "StartsUtc");
+
+                    b.ToTable("OnlineAuctions", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_OnlineAuctions_Dates", "\"EndsUtc\" > \"StartsUtc\"");
+
+                            t.HasCheckConstraint("CK_OnlineAuctions_Percentages", "\"BuyerPremiumPercent\" >= 0 AND \"BuyerPremiumPercent\" <= 100 AND \"SalesTaxPercent\" >= 0 AND \"SalesTaxPercent\" <= 100");
+
+                            t.HasCheckConstraint("CK_OnlineAuctions_Status", "\"Status\" IN ('Draft', 'Published', 'Closed')");
+                        });
+                });
+
+            modelBuilder.Entity("HammerTrackLive.Web.Data.OnlineAuctionTermsSnapshot", b =>
+                {
+                    b.Property<Guid>("AuctionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("BuyerPremiumPercent")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)");
+
+                    b.Property<DateTimeOffset>("CapturedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PaymentInstructions")
+                        .IsRequired()
+                        .HasMaxLength(3000)
+                        .HasColumnType("character varying(3000)");
+
+                    b.Property<string>("PickupInstructions")
+                        .IsRequired()
+                        .HasMaxLength(3000)
+                        .HasColumnType("character varying(3000)");
+
+                    b.Property<decimal>("SalesTaxPercent")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)");
+
+                    b.Property<string>("ShippingInstructions")
+                        .IsRequired()
+                        .HasMaxLength(3000)
+                        .HasColumnType("character varying(3000)");
+
+                    b.Property<string>("TaxBasis")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.HasKey("AuctionId");
+
+                    b.ToTable("OnlineAuctionTermsSnapshots", (string)null);
+                });
+
+            modelBuilder.Entity("HammerTrackLive.Web.Data.OnlineLot", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AuctionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("BidIncrement")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Condition")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTimeOffset>("CreatedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(5000)
+                        .HasColumnType("character varying(5000)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("LotNumber")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal?>("ReservePrice")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)");
+
+                    b.Property<decimal>("StartingBid")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTimeOffset>("UpdatedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Category");
+
+                    b.HasIndex("AuctionId", "IsActive");
+
+                    b.HasIndex("AuctionId", "LotNumber")
+                        .IsUnique();
+
+                    b.ToTable("OnlineLots", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_OnlineLots_LotNumber", "\"LotNumber\" > 0");
+
+                            t.HasCheckConstraint("CK_OnlineLots_Money", "\"StartingBid\" >= 0 AND \"BidIncrement\" > 0 AND (\"ReservePrice\" IS NULL OR \"ReservePrice\" >= 0)");
+
+                            t.HasCheckConstraint("CK_OnlineLots_Quantity", "\"Quantity\" > 0");
+                        });
+                });
+
+            modelBuilder.Entity("HammerTrackLive.Web.Data.OnlineLotMedia", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTimeOffset>("CreatedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid>("LotId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("OriginalFileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("StorageKey")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StorageKey")
+                        .IsUnique();
+
+                    b.HasIndex("LotId", "SortOrder");
+
+                    b.ToTable("OnlineLotMedia", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_OnlineLotMedia_Kind", "\"Kind\" IN ('Image', 'Document')");
+                        });
+                });
+
             modelBuilder.Entity("HammerTrackLive.Web.Data.Organization", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("City")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<DateTimeOffset>("CreatedUtc")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
@@ -180,10 +466,35 @@ namespace HammerTrackLive.Web.Data.Migrations
                         .HasMaxLength(160)
                         .HasColumnType("character varying(160)");
 
+                    b.Property<string>("Phone")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("PostalCode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("PublicEmail")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Website")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
 
                     b.HasKey("Id");
 
@@ -388,6 +699,50 @@ namespace HammerTrackLive.Web.Data.Migrations
                     b.Navigation("Organization");
                 });
 
+            modelBuilder.Entity("HammerTrackLive.Web.Data.OnlineAuction", b =>
+                {
+                    b.HasOne("HammerTrackLive.Web.Data.Organization", "Organization")
+                        .WithMany("Auctions")
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Organization");
+                });
+
+            modelBuilder.Entity("HammerTrackLive.Web.Data.OnlineAuctionTermsSnapshot", b =>
+                {
+                    b.HasOne("HammerTrackLive.Web.Data.OnlineAuction", "Auction")
+                        .WithOne("TermsSnapshot")
+                        .HasForeignKey("HammerTrackLive.Web.Data.OnlineAuctionTermsSnapshot", "AuctionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Auction");
+                });
+
+            modelBuilder.Entity("HammerTrackLive.Web.Data.OnlineLot", b =>
+                {
+                    b.HasOne("HammerTrackLive.Web.Data.OnlineAuction", "Auction")
+                        .WithMany("Lots")
+                        .HasForeignKey("AuctionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Auction");
+                });
+
+            modelBuilder.Entity("HammerTrackLive.Web.Data.OnlineLotMedia", b =>
+                {
+                    b.HasOne("HammerTrackLive.Web.Data.OnlineLot", "Lot")
+                        .WithMany("Media")
+                        .HasForeignKey("LotId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Lot");
+                });
+
             modelBuilder.Entity("HammerTrackLive.Web.Data.OrganizationMembership", b =>
                 {
                     b.HasOne("HammerTrackLive.Web.Data.Organization", "Organization")
@@ -463,8 +818,22 @@ namespace HammerTrackLive.Web.Data.Migrations
                     b.Navigation("OrganizationMemberships");
                 });
 
+            modelBuilder.Entity("HammerTrackLive.Web.Data.OnlineAuction", b =>
+                {
+                    b.Navigation("Lots");
+
+                    b.Navigation("TermsSnapshot");
+                });
+
+            modelBuilder.Entity("HammerTrackLive.Web.Data.OnlineLot", b =>
+                {
+                    b.Navigation("Media");
+                });
+
             modelBuilder.Entity("HammerTrackLive.Web.Data.Organization", b =>
                 {
+                    b.Navigation("Auctions");
+
                     b.Navigation("Invitations");
 
                     b.Navigation("Memberships");
