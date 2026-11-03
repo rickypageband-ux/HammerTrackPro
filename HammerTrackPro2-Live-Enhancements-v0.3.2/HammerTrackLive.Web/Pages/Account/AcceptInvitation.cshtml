@@ -1,0 +1,32 @@
+@page
+@model HammerTrackLive.Web.Pages.Account.AcceptInvitationModel
+@{
+    ViewData["Title"] = "Accept invitation";
+}
+
+<section class="account-section">
+    <div class="account-card">
+        <div class="eyebrow">PRIVATE INVITATION</div>
+        @if (Model.Invitation is null)
+        {
+            <h1>Invitation unavailable</h1>
+            <div class="account-notice">This invitation is invalid, expired, or already used. Ask your auction-company administrator for a new invitation.</div>
+        }
+        else
+        {
+            <h1>Join @Model.Invitation.OrganizationName</h1>
+            <p>Create the HammerTrack Online account for <strong>@Model.Invitation.Email</strong>.</p>
+            <form method="post">
+                <div asp-validation-summary="ModelOnly"></div>
+                <input asp-for="Input.Token" type="hidden" />
+                <label asp-for="Input.Password"></label>
+                <input asp-for="Input.Password" autocomplete="new-password" />
+                <span asp-validation-for="Input.Password"></span>
+                <label asp-for="Input.ConfirmPassword"></label>
+                <input asp-for="Input.ConfirmPassword" autocomplete="new-password" />
+                <span asp-validation-for="Input.ConfirmPassword"></span>
+                <button class="button button-red" type="submit">Accept invitation</button>
+            </form>
+        }
+    </div>
+</section>

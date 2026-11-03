@@ -18,6 +18,17 @@
 - Provide rate-limited invite-only login, lockout, secure authentication cookies, protected account pages, and sign-out; keep public registration disabled until confirmation email and recovery delivery are configured.
 - Require unique confirmed email accounts and strong 12-character passwords when accounts are provisioned.
 
+## HammerTrack Online account and organization management
+
+- Keep public registration disabled. Platform administrators create auction companies and issue the first organization-administrator invitation.
+- Store only a SHA-256 hash of each random 256-bit invitation token; invitations expire after seven days and become unusable after acceptance.
+- Treat acceptance of a private invitation as confirmation that the recipient controls the invited email address, then create the user and organization membership transactionally.
+- Let organization administrators invite Administrator or Staff users, view active members and pending invitations, change roles, and remove memberships only within their organization.
+- Prevent demotion or removal of an organization's final administrator.
+- Provide rate-limited password recovery using two-hour ASP.NET Core Identity tokens and an account-enumeration-resistant response.
+- Deliver account email through authenticated SMTP configured only in a root-readable systemd environment file.
+- Apply ordered idempotent migration `002_AccountInvitations`; back up PostgreSQL before applying it.
+
 ## Per-workstation printer setup
 
 - Add Printer Setup to both the host dashboard and Cashier workstation.

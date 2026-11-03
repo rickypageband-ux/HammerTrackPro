@@ -8,7 +8,9 @@ using Microsoft.AspNetCore.RateLimiting;
 namespace HammerTrackLive.Web.Pages.Account;
 
 [EnableRateLimiting("authentication")]
-public sealed class LoginModel(SignInManager<ApplicationUser> signInManager) : PageModel
+public sealed class LoginModel(
+    SignInManager<ApplicationUser> signInManager,
+    UserManager<ApplicationUser> userManager) : PageModel
 {
     [BindProperty]
     public InputModel Input { get; set; } = new();
@@ -33,8 +35,15 @@ public sealed class LoginModel(SignInManager<ApplicationUser> signInManager) : P
             return Page();
         }
 
+        var user = await userManager.FindByEmailAsync(Input.Email.Trim());
+        if (user is null || !user.IsActive)
+        {
+            ModelState.AddModelError(string.Empty, "The email address or password was not accepted.");
+            return Page();
+        }
+
         var result = await signInManager.PasswordSignInAsync(
-            Input.Email.Trim(),
+            user,
             Input.Password,
             Input.RememberMe,
             lockoutOnFailure: true);

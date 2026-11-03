@@ -1,0 +1,45 @@
+@page "/Platform/Organizations"
+@model HammerTrackLive.Web.Pages.Platform.OrganizationsModel
+@{
+    ViewData["Title"] = "Auction companies";
+}
+
+<section class="account-section">
+    <div class="account-card account-card-wide">
+        <div class="eyebrow">PLATFORM ADMINISTRATION</div>
+        <h1>Auction companies</h1>
+        @if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
+        {
+            <div class="account-notice">@Model.StatusMessage</div>
+        }
+        <h2>Create an auction company</h2>
+        <p>Use an existing confirmed account to assign it immediately, or enter a new email address to send a private invitation.</p>
+        <form method="post">
+            <div asp-validation-summary="ModelOnly" class="validation-summary"></div>
+            <label asp-for="Input.Name"></label>
+            <input asp-for="Input.Name" />
+            <span asp-validation-for="Input.Name"></span>
+            <label asp-for="Input.Slug"></label>
+            <input asp-for="Input.Slug" placeholder="company-name" />
+            <span asp-validation-for="Input.Slug"></span>
+            <label asp-for="Input.AdministratorName"></label>
+            <input asp-for="Input.AdministratorName" />
+            <span asp-validation-for="Input.AdministratorName"></span>
+            <label asp-for="Input.AdministratorEmail"></label>
+            <input asp-for="Input.AdministratorEmail" autocomplete="email" />
+            <span asp-validation-for="Input.AdministratorEmail"></span>
+            <button class="button button-red" type="submit">Create company and assign administrator</button>
+        </form>
+
+        <h2>Existing auction companies</h2>
+        <div class="membership-list">
+            @foreach (var organization in Model.Organizations)
+            {
+                <div>
+                    <strong>@organization.Name</strong>
+                    <span>@organization.MemberCount members · <a asp-page="/Organizations/Manage" asp-route-organizationId="@organization.Id">Manage</a></span>
+                </div>
+            }
+        </div>
+    </div>
+</section>

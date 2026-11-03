@@ -11,6 +11,8 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 
     public DbSet<OrganizationMembership> OrganizationMemberships => Set<OrganizationMembership>();
 
+    public DbSet<AccountInvitation> AccountInvitations => Set<AccountInvitation>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -69,6 +71,38 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
                 .WithMany(user => user.OrganizationMemberships)
                 .HasForeignKey(membership => membership.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<AccountInvitation>(entity =>
+        {
+            entity.ToTable("AccountInvitations", table =>
+                table.HasCheckConstraint(
+                    "CK_AccountInvitations_Role",
+                    "\"Role\" IN ('Administrator', 'Staff')"));
+            entity.HasKey(invitation => invitation.Id);
+            entity.Property(invitation => invitation.Email).HasMaxLength(256).IsRequired();
+            entity.Property(invitation => invitation.NormalizedEmail).HasMaxLength(256).IsRequired();
+            entity.Property(invitation => invitation.DisplayName).HasMaxLength(120).IsRequired();
+            entity.Property(invitation => invitation.Role).HasMaxLength(32).IsRequired();
+            entity.Property(invitation => invitation.TokenHash).HasMaxLength(64).IsRequired();
+            entity.Property(invitation => invitation.ExpiresUtc).IsRequired();
+            entity.Property(invitation => invitation.CreatedUtc).IsRequired();
+            entity.HasIndex(invitation => invitation.TokenHash).IsUnique();
+            entity.HasIndex(invitation => new
+            {
+                invitation.OrganizationId,
+                invitation.NormalizedEmail,
+                invitation.AcceptedUtc,
+                invitation.ExpiresUtc
+            });
+            entity.HasOne(invitation => invitation.Organization)
+                .WithMany(organization => organization.Invitations)
+                .HasForeignKey(invitation => invitation.OrganizationId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(invitation => invitation.CreatedByUser)
+                .WithMany()
+                .HasForeignKey(invitation => invitation.CreatedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }

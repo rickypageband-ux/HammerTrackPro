@@ -1,6 +1,6 @@
 # HammerTrackOnline.com web application
 
-This is the first owner-approved HammerTrack Online web-development slice. It is a .NET 8 Razor Pages application for an Ubuntu/Plesk server. HammerTrack Live is the live-event mode within this platform. The current release is a public development preview only: it has no database, accounts, bids, cards, or payment processing.
+This is the owner-approved HammerTrack Online web platform for an Ubuntu/Plesk server. HammerTrack Live is the live-event mode within this platform. The controlled release uses PostgreSQL-backed invite-only accounts and organization administration. It does not yet accept auction registrations, bids, cards, or payments.
 
 ## Local verification
 
@@ -23,6 +23,7 @@ Before installation, confirm the HammerTrackOnline.com subscription has:
 - A writable directory outside the deployment tree for Data Protection keys.
 - A valid HammerTrackOnline.com and www.HammerTrackOnline.com SSL certificate.
 - PostgreSQL 16 bound only to loopback, with the application connection string supplied as `HAMMERTRACKONLINE_DB` from a root-readable systemd environment file.
+- Authenticated SMTP, with account-delivery settings supplied from `/etc/hammertrackonline/account-email.env` and never committed or placed in the web root.
 - External monitoring of `/health`.
 
 Do not place future Stripe secrets, database passwords, SMTP passwords, private license-signing keys, uploaded images, or backups in the deployment archive or public web root.
@@ -38,6 +39,8 @@ dotnet publish .\HammerTrackLive.Web\HammerTrackLive.Web.csproj -c Release -r li
 Upload the contents of `output/hammertrackonline/publish` to the private application directory selected for HammerTrackOnline.com. Do not upload source, tests, `.git`, or any HammerTrack Pro license issuer files.
 
 Copy `appsettings.Production.example.json` to `appsettings.Production.json` on the server and set `DataProtection:KeysPath` to a persistent service-account-writable location such as `/var/lib/hammertrackonline/keys`. The production configuration file is server-managed and must not be copied back into source if it later contains secrets.
+
+Copy `deployment/hammertrackonline/account-email.env.example` to `/etc/hammertrackonline/account-email.env`, replace every example value on the server, set ownership to `root:root`, and set mode `0600`. The systemd unit maps those environment values into the `AccountEmail` configuration section. Password-reset and invitation delivery remain unavailable until this file contains working SMTP credentials.
 
 ## Process and proxy
 
@@ -60,6 +63,17 @@ Configure the HammerTrackOnline.com Plesk vhost to reverse proxy HTTPS traffic t
 6. Restart the service and verify it returns without losing Data Protection keys.
 7. Confirm no `.pem`, `.htplicense`, database, payment secret, or SMTP credential exists under the deployment directory.
 
+## Account-management deployment checks
+
+1. Apply ordered idempotent migration `002_AccountInvitations` only after taking a PostgreSQL backup.
+2. Create an auction company from `/Platform/Organizations` while signed in as `PlatformAdministrator`.
+3. Confirm that the administrator receives a single-use invitation and can create a 12-character strong password.
+4. Confirm the accepted account is email-confirmed and appears under the organization.
+5. Verify a second administrator can be added before attempting to demote or remove the first; the final administrator safeguard must reject the operation.
+6. Request a password reset and verify the same neutral confirmation is displayed for known and unknown email addresses.
+
+For a new installation with no users, run `bootstrap-platform-administrator.sh` once as root after the migration and application deployment. It creates or repairs only the configured first administrator, assigns `PlatformAdministrator`, never prints its generated password, and is idempotent. Immediately use Forgot Password to choose the administrator's private password through the confirmed mailbox.
+
 ## Not production-ready yet
 
-Do not enable public registration or advertise live bidding from this slice. Invite-only authentication and organization tenancy are present, but confirmation email, password recovery, administrator provisioning, append-only bidding, Stripe Connect onboarding and signed webhooks, object storage, notifications, backup/restore, load tests, and outage procedures remain required.
+Do not enable public registration or advertise live bidding from this slice. Invite-only email confirmation, password recovery, administrator provisioning, and organization management are present. Append-only bidding, Stripe Connect onboarding and signed webhooks, object storage, bidder notifications, production backup/restore, load tests, and outage procedures remain required.

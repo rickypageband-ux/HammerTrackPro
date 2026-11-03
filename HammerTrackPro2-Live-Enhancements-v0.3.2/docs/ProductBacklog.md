@@ -5,7 +5,7 @@
 - [x] Owner-approved public web foundation for HammerTrackOnline.com with fictional demonstration catalog, responsive branding, service boundaries, health endpoint, tests, and Plesk-oriented architecture documentation. HammerTrack Live remains its camera-enabled live-event mode.
 - [ ] PostgreSQL tenancy, organizations, roles, authentication, and ordered initial migration.
   - [x] PostgreSQL 16 loopback deployment, initial identity/organization migration, durable roles, invite-only login, lockout, protected account page, and secure cookie foundation.
-  - [ ] Confirmation email, password recovery, administrator invitation/provisioning, and organization-management workflow.
+  - [x] Invite-confirmed email, password recovery, administrator invitation/provisioning, and organization-management workflow.
 - [ ] Auctioneer onboarding, catalog creation, image/document storage, auction terms, and publishing workflow.
 - [ ] Bidder identity, auction registration, approval, watchlist, and notification workflow.
 - [ ] Timed online bidding with append-only bid events, maximum/proxy bidding, increments, reserves, soft closing, and audited closeout.

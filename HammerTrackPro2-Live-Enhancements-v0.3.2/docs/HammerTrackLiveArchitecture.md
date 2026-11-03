@@ -20,7 +20,7 @@ The existing HammerTrack Pro desktop application remains capable of operating a 
 - A `/health` endpoint for Plesk or external uptime monitoring.
 - Automated catalog and pricing tests.
 
-The deployed controlled-development release now has PostgreSQL-backed invite-only identity, organization membership, durable roles, rate-limited login, lockout, and protected account pages. Public registration remains disabled. It does **not** accept auction registrations, bids, cards, or payments; those actions remain disabled until their authorization, auditing, payment onboarding, webhook validation, and production terms are implemented and tested.
+The deployed controlled-development release now has PostgreSQL-backed invite-only identity, organization membership, durable roles, rate-limited login, lockout, protected account pages, private email-confirming invitations, password recovery, platform provisioning, and organization-scoped team administration. Public registration remains disabled. It does **not** accept auction registrations, bids, cards, or payments; those actions remain disabled until their authorization, auditing, payment onboarding, webhook validation, and production terms are implemented and tested.
 
 ## Target production topology
 

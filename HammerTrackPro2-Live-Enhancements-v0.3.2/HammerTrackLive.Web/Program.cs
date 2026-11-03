@@ -10,6 +10,11 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddRazorPages();
 builder.Services.AddSingleton<IAuctionCatalogService, DemonstrationAuctionCatalogService>();
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.Configure<AccountEmailOptions>(builder.Configuration.GetSection(AccountEmailOptions.SectionName));
+builder.Services.AddScoped<IAccountEmailSender, SmtpAccountEmailSender>();
+builder.Services.AddScoped<IAccountInvitationService, AccountInvitationService>();
+builder.Services.AddScoped<IOrganizationAdministrationService, OrganizationAdministrationService>();
 var databaseConnection = builder.Configuration.GetConnectionString("HammerTrackOnline")
     ?? Environment.GetEnvironmentVariable("HAMMERTRACKONLINE_DB")
     ?? throw new InvalidOperationException("The HammerTrack Online database connection is not configured.");
@@ -30,6 +35,10 @@ builder.Services
     })
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
+builder.Services.Configure<DataProtectionTokenProviderOptions>(options =>
+{
+    options.TokenLifespan = TimeSpan.FromHours(2);
+});
 builder.Services.ConfigureApplicationCookie(options =>
 {
     options.Cookie.Name = "__Host-HammerTrackOnline.Auth";
@@ -72,6 +81,12 @@ if (!string.IsNullOrWhiteSpace(dataProtectionKeysPath))
 }
 
 var app = builder.Build();
+
+if (args.Contains("--bootstrap-platform-administrator", StringComparer.Ordinal))
+{
+    Environment.ExitCode = await PlatformAdministratorBootstrapper.RunAsync(app.Services, builder.Configuration);
+    return;
+}
 
 app.UseForwardedHeaders();
 

@@ -1,0 +1,76 @@
+@page "/Organizations/{organizationId:guid}"
+@model HammerTrackLive.Web.Pages.Organizations.ManageModel
+@{
+    ViewData["Title"] = "Manage auction company";
+}
+
+<section class="account-section">
+    <div class="account-card account-card-wide">
+        <div class="eyebrow">AUCTION COMPANY ADMINISTRATION</div>
+        <h1>@Model.OrganizationName</h1>
+        @if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
+        {
+            <div class="account-notice">@Model.StatusMessage</div>
+        }
+
+        <h2>Invite a team member</h2>
+        <p>Invitations expire in seven days and can be used only once.</p>
+        <form method="post" asp-page-handler="Invite">
+            <div asp-validation-summary="ModelOnly" class="validation-summary"></div>
+            <input asp-for="OrganizationId" type="hidden" />
+            <label asp-for="Invite.DisplayName"></label>
+            <input asp-for="Invite.DisplayName" />
+            <span asp-validation-for="Invite.DisplayName"></span>
+            <label asp-for="Invite.Email"></label>
+            <input asp-for="Invite.Email" autocomplete="email" />
+            <span asp-validation-for="Invite.Email"></span>
+            <label asp-for="Invite.Role"></label>
+            <select asp-for="Invite.Role">
+                <option value="Staff">Staff</option>
+                <option value="Administrator">Administrator</option>
+            </select>
+            <button class="button button-red" type="submit">Send private invitation</button>
+        </form>
+
+        <h2>Current team</h2>
+        <div class="admin-table-wrap">
+            <table class="admin-table">
+                <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Actions</th></tr></thead>
+                <tbody>
+                @foreach (var member in Model.Members)
+                {
+                    <tr>
+                        <td>@member.DisplayName</td>
+                        <td>@member.Email</td>
+                        <td>@member.Role</td>
+                        <td class="admin-actions">
+                            <form method="post" asp-page-handler="ChangeRole">
+                                <input asp-for="OrganizationId" type="hidden" />
+                                <input name="userId" value="@member.UserId" type="hidden" />
+                                <input name="role" value="@(member.Role == "Administrator" ? "Staff" : "Administrator")" type="hidden" />
+                                <button type="submit">Make @(member.Role == "Administrator" ? "Staff" : "Administrator")</button>
+                            </form>
+                            <form method="post" asp-page-handler="Remove">
+                                <input asp-for="OrganizationId" type="hidden" />
+                                <input name="userId" value="@member.UserId" type="hidden" />
+                                <button type="submit">Remove</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+
+        @if (Model.PendingInvitations.Count > 0)
+        {
+            <h2>Pending invitations</h2>
+            <div class="membership-list">
+                @foreach (var invitation in Model.PendingInvitations)
+                {
+                    <div><strong>@invitation.Email</strong><span>@invitation.Role · expires @invitation.ExpiresUtc.ToLocalTime().ToString("g")</span></div>
+                }
+            </div>
+        }
+    </div>
+</section>

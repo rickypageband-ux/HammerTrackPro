@@ -51,12 +51,55 @@
 }
 
 .account-card input[type="email"],
-.account-card input[type="password"] {
+.account-card input[type="password"],
+.account-card input[type="text"],
+.account-card select {
     width: 100%;
     min-height: 48px;
     padding: 10px 12px;
     border: 1px solid #c9cdd2;
     font: inherit;
+}
+
+.account-card select {
+    background: #fff;
+}
+
+.account-card h2 {
+    margin-top: 38px;
+}
+
+.admin-table-wrap {
+    overflow-x: auto;
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.admin-table th,
+.admin-table td {
+    padding: 12px;
+    border-bottom: 1px solid #dfe2e6;
+    text-align: left;
+}
+
+.admin-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.admin-actions form {
+    display: block;
+    margin: 0;
+}
+
+.admin-actions button {
+    border: 1px solid #1b1d20;
+    background: #fff;
+    padding: 7px 9px;
+    cursor: pointer;
 }
 
 .checkbox-row {

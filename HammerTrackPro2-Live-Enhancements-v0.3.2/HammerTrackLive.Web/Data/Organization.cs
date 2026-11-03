@@ -13,4 +13,6 @@ public sealed class Organization
     public bool IsActive { get; set; } = true;
 
     public ICollection<OrganizationMembership> Memberships { get; } = [];
+
+    public ICollection<AccountInvitation> Invitations { get; } = [];
 }

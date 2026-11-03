@@ -9,6 +9,10 @@
         <div class="eyebrow">MY ACCOUNT</div>
         <h1>@Model.DisplayName</h1>
         <p>@Model.Email</p>
+        @if (Model.IsPlatformAdministrator)
+        {
+            <p><a class="button button-red" asp-page="/Platform/Organizations">Manage auction companies</a></p>
+        }
         @if (Model.Memberships.Count == 0)
         {
             <div class="account-notice">Your account has not been assigned to an auction company yet.</div>
@@ -19,7 +23,16 @@
             <div class="membership-list">
                 @foreach (var membership in Model.Memberships)
                 {
-                    <div><strong>@membership.OrganizationName</strong><span>@membership.Role</span></div>
+                    <div>
+                        <strong>@membership.OrganizationName</strong>
+                        <span>
+                            @membership.Role
+                            @if (membership.CanManage)
+                            {
+                                <text> · </text><a asp-page="/Organizations/Manage" asp-route-organizationId="@membership.OrganizationId">Manage team</a>
+                            }
+                        </span>
+                    </div>
                 }
             </div>
         }

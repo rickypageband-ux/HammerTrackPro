@@ -22,6 +22,67 @@ namespace HammerTrackLive.Web.Data.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("HammerTrackLive.Web.Data.AccountInvitation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("AcceptedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<DateTimeOffset>("ExpiresUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("NormalizedEmail")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique();
+
+                    b.HasIndex("OrganizationId", "NormalizedEmail", "AcceptedUtc", "ExpiresUtc");
+
+                    b.ToTable("AccountInvitations", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_AccountInvitations_Role", "\"Role\" IN ('Administrator', 'Staff')");
+                        });
+                });
+
             modelBuilder.Entity("HammerTrackLive.Web.Data.ApplicationUser", b =>
                 {
                     b.Property<Guid>("Id")
@@ -308,6 +369,25 @@ namespace HammerTrackLive.Web.Data.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("HammerTrackLive.Web.Data.AccountInvitation", b =>
+                {
+                    b.HasOne("HammerTrackLive.Web.Data.ApplicationUser", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("HammerTrackLive.Web.Data.Organization", "Organization")
+                        .WithMany("Invitations")
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CreatedByUser");
+
+                    b.Navigation("Organization");
+                });
+
             modelBuilder.Entity("HammerTrackLive.Web.Data.OrganizationMembership", b =>
                 {
                     b.HasOne("HammerTrackLive.Web.Data.Organization", "Organization")
@@ -385,6 +465,8 @@ namespace HammerTrackLive.Web.Data.Migrations
 
             modelBuilder.Entity("HammerTrackLive.Web.Data.Organization", b =>
                 {
+                    b.Navigation("Invitations");
+
                     b.Navigation("Memberships");
                 });
 #pragma warning restore 612, 618
